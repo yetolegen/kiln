@@ -2,7 +2,9 @@
 
 A virtual pottery wheel controlled by hand gestures through a webcam. A browser game model with Russian UI.
 
-**Current milestone: B1 scaffold.** The landing page runs; camera access, tracking integration and pottery interactions follow in later tasks. Production URL: pending deployment.
+[Live HTTPS site](https://kiln-delta-rose.vercel.app)
+
+**Current milestone: B1 scaffold.** The landing page runs; camera access, tracking integration and pottery interactions follow in later tasks.
 
 ## Run locally
 
@@ -24,6 +26,16 @@ npm run preview
 ## Deploy
 
 Import this repository into Vercel using the Vite preset. `vercel.json` sets the build command, `dist` output and SPA fallback. No environment variables are required for B1. Deployment configuration follows [Vercel's Vite guide](https://vercel.com/docs/frameworks/frontend/vite).
+
+Deployed to the `kiln` project via Vercel CLI. To update production from this linked checkout:
+
+```sh
+npx vercel@61.0.0 deploy --prod
+```
+
+Automatic deployments on GitHub pushes are not connected yet: Vercel requires a GitHub login connection for the account. Until that is configured, deploy with the CLI.
+
+B1 verification: typecheck/build and 8 coordinate tests pass. Public HTTPS returns 200 for the page, assets, `/gallery` and `?dev=1`; production JavaScript excludes the mock. Visual checks and device testing are still pending.
 
 ## Collaboration
 
