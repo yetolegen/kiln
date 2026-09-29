@@ -107,6 +107,8 @@ progress { display: block; width: min(240px, 80vw); height: 8px; margin: 20px 0;
 .dwell-button:focus-visible { outline: 3px solid #ffe0a2; outline-offset: 4px; }
 .dwell-button:disabled { opacity: .45; cursor: default; }
 .phase-details:empty { display: none; }
+.sound-toggle { position: fixed; top: 92px; right: 24px; min-height: 44px; padding: 10px 14px; font-size: 12px; }
+@media (max-width: 600px) { .sound-toggle { top: auto; bottom: 8px; right: 12px; z-index: 4; } }
 .hud { position: fixed; inset: auto 24px 76px; display: flex; align-items: center; justify-content: space-between; gap: 16px; pointer-events: none; }
 .hud__gesture, .hud__tracking { border-radius: 30px; background: #211d19dd; border: 1px solid #70513c; padding: 10px 16px; font-size: 13px; }
 .hud__hint { position: fixed; top: 290px; left: 50%; transform: translateX(-50%); width: min(600px, calc(100% - 32px)); padding: 14px 20px; margin: 0; border-radius: 16px; border: 1px solid #ad9270; background: #211d19ed; text-align: center; line-height: 1.5; }

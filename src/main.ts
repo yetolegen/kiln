@@ -3,8 +3,8 @@ import { CameraSession, cameraProblem, cameraProjection } from './browser/camera
 import { connectTracking, loadTracker } from './browser/tracking';
 import { HandTracker, HandTrackerError } from './tracking/handTracker';
 import { createController } from './engine/controller';
-import { unlockSound } from './audio/sound';
-import { unlockVoice } from './audio/voice';
+import { createSoundPlayer, unlockSound } from './audio/sound';
+import { createVoicePlayer, unlockVoice } from './audio/voice';
 import { createScene } from './render/scene';
 import { createOverlay } from './render/overlay';
 import { DwellController } from './ui/dwell';
@@ -26,7 +26,12 @@ if (import.meta.env.DEV && new URLSearchParams(location.search).get('dev') === '
   mockMode = true;
 }
 const state: StartupState = { busy: false, cameraActive: false, error: null };
-const screens = createScreens(root, () => { void start(); }, (command) => core.dispatch(command, performance.now()));
+const sound = createSoundPlayer();
+const voice = createVoicePlayer();
+let muted = false;
+const screens = createScreens(root, () => { void start(); }, (command) => core.dispatch(command, performance.now()), () => {
+  muted = !muted; sound.setMuted(muted); voice.setMuted(muted); return muted;
+});
 const dwell = new DwellController();
 const hud = createHud(screens.page);
 const scene = createScene(screens.viewport);
@@ -114,6 +119,7 @@ window.addEventListener('orientationchange', orientation);
 screens.video.addEventListener('resize', resize);
 
 function visibility(): void {
+  if (document.hidden) { sound.silence(); voice.stop(); }
   if (document.hidden) tracking?.pause(performance.now());
   else project(true);
 }
@@ -131,6 +137,8 @@ function render(nowMs: number): void {
   const snapshot = core.tick(nowMs);
   screens.update(snapshot, state, nowMs);
   hud.update(snapshot, nowMs);
+  sound.update(snapshot, !document.hidden && state.cameraActive);
+  voice.update(document.hidden || !state.cameraActive ? null : snapshot.hint);
   const selected = dwell.update(snapshot, nowMs, screens.targets, screens.revision);
   screens.showDwell(dwell.activeId, dwell.progress);
   if (selected) screens.activate(selected);
@@ -155,6 +163,8 @@ function dispose(): void {
   scene.dispose();
   overlay.dispose();
   hud.destroy();
+  sound.destroy();
+  voice.destroy();
   destroyMock?.();
   observer.disconnect();
   cancelAnimationFrame(animation);

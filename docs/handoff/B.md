@@ -1,3 +1,11 @@
+### 2026-09-29 22:44 · B · B6 sound and voice
+**Done:** synthesized wheel/clay/tear/collapse/kiln/chime sounds; Russian hint speech uses object identity and replaces queued speech; dwell mute. Build + 123 unit tests + Chromium disabled-audio/mute test pass.
+**Contract changes:** none.
+**For you (A):** applied latest hint identity rule; issue sounds consume begins only.
+**Blocked / need from you:** none.
+**Known issues:** no new bugs found in these checks. Real speaker output and installed Russian system voices still need a physical-device check.
+**Next:** B7 tutorial and real episode progression.
+
 ### 2026-09-29 22:22 · B · B5 screens, dwell and HUD
 **Done:** phase-driven Russian screens, menu/studio navigation, observation-driven dwell, gesture/tracking chips and contextual hints. Build + 119 unit tests + Chromium dwell navigation pass; desktop/390px screenshots reviewed.
 **Contract changes:** consumed A's target/glazeId additions; mock updated.

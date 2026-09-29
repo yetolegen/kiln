@@ -1,5 +1,22 @@
 import { test, expect } from '@playwright/test';
 
+test('B6 continues without sound APIs and toggles mute by dwell', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'speechSynthesis', { value: undefined });
+    Object.defineProperty(window, 'AudioContext', { value: undefined });
+  });
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto('/?dev=1&mock=1');
+  await page.locator('[data-action="mute"]').hover();
+  await expect(page.locator('[data-action="mute"]')).toHaveText('Звук выключен');
+  await page.locator('[data-action="free"]').hover();
+  await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'studio');
+  await page.keyboard.press('t');
+  await expect(page.locator('.hud__hint')).toContainText('Слишком быстро');
+  expect(errors).toEqual([]);
+});
+
 test('B5 navigates by dwell and shows a readable phone HUD', async ({ page }) => {
   await page.goto('/?dev=1&mock=1');
   await expect(page.locator('[data-action="free"]')).toBeVisible();

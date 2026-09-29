@@ -9,7 +9,7 @@ export interface StartupState {
   error: StartupProblem | null;
 }
 
-export function createScreens(root: HTMLElement, onStart: () => void, dispatch: (command: AppCommand) => void) {
+export function createScreens(root: HTMLElement, onStart: () => void, dispatch: (command: AppCommand) => void, toggleMute: () => boolean) {
   const page = document.createElement('main');
   page.className = 'workshop';
   const viewport = document.createElement('div');
@@ -76,6 +76,7 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
   const targets: DwellRegion[] = [];
   let dwelling: HTMLButtonElement | null = null;
   let lastDwell = -1;
+  let muted = false;
   function refreshTargets(): void {
     targets.length = 0;
     for (const entry of entries) {
@@ -109,6 +110,12 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
       addAction('menu', 'Новый сосуд', back);
       addAction('gallery', 'Моя полка', () => dispatch({ type: 'openGallery' }));
     } else if (snapshot.phase === 'glaze' || snapshot.phase === 'gallery') addAction('menu', 'В мастерскую', back);
+    if (!['loading', 'permission', 'calibrate', 'firing'].includes(snapshot.phase)) {
+      const mute = addAction('mute', muted ? 'Звук выключен' : 'Звук включён', () => {
+        muted = toggleMute(); mute.textContent = muted ? 'Звук выключен' : 'Звук включён';
+      });
+      mute.classList.add('sound-toggle');
+    }
     refreshTargets();
   }
   const layout = new ResizeObserver(refreshTargets);
