@@ -115,6 +115,23 @@ describe('pull / press / raise / point', () => {
     expect(on.cursorPx).toEqual({ x: 10, y: 20 });
   });
 
+  it('in studio, a pointing hand next to a second hand is not a cursor (no accidental "start over")', () => {
+    const pt = { extension: { index: 1, middle: 0, ring: 0, pinky: 0 }, pointing: true };
+    const ui = { ...CTX, uiEnabled: true };
+    expect(run(hand(-1, 0.6, pt), hand(1, 0.6, FIST), 600, undefined, ui).g.gesture).not.toBe('point');
+    expect(run(hand(-1, 0.6, pt), hand(1, 0.6, FIST), 600, undefined, { ...ui, phase: 'menu' }).g.gesture).toBe('point');
+  });
+
+  it('two visible hands in a reacquiring frame are never called oneHand', () => {
+    const rec = new GestureRecognizer();
+    const clay = createClay();
+    let g!: GestureState;
+    for (let t = 0; t <= 300; t += 33) g = rec.update(frame(t, hand(-1, 0.6), hand(1, 0.6)), CTX, clay, PROJ);
+    g = rec.update({ ...frame(333, hand(-1, 0.6), hand(1, 0.6)), status: 'reacquiring' }, CTX, clay, PROJ);
+    expect(g.gesture).not.toBe('oneHand');
+    expect(g.deforming).toBe(false); // but no deformation on an unreliable frame
+  });
+
   it('raise: open hands above the pot top + margin, held', () => {
     const s = run(hand(-1, 1.6), hand(1, 1.6), 1600);
     expect(s.g.gesture).toBe('raise');

@@ -55,7 +55,11 @@ export class GestureRecognizer {
     const cur = this.current;
     const raisePhase = ctx.phase === 'studio' || (ctx.phase === 'tutorial' && ctx.expectedGesture === 'raise');
     const raiseLineWorld = clay.height + CONFIG.RAISE_MARGIN_WORLD;
-    const pointer = trusted && ctx.uiEnabled ? [r, l].find((h) => h?.pointing) ?? null : null;
+    // In shaping phases a stray index finger during press must not become a cursor (it could dwell on
+    // "start over"), so there pointing only counts with ONE hand visible.
+    const shapingPhase = ctx.phase === 'studio' || ctx.phase === 'tutorial';
+    const pointAllowed = trusted && ctx.uiEnabled && (!shapingPhase || !l || !r);
+    const pointer = pointAllowed ? [r, l].find((h) => h?.pointing) ?? null : null;
 
     let cand: Gesture = 'none';
     if (both && raisePhase && allOpen(l, cur === 'raise') && allOpen(r, cur === 'raise') &&
@@ -64,7 +68,7 @@ export class GestureRecognizer {
     else if (both && isPinch(l, cur === 'pullUp') && isPinch(r, cur === 'pullUp')) cand = 'pullUp';
     else if (both && isFist(l, cur === 'pressDown') && isFist(r, cur === 'pressDown')) cand = 'pressDown';
     else if (both && openPalm(l, cur === 'shape') && openPalm(r, cur === 'shape')) cand = 'shape';
-    else if (!both && trusted && (l || r)) cand = 'oneHand';
+    else if (trusted && !l !== !r) cand = 'oneHand'; // exactly one hand; two hands in a bad frame are 'none'
 
     if (cand !== this.candidate) {
       this.candidate = cand;
