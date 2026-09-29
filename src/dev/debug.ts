@@ -51,7 +51,11 @@ export function createDebugPanel(parent: HTMLElement = document.body) {
             `err L${f(g.contact.leftErrorWorld)} R${f(g.contact.rightErrorWorld)}\n` +
             `targetR ${f(g.targetRadiusWorld)} center ${f(g.centerOffsetPalm)} palm speed ${f(g.speedPalmPerS)} palm/s`
           : 'gesture –',
-        c ? `clay h ${f(c.height)} thick ${f(c.thickness, 3)} rev ${c.revision}` : 'clay –',
+        g ? `motion ${f(g.motionStrength)} nearMiss ${g.nearMiss ? `${g.nearMiss.reason} ${JSON.stringify(g.nearMiss.params)}` : '–'}` : '',
+        c ? `clay h ${f(c.height)} thick ${f(c.thickness, 3)} wobble ${f(c.wobble)} ` +
+          `maxDmg ${f(Math.max(...c.damage))} ${c.collapsed ? `COLLAPSED(${c.collapseCause})` : ''} rev ${c.revision}` : 'clay –',
+        `issues ${s.activeIssues.map((e) => e.type).join(', ') || '–'}`,
+        s.hint ? `hint ${s.hint.id} ${s.hint.severity} p${s.hint.priority} ${JSON.stringify(s.hint.params)}` : 'hint –',
       ].join('\n');
     },
     destroy(): void {
