@@ -2,6 +2,21 @@
 
 Newest entry at the top. Written by A, read by B.
 
+### 2026-09-29 18:30 · A · A4 phases, target, session, result
+**Done:** controller owns the whole flow `loading → permission → calibrate → menu → tutorial | studio → glaze → firing → result → gallery / menu`. One-shot raise → finishShaping. Target «Ваза» + similarity (signed deltas), `targetMismatch` coaching (tooWide/tooNarrow/tooLow/tooHigh). Session stats (execution vs tracking episodes, gestureMs, activeMs), one `SessionResult` per session with copied arrays. Also fixed: two visible hands in a bad frame no longer read as `oneHand`; in studio/tutorial pointing needs one hand only (no accidental "start over" mid-press). Tests T15–T18 + flow: 84/84, typecheck + build pass.
+**Contract changes:** `types.ts`: added `AppCommand { type: 'modelReady' }`. The core can't know when the model finished loading; that's the only way to leave `loading`.
+**For you (B):**
+- **Boot:** `HandTracker.create()` resolved → `core.dispatch({ type: 'modelReady' }, now)` (`loading → permission`). Call `core.updateProjection()` **only once the camera is running**: the first call moves to `calibrate`. Calibration = both hands visible and still for 0.8 s, `snap.calibrationProgress` 0..1, then `menu` automatically.
+- **Controller:** `createController({ nowIso: () => new Date().toISOString() })` so `result.completedAtIso` is set (the core never reads the clock).
+- **Commands per phase** (others are ignored, so a late dwell can't skip a screen): menu: `start` (tutorial/free/commission; commission `targetId` optional, default «Ваза»), `openGallery` · tutorial: `tutorialStep`, `restart` (keeps the step), `backToMenu` · studio: `finishShaping` (raise does it too), `restart`, `backToMenu` · glaze: `selectGlaze` then `confirmGlaze` (confirm is ignored until a glaze is selected), `backToMenu` · result: `openGallery`, `backToMenu` · gallery: `backToMenu`.
+- **Firing** lasts `CONFIG.FIRING_MS` (4 s), then `phase = 'result'` and `snap.result` is set. Save it once (check `result.id`); the same object comes back on every tick.
+- **Tutorial:** send `tutorialStep` with `expectedGesture` for each step. Shaping/pull/press only act on the step that expects them. On the final step (`expectedGesture: 'raise'`), holding raise 1.5 s ends the tutorial and returns to `menu`. For the tear step, watch `snap.events` for `tear` `begin` then `end`.
+- **Best scores:** `stats.targetId` is `'vase@1'` (id@version); compare scores only for the same string. Score = `result.stats.similarity.score` (0..100, float).
+- **Studio "start over":** point with ONE hand (other hand out of frame or down).
+**Blocked / need from you:** B2 camera + `ProjectionParams`, then the main-loop wiring (A2 entry + boot steps above).
+**Known issues:** all thresholds untested on real hands. `targetMismatch` tolerance (0.05) is tight, so the coaching hint is almost always on in commission (lowest priority, shows only when nothing else does). Tutorial result isn't a result screen; the tutorial goes back to menu.
+**Next:** A5: `tracking/recorder.ts` (dev recordings), `notebooks/tuning.ipynb`. Then real-hand tuning once B2 is wired.
+
 ### 2026-09-29 17:10 · A · A3 pull/press, error mode, hints
 **Done:** gestures pullUp / pressDown (motionStrength = slower hand), raise, point (cursor), near-miss with evidence only. Clay: pull/press, repair, tear damage, wobble, overhang smoothing, collapse once + recovery by pressing. `engine/rules.ts`: episodes (begin/update/end, categories). `engine/hints.ts`: one hint, priority, speech cooldown. Controller wires it all: `snap.events`, `snap.activeIssues`, `snap.hint` are live. Fixes from review: per-track velocity dt after brief hand loss (was a fake-tear source), tracker no longer swallows core errors. Tests T10, T12, T13 + 30 more: 64/64, typecheck + build pass.
 **Contract changes:** none.
