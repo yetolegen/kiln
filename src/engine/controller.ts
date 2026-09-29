@@ -242,7 +242,8 @@ class Controller implements CoreController {
     this.result = null;
     this.gesture = null;
     this.gestures.reset();
-    this.rules.reset();
+    // end (not just forget) whatever was running, e.g. "start over" mid-wobble; B must never see a begin without an end
+    this.pendingEvents.push(...this.rules.closeAll(nowMs));
     this.hints.reset();
   }
 

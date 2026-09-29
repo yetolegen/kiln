@@ -181,6 +181,15 @@ describe('sessions', () => {
     expect(core.tick(T_START + CONFIG.FIRING_MS).result?.completedAtIso).toBe('2026-09-30T10:00:00.000Z');
   });
 
+  it('"start over" mid-tear ends the tear episode instead of dropping it', () => {
+    const core = inSession('free');
+    const t = feed(core, hand(-1, 0.6, fast), hand(1, 0.6, fast), T_START, 1000);
+    core.dispatch({ type: 'restart', newSessionId: 's2' }, t);
+    const s = core.tick(t);
+    expect(s.events.some((e) => e.type === 'tear' && e.phase === 'end')).toBe(true);
+    expect(s.stats?.executionEpisodes.tear ?? 0).toBe(0); // new session starts clean
+  });
+
   it('leaving the studio ends every running episode', () => {
     const core = inSession('free');
     const t = feed(core, hand(-1, 0.6, fast), hand(1, 0.6, fast), T_START, 1000);

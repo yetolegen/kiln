@@ -161,12 +161,7 @@ export class RuleEngine {
   private episodes = new Map<ClayEventType, Episode>();
   private seq = 0;
 
-  /** Forget everything without emitting (new session). */
-  reset(): void {
-    this.episodes.clear();
-  }
-
-  /** Leaving the studio: end every running episode so consumers never see a begin without an end. */
+  /** Leaving the studio or starting over: end every running episode so consumers never see a begin without an end. */
   closeAll(tMs: number): ClayEvent[] {
     const events: ClayEvent[] = [];
     for (const ep of this.episodes.values()) {
