@@ -42,6 +42,24 @@ describe('hints', () => {
     expect(h.expire(33 + CONFIG.HINT_TTL_MS + 1)).toBeNull();
   });
 
+  it('"recovered" is spoken once even if a bigger hint covers it and clears', () => {
+    const h = new HintManager();
+    upd(h, 0, [ev('collapse')]);
+    const first = upd(h, 33, [], [ev('collapse', 'end')]);
+    expect(first?.speak).toBe(true);
+    expect(upd(h, 66, [ev('wobble')])?.id).toBe('wobble');
+    const back = upd(h, 99, []);
+    expect(back?.id).toBe('recovered');
+    expect(back?.speak).toBe(false);
+  });
+
+  it('hint object is stable while nothing changes (consumers speak on object change)', () => {
+    const h = new HintManager();
+    const a = upd(h, 0, [ev('wobble')]);
+    expect(h.expire(10)).toBe(a);
+    expect(h.expire(20)).toBe(a);
+  });
+
   it('wobble direction reaches the hint params', () => {
     const h = new HintManager();
     expect(upd(h, 0, [{ ...ev('wobble'), data: { dir: 'left', offsetPalm: 0.6 } }])?.params.dir).toBe('left');
