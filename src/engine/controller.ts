@@ -124,6 +124,9 @@ class Controller implements CoreController {
       hint: this.hint,
       stats: this.session?.stats(nowMs) ?? null,
       result: this.result,
+      // only while a session is on screen: mode is null in the menu
+      target: this.mode === 'commission' ? this.target : null,
+      glazeId: this.mode ? this.glazeId : null,
     };
   }
 

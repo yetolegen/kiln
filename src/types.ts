@@ -225,6 +225,8 @@ export interface EngineSnapshot {
   hint: Hint | null;
   stats: SessionStats | null;
   result: SessionResult | null;
+  target: TargetProfile | null;      // commission mode only (for the target silhouette); null otherwise
+  glazeId: string | null;            // selected glaze, from selectGlaze until the session ends
 }
 
 /**

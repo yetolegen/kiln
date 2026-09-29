@@ -81,6 +81,21 @@ describe('phases', () => {
     expect(s.gesture?.deforming).toBe(true); // shaping still allowed on this step
   });
 
+  it('snapshot exposes the commission target and the selected glaze', () => {
+    const free = inSession('free');
+    expect(free.tick(T_START).target).toBeNull();
+    const core = inSession('commission');
+    expect(core.tick(T_START).target?.name).toBe('Ваза');
+    core.dispatch({ type: 'finishShaping' }, T_START);
+    expect(core.tick(T_START).glazeId).toBeNull();
+    core.dispatch({ type: 'selectGlaze', glazeId: 'celadon' }, T_START);
+    expect(core.tick(T_START).glazeId).toBe('celadon');
+    core.dispatch({ type: 'backToMenu' }, T_START);
+    const menu = core.tick(T_START);
+    expect(menu.target).toBeNull();
+    expect(menu.glazeId).toBeNull();
+  });
+
   it('commands that do not fit the phase are ignored', () => {
     const core = createController();
     toMenu(core);
