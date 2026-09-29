@@ -25,7 +25,7 @@ export class DwellController {
       this.reset(); this.phase = snapshot.phase;
       this.epoch = input?.epoch ?? -1; this.screenRevision = screenRevision;
     }
-    if (!input || !gesture?.inputUsable || gesture.gesture !== 'point' || !gesture.cursorPx ||
+    if (!input || !gesture || !['ready', 'oneHand'].includes(input.status) || gesture.gesture !== 'point' || !gesture.cursorPx ||
         nowMs - input.tMs > CONFIG.MAX_INPUT_AGE_MS || nowMs < input.tMs || gesture.sourceFrameId !== input.frameId) {
       this.reset(); return null;
     }

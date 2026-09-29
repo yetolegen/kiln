@@ -36,6 +36,16 @@ it('does not repeatedly restart a session while the same button stays held', () 
   expect(fires).toBe(1);
 });
 
+it('accepts a trusted one-hand pointer even when two-hand shaping is unusable', () => {
+  const f = fixture(); let fires = 0;
+  for (let t = 0; t <= 1400; t += 100) {
+    const snapshot = f.core.tick(t);
+    snapshot.input!.status = 'oneHand'; snapshot.input!.screenRight = null; snapshot.gesture!.inputUsable = false;
+    if (f.dwell.update(snapshot, t, f.targets)) fires++;
+  }
+  expect(fires).toBe(1);
+});
+
 it('resets accumulated progress on stale input, loss, epoch, and screen change', () => {
   const f = fixture();
   for (let t = 0; t <= 500; t += 100) f.update(t);

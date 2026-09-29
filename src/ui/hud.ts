@@ -12,15 +12,19 @@ export function createHud(parent: HTMLElement) {
   let lastHint: Hint | null | undefined;
   let lastGesture = '', lastTracking = '';
   return {
-    update(snapshot: EngineSnapshot, nowMs: number): void {
-      hud.hidden = !['studio', 'tutorial'].includes(snapshot.phase);
+    update(snapshot: EngineSnapshot, nowMs: number, activeHint: Hint | null = snapshot.hint): void {
+      const shaping = ['studio', 'tutorial'].includes(snapshot.phase);
+      hud.hidden = !shaping && !activeHint;
+      gesture.hidden = !shaping; tracking.hidden = !shaping;
       if (hud.hidden) return;
-      const currentGesture = snapshot.gesture?.inputUsable ? snapshot.gesture.gesture : 'none';
+      const pointer = snapshot.gesture?.gesture === 'point' && !!snapshot.gesture.cursorPx && !!snapshot.input && ['ready', 'oneHand'].includes(snapshot.input.status) && nowMs - snapshot.input.tMs <= CONFIG.MAX_INPUT_AGE_MS;
+      const currentGesture = pointer ? 'point' : snapshot.gesture?.inputUsable ? snapshot.gesture.gesture : 'none';
       if (currentGesture !== lastGesture) { gesture.textContent = gestureText[currentGesture]; lastGesture = currentGesture; }
       const status = snapshot.input && nowMs - snapshot.input.tMs <= CONFIG.MAX_INPUT_AGE_MS ? snapshot.input.status : 'stale';
-      if (status !== lastTracking) { tracking.textContent = ru.tracking[status]; lastTracking = status; }
-      if (snapshot.hint !== lastHint) {
-        lastHint = snapshot.hint;
+      const label = pointer ? 'Указатель готов' : ru.tracking[status];
+      if (label !== lastTracking) { tracking.textContent = label; lastTracking = label; }
+      if (activeHint !== lastHint) {
+        lastHint = activeHint;
         banner.hidden = !lastHint;
         banner.textContent = lastHint ? hintText(lastHint) : '';
         banner.dataset.severity = lastHint?.severity ?? 'info';

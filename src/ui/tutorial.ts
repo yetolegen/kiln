@@ -62,6 +62,7 @@ export class TutorialScript {
     } else if (this.step === 3) {
       this.held = calm && continuous ? this.held + dt : 0;
       if (this.held >= 300) this.calmReady = true;
+      this.progress = this.calmReady ? 1 : Math.min(1, this.held / 300);
       if (this.calmReady && accepted) {
         const begin = snapshot.events.find((event) => event.type === 'tear' && event.phase === 'begin');
         if (begin) { this.tear = begin.episodeId; this.tearEnded = false; this.enter(4); }

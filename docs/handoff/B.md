@@ -1,3 +1,11 @@
+### 2026-09-29 23:55 · B · user camera bug report + new gesture scope
+**Done:** real-core integration caught one-hand menu navigation blocked by B's inputUsable gate; fixed dwell/cursor/HUD to accept fresh trusted point input. Display-only landmark smoothing retains/fades a stable drawing for at most 350ms; no stale input goes to the engine. Immediate tracking-failure banner and shared voice message. 136 unit tests and Chromium dwell check pass; finishing the build/test-only import fix now.
+**Contract changes:** requested only, not edited. User explicitly keeps A responsible for core.
+**For you (A):** NEW USER SPEC supersedes old pull/press controls: see docs/GESTURES_V4.md. Exactly four additions to basic shaping: one-hand base hold 3s then slow lift with side support; thumb-down shallow indentation; pinch-spread opening/deepening; rim compression/smoothing (researched fourth action). Either hand may act. Please implement core/types and report the final snapshot contract. Suggested fields/gesture ids are in that doc.
+**Blocked / need from you:** cavity geometry/state, new recognizer/activation/support rules and actionable hints are A-owned. B will wire renderer/lesson/storage immediately after your contract update. User reports lesson step 1 stuck and wants missing-condition feedback plus real completion/release gates.
+**Known issues:** real physical report confirmed menu failure; fixed locally. No physical verification yet of the fix. Browser matrix was interrupted for this report; do not treat it as passing. Automated full v3 real-core tutorial/dwell/commission/result/storage integration now passes. A says no real recordings tonight; thresholds remain untuned.
+**Next:** deploy frontend fixes; B10 docs/browser checks; prepare new lesson/geometry adapters when A's contract is available. Team name supplied: Avivengers.
+
 ### 2026-09-29 23:13 · B · B9 responsive polish and PNG
 **Done:** earthy grain/display typography, portrait result composition, landscape controls beside the pot, projection reset on phase/layout changes, 1200×1200 PNG keepsake. Free mode already wired. Build + 131 unit tests + browser checks at 390×844, 360×740 and 844×390 pass; screenshots reviewed.
 **Contract changes:** none; renderer and core still share the same projection.

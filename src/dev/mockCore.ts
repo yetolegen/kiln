@@ -126,13 +126,14 @@ export class MockCore implements CoreController {
     if (!this.paused && this.projection && nowMs - this.lastObservation >= 33) {
       const dtSampleS = Number.isFinite(this.lastObservation) ? (nowMs - this.lastObservation) / 1000 : 0;
       this.lastObservation = nowMs;
+      const pointing = this.gestureName === 'point';
       this.input = { frameId: ++this.frame, epoch: this.epoch, tMs: nowMs, receivedAtMs: nowMs, dtSampleS,
-        status: this.lost ? 'noHands' : 'ready', screenLeft: this.lost ? null : this.hand(-1), screenRight: this.lost ? null : this.hand(1) };
+        status: this.lost ? 'noHands' : pointing ? 'oneHand' : 'ready', screenLeft: this.lost ? null : this.hand(-1), screenRight: this.lost || pointing ? null : this.hand(1) };
       this.clay.touching = !this.lost && ['studio', 'tutorial'].includes(this.phase) && ['shape', 'pullUp', 'pressDown'].includes(this.gestureName);
       this.clay.activeBand = this.clay.touching ? 24 : null;
       this.gesture = {
         gesture: this.lost ? 'none' : this.gestureName, sourceFrameId: this.frame, capturedAtMs: nowMs,
-        holdMs: 600, inputUsable: !this.lost, deforming: this.clay.touching, motionStrength: .7, targetRadiusWorld: 1.1,
+        holdMs: 600, inputUsable: !this.lost && !pointing, deforming: this.clay.touching, motionStrength: .7, targetRadiusWorld: 1.1,
         centerOffsetPalm: this.clay.wobble * .5, speedPalmPerS: this.active.has('tear') ? 12 : 1,
         contact: { valid: this.clay.touching, activeBand: this.clay.activeBand, bandY: .5, leftErrorWorld: 0, rightErrorWorld: 0, reason: null },
         cursorPx: !this.lost && this.gestureName === 'point' ? this.cursor : null, nearMiss: null,

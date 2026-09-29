@@ -5,6 +5,11 @@ export default defineConfig({
   testMatch: '**/*.pw.ts',
   timeout: 60_000,
   workers: 1,
+  projects: [
+    { name: 'chromium', use: { browserName: 'chromium' } },
+    { name: 'firefox', use: { browserName: 'firefox' } },
+    { name: 'webkit', use: { browserName: 'webkit' } },
+  ],
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:5173',
     viewport: { width: 1440, height: 900 },

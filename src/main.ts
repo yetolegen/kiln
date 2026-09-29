@@ -9,6 +9,7 @@ import { createScene } from './render/scene';
 import { createOverlay } from './render/overlay';
 import { DwellController } from './ui/dwell';
 import { createHud } from './ui/hud';
+import { PresentationHint } from './ui/presentationHint';
 import { createTutorial } from './ui/tutorial';
 import { createFinishing } from './ui/finishing';
 import { createKiln } from './render/kiln';
@@ -37,6 +38,7 @@ const screens = createScreens(root, () => { void start(); }, (command) => core.d
 });
 const dwell = new DwellController();
 const hud = createHud(screens.page);
+const presentationHint = new PresentationHint();
 const tutorial = createTutorial(screens.page, (command) => core.dispatch(command, performance.now()));
 const scene = createScene(screens.viewport);
 const kiln = createKiln(screens.viewport, scene.setSurface);
@@ -145,10 +147,11 @@ function render(nowMs: number): void {
   if (snapshot.phase !== layoutPhase) { layoutPhase = snapshot.phase; project(true); }
   screens.update(snapshot, state, nowMs);
   finishing.update(snapshot, state.cameraActive && !state.error);
-  hud.update(snapshot, nowMs);
+  const activeHint = presentationHint.update(snapshot, nowMs);
+  hud.update(snapshot, nowMs, activeHint);
   tutorial.update(snapshot, nowMs);
   sound.update(snapshot, !document.hidden && state.cameraActive);
-  voice.update(document.hidden || !state.cameraActive ? null : snapshot.hint);
+  voice.update(document.hidden || !state.cameraActive ? null : activeHint);
   const selected = dwell.update(snapshot, nowMs, screens.targets, screens.revision);
   screens.showDwell(dwell.activeId, dwell.progress);
   if (selected) screens.activate(selected);
