@@ -48,6 +48,7 @@ class Controller implements CoreController {
   private glazeId: string | null = null;
   private firingStartMs = 0;
   private result: SessionResult | null = null;
+  private epochWarned = false;
   private readonly gestures = new GestureRecognizer();
   private readonly rules = new RuleEngine();
   private readonly hints = new HintManager();
@@ -55,7 +56,11 @@ class Controller implements CoreController {
   constructor(private readonly nowIso: () => string) {}
 
   observe(frame: FrameInput): void {
-    if (frame.epoch < this.epoch) return; // frame from before a camera/viewport reset
+    if (frame.epoch < this.epoch) { // frame from before a camera/viewport reset
+      if (!this.epochWarned) console.warn(`KILN: dropping frames from epoch ${frame.epoch} < ${this.epoch}. Set tracker.epoch too.`);
+      this.epochWarned = true;
+      return;
+    }
     if (frame.epoch > this.epoch) this.resetInput(frame.epoch);
     // freshness gate: an observation that arrived too late never moves clay or confirms anything
     const stale = frame.receivedAtMs - frame.tMs > CONFIG.MAX_INPUT_AGE_MS;
