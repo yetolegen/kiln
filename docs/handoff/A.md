@@ -2,6 +2,19 @@
 
 Newest entry at the top. Written by A, read by B.
 
+### 2026-09-29 17:10 · A · A3 pull/press, error mode, hints
+**Done:** gestures pullUp / pressDown (motionStrength = slower hand), raise, point (cursor), near-miss with evidence only. Clay: pull/press, repair, tear damage, wobble, overhang smoothing, collapse once + recovery by pressing. `engine/rules.ts`: episodes (begin/update/end, categories). `engine/hints.ts`: one hint, priority, speech cooldown. Controller wires it all: `snap.events`, `snap.activeIssues`, `snap.hint` are live. Fixes from review: per-track velocity dt after brief hand loss (was a fake-tear source), tracker no longer swallows core errors. Tests T10, T12, T13 + 30 more: 64/64, typecheck + build pass.
+**Contract changes:** none.
+**For you (B):**
+- **Hint texts (i18n), keyed by `hint.id`, with `hint.params`:** `tear` {speedRatio} · `wobble` {dir: 'left'|'right' = where to move both hands, offsetPalm} · `tooThin` · `collapse` {cause: 'thinWall'|'tooTall'} · `overhang` (use `hint.band`) · `handsTooFar` {side: 'left'|'right', dir: 'in'|'out'} · `oneHand` {missing: 'left'|'right'} · `noHands` · `trackingUncertain` {status} · `pinchLoose` / `fistLoose` {side} · `handsTooLow` · `handsUneven` {raise: side of the lower hand} · `handsNotOpposite` · `notMoving` · `atLimit` · `recovered`. RU texts are in PLAN §8.
+- **Speech:** speak when `hint.speak` is true and (`hint.id`, `hint.episodeId`) differ from the last spoken pair. Replace, don't queue.
+- **Sounds:** play on `snap.events` with `phase === 'begin'` (tear → crack, collapse → thud). `snap.events` holds each transition exactly once; don't replay.
+- **Visuals:** `clay.damage[]` (crack marks), `clay.wobble` (shake amount), `clay.collapsed`, `hint.band` (highlight). `clay.revision` bumps on any of these.
+- **Dwell:** `snap.gesture.cursorPx` is set only while the gesture is `point` (menu/glaze/result/gallery, and the studio "start over" button).
+**Blocked / need from you:** still B2 camera + `ProjectionParams` and the main-loop wiring from my A2 entry. Nothing in A3 depends on it.
+**Known issues:** `THIN_PER_HEIGHT` changed 0.1 → 0.15 (with 0.1 "pulled too thin" was unreachable). All thresholds untested on real hands. `targetMismatch` comes with the target in A4. Rules only run in studio/tutorial.
+**Next:** A4: phase FSM, one-shot raise → finishShaping, target «Ваза» + similarity, session stats + result.
+
 ### 2026-09-29 16:20 · A · A2 tracking + shape + controller skeleton
 **Done:** `tracking/handTracker.ts` (rVFC, ≤30 Hz, GPU→CPU fallback, WASM pinned to 1.0.1, model in `public/models/`), `filters.ts` (One Euro per track), `features.ts` (px conversion, 2-permutation association, reacquire, calibration median, finger extension, pinch, pointing, velocities, status), `gestures.ts` (shape only, hysteresis + 120 ms stability), `engine/contact.ts` (two-wall), `engine/clay.ts` (shape + invariants), `engine/controller.ts` (observe/tick/dispatch, freshness gate, starts in `studio`/`free`), `dev/debug.ts`. Tests T05, T06, T11 + association/reacquire/hand-loss: 30/30, typecheck + build pass.
 **Contract changes:** none.
