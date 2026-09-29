@@ -24,8 +24,13 @@ export class HandTracker {
   private lastSubmitMs = -Infinity;
   private lastTimestampMs = 0;
   private errorLogged = false;
+  private switchingToCpu = false;
 
-  private constructor(private readonly landmarker: HandLandmarker, readonly delegate: 'GPU' | 'CPU') {}
+  private constructor(
+    private landmarker: HandLandmarker,
+    public delegate: 'GPU' | 'CPU',
+    private readonly make: (delegate: 'GPU' | 'CPU') => Promise<HandLandmarker>,
+  ) {}
 
   /** Loads WASM + model. GPU first, CPU fallback. Throws HandTrackerError with the failing stage. */
   static async create(): Promise<HandTracker> {
@@ -42,10 +47,10 @@ export class HandTracker {
         numHands: 2,
       });
     try {
-      return new HandTracker(await make('GPU'), 'GPU');
+      return new HandTracker(await make('GPU'), 'GPU', make);
     } catch {
       try {
-        return new HandTracker(await make('CPU'), 'CPU');
+        return new HandTracker(await make('CPU'), 'CPU', make);
       } catch (e) {
         throw new HandTrackerError('model', e);
       }
@@ -72,8 +77,9 @@ export class HandTracker {
         try {
           result = this.landmarker.detectForVideo(video, this.lastTimestampMs);
         } catch (e) {
-          if (!this.errorLogged) console.error('HandTracker.detectForVideo failed', e);
+          if (!this.errorLogged) console.error(`HandTracker.detectForVideo failed (${this.delegate})`, e);
           this.errorLogged = true;
+          this.fallBackToCpu();
         }
         // outside the try: errors in the core must surface, not be swallowed as inference errors
         if (result) {
@@ -101,6 +107,21 @@ export class HandTracker {
       }
     };
     schedule();
+  }
+
+  // Some GPUs load the model fine and then fail on the first detection. Swap to CPU once, in the background.
+  private fallBackToCpu(): void {
+    if (this.delegate !== 'GPU' || this.switchingToCpu) return;
+    this.switchingToCpu = true;
+    this.make('CPU').then(
+      (cpu) => {
+        this.landmarker.close();
+        this.landmarker = cpu;
+        this.delegate = 'CPU';
+        this.errorLogged = false;
+      },
+      (e) => console.error('HandTracker: CPU fallback failed too', e),
+    );
   }
 
   stop(): void {
