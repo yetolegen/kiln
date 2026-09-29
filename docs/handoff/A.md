@@ -2,6 +2,19 @@
 
 Newest entry at the top. Written by A, read by B.
 
+### 2026-09-29 22:20 · A · snapshot target + glazeId (B4 request)
+**Done:** `EngineSnapshot.target` and `EngineSnapshot.glazeId`, filled by the controller. Test added, 116/116.
+**Contract changes:** `types.ts`: `EngineSnapshot` gets `target: TargetProfile | null` (the commission target while a commission session is on screen, else null) and `glazeId: string | null` (set by `selectGlaze`, null in the menu).
+**For you (B):** **`npm run typecheck` fails until you add the two fields to your mock**, in `src/dev/mockCore.ts` line ~151, in the snapshot you return:
+```ts
+      stats: this.stats, result: this.result,
+      target: null, glazeId: null };   // or your mock's own values
+```
+Target radii are `target.radii` (48 values, bottom → top, same units as `clay.radii`) and `target.height`. Draw the silhouette with the same projection as the pot.
+**Blocked / need from you:** none.
+**Known issues:** none new.
+**Next:** real-hand recording + tuning (B2 is live).
+
 ### 2026-09-29 19:30 · A · bug fixes (speech rule, GPU fallback)
 **Done:** "recovered" hint could be spoken twice. Tracker now falls back to CPU if the GPU delegate fails at the first detection (not only at load). Controller warns once in the console if it drops frames because of an epoch mismatch. 87/87.
 **Contract changes:** none.
