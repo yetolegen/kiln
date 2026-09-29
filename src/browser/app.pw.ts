@@ -1,5 +1,23 @@
 import { test, expect } from '@playwright/test';
 
+test('B10 retains a fading visual briefly while lost tracking pauses the controls', async ({ page }) => {
+  await page.goto('/?dev=1&mock=1');
+  await expect(page.getByTestId('mock-badge')).toBeVisible();
+  await page.keyboard.press('5'); await page.keyboard.press('s');
+  const pixels = () => page.locator('.overlay-canvas').evaluate((canvas: HTMLCanvasElement) => {
+    const data = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data;
+    let count = 0; for (let i = 3; i < data.length; i += 4) if (data[i]) count++; return count;
+  });
+  // Free mode prevents a commission outline from contributing pixels to this check.
+  await page.keyboard.press('3'); await page.locator('[data-action="free"]').click(); await page.mouse.move(0, 0); await page.keyboard.press('s');
+  await expect.poll(pixels).toBeGreaterThan(0);
+  await page.keyboard.press('x');
+  await expect(page.locator('.hud__hint')).toContainText('Отслеживание потеряно');
+  expect(await pixels()).toBeGreaterThan(0);
+  await expect.poll(pixels).toBe(0);
+  await page.keyboard.press('x'); await expect.poll(pixels).toBeGreaterThan(0);
+});
+
 test('B9 keeps portrait/landscape controls in view and exports a square PNG', async ({ page }) => {
   await page.goto('/?dev=1&mock=1');
   await expect(page.getByTestId('mock-badge')).toBeVisible();
@@ -23,7 +41,7 @@ test('B9 keeps portrait/landscape controls in view and exports a square PNG', as
   const downloaded = page.waitForEvent('download'); await page.locator('[data-action="download"]').click();
   const download = await downloaded;
   const bytes: number[] = [];
-  for await (const chunk of (await download.createReadStream())!) bytes.push(...chunk);
+  for await (const chunk of (await download.createReadStream())!) for (const byte of chunk) { if (bytes.length < 24) bytes.push(byte); }
   const png = new DataView(Uint8Array.from(bytes).buffer);
   expect(png.getUint32(16)).toBe(1200); expect(png.getUint32(20)).toBe(1200);
   await download.saveAs('test-results/b9-export.png');

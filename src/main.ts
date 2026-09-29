@@ -82,7 +82,8 @@ function project(force = false): void {
   if (!state.cameraActive || document.hidden || (!tracking && !mockMode)) return;
   const next = cameraProjection(mockMode ? { videoWidth: 1280, videoHeight: 720 } : screens.video, screens.viewport.getBoundingClientRect(), revision + 1, layoutPhase);
   if (!force && projection && next.viewportWidth === projection.viewportWidth && next.viewportHeight === projection.viewportHeight &&
-      next.videoWidth === projection.videoWidth && next.videoHeight === projection.videoHeight) return;
+      next.videoWidth === projection.videoWidth && next.videoHeight === projection.videoHeight && next.axisXPx === projection.axisXPx &&
+      next.bottomYPx === projection.bottomYPx && next.pixelsPerWorldUnit === projection.pixelsPerWorldUnit) return;
   projection = next;
   revision = next.revision;
   scene.setProjection(next);
@@ -144,12 +145,12 @@ window.addEventListener('pagehide', pageHide);
 function render(nowMs: number): void {
   if (disposed) return;
   const snapshot = core.tick(nowMs);
-  if (snapshot.phase !== layoutPhase) { layoutPhase = snapshot.phase; project(true); }
+  if (snapshot.phase !== layoutPhase) { layoutPhase = snapshot.phase; project(); }
   screens.update(snapshot, state, nowMs);
   finishing.update(snapshot, state.cameraActive && !state.error);
-  const activeHint = presentationHint.update(snapshot, nowMs);
+  const lessonHint = tutorial.update(snapshot, nowMs);
+  const activeHint = presentationHint.update(snapshot, nowMs) ?? lessonHint;
   hud.update(snapshot, nowMs, activeHint);
-  tutorial.update(snapshot, nowMs);
   sound.update(snapshot, !document.hidden && state.cameraActive);
   voice.update(document.hidden || !state.cameraActive ? null : activeHint);
   const selected = dwell.update(snapshot, nowMs, screens.targets, screens.revision);

@@ -35,3 +35,12 @@ it('generates distinct observations and clears pointing when hands disappear', (
   expect(core.tick(40).gesture?.cursorPx).toBeNull();
   expect(core.tick(40).input?.frameId).toBe(2);
 });
+
+it('delivers simulated issue events together with a new observation', () => {
+  const core = new MockCore();
+  core.updateProjection(cameraProjection({ videoWidth: 1280, videoHeight: 720 }, { width: 1000, height: 800 }, 1));
+  core.tick(0); core.key('t', 10);
+  expect(core.tick(10).events).toHaveLength(0);
+  expect(core.tick(40).events[0]).toMatchObject({ type: 'tear', phase: 'begin' });
+  expect(core.tick(50).events).toHaveLength(0);
+});

@@ -138,6 +138,7 @@ progress { display: block; width: min(240px, 80vw); height: 8px; margin: 20px 0;
 .tutorial-card > span { color: #d5b897; font-size: 11px; letter-spacing: .14em; }
 .tutorial-card h2 { margin: 10px 0; font: 400 26px/1.1 Georgia, serif; }
 .tutorial-card p { font-size: 14px; line-height: 1.5; margin: 0; }
+.tutorial-card .tutorial-feedback { margin-top: 12px; padding-top: 10px; border-top: 1px solid #70513c; color: #ffe0a2; font-size: 12px; }
 .tutorial-card progress { width: 100%; margin: 10px 0 0; height: 4px; }
 .ghost-hands { display: flex; justify-content: center; gap: 40px; height: 70px; padding: 8px 0; }
 .ghost-hands svg { width: 44px; fill: #e5ba7b15; stroke: #eccb9c; stroke-width: 2; stroke-linecap: round; animation: ghost-drift 2s ease-in-out infinite alternate; }

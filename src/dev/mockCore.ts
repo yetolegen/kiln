@@ -123,7 +123,9 @@ export class MockCore implements CoreController {
   }
 
   tick(nowMs: number): EngineSnapshot {
+    let observed = false;
     if (!this.paused && this.projection && nowMs - this.lastObservation >= 33) {
+      observed = true;
       const dtSampleS = Number.isFinite(this.lastObservation) ? (nowMs - this.lastObservation) / 1000 : 0;
       this.lastObservation = nowMs;
       const pointing = this.gestureName === 'point';
@@ -140,8 +142,8 @@ export class MockCore implements CoreController {
       };
     }
     if (this.phase === 'firing' && nowMs - this.firingAt >= CONFIG.FIRING_MS) { this.phase = 'result'; this.result = this.finalize(); }
-    const events = this.pending.length ? this.pending : EMPTY;
-    this.pending = [];
+    const events = this.pending.length && (observed || !this.projection) ? this.pending : EMPTY;
+    if (events === this.pending) this.pending = [];
     const issue = [...this.active.values()][0];
     if (issue !== this.hintIssue) {
       this.hintIssue = issue;

@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { TutorialScript } from './tutorial';
+import { lessonFeedback, TutorialScript } from './tutorial';
 import { MockCore } from '../dev/mockCore';
 import { cameraProjection } from '../browser/camera';
 
@@ -15,6 +15,15 @@ function fixture() {
   tick();
   return { core, script, tick, key, hold, now: () => now };
 }
+
+it('explains the missing lesson condition rather than leaving step one silent', () => {
+  const f = fixture();
+  expect(lessonFeedback(f.tick(), 0, 0)).toContain('Раскройте');
+  f.key('s'); const accepted = f.tick(); accepted.gesture!.contact.valid = false;
+  expect(lessonFeedback(accepted, 0, 0)).toContain('каждую к своей стенке');
+  accepted.input!.status = 'noHands';
+  expect(lessonFeedback(accepted, 0, 0)).toContain('отслеживания');
+});
 
 it('requires fresh accepted gestures, calm contact, a real tear begin, then its end', () => {
   const f = fixture();

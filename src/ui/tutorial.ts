@@ -1,5 +1,5 @@
 import { CONFIG } from '../config';
-import type { AppCommand, EngineSnapshot, Gesture } from '../types';
+import type { AppCommand, EngineSnapshot, Gesture, Hint } from '../types';
 
 export const TUTORIAL_STEPS = [
   { gesture: 'shape', title: 'Найдите стенки', text: 'Откройте ладони по обе стороны сосуда. Медленно сводите и разводите их на одной высоте.', demo: 'shape' },
@@ -9,6 +9,20 @@ export const TUTORIAL_STEPS = [
   { gesture: 'shape', title: 'Верните спокойный ритм', text: 'Продолжайте формовать у стенок, но медленно. Дождитесь, пока предупреждение о скорости исчезнет.', demo: 'shape' },
   { gesture: 'raise', title: 'Завершите урок', text: 'Поднимите обе открытые ладони выше сосуда и удерживайте полторы секунды.', demo: 'raise' },
 ] as const;
+
+export function lessonFeedback(snapshot: EngineSnapshot, step: number, progress: number): string {
+  const gesture = snapshot.gesture;
+  if (!snapshot.input || snapshot.input.status !== 'ready') return 'Покажите обе руки камере. Глина и урок ждут надёжного отслеживания.';
+  if (step === 3) return progress === 1 ? 'Спокойное касание засчитано. Теперь ускорьте открытые ладони у стенок до предупреждения о трещине.' : 'Сначала спокойно коснитесь обеих стенок открытыми ладонями. Дождитесь заполнения полоски.';
+  if (step === 4) return 'Трещина замечена. Продолжайте медленно формовать у обеих стенок, пока предупреждение не исчезнет.';
+  if (step === 5) return 'Раскройте обе ладони выше верхнего края и удерживайте их полторы секунды.';
+  if (gesture?.gesture !== TUTORIAL_STEPS[step].gesture) {
+    return step === 0 ? 'Раскройте все пальцы обеих рук, отведите большие пальцы от указательных и поверните ладони к камере.' : step === 1 ? 'Соедините большой и указательный пальцы на каждой руке и двигайте обе руки вверх.' : 'Согните все четыре пальца каждой руки в кулак и двигайте оба кулака вниз.';
+  }
+  if (step === 0 && !gesture.contact.valid) return 'Ладони распознаны. Подведите каждую к своей стенке сосуда, на одной высоте и ниже верхнего края.';
+  if (!gesture.deforming) return step === 0 ? 'Подведите обе открытые ладони к стенкам сосуда.' : 'Жест распознан. Теперь двигайте обе руки вместе в указанном направлении.';
+  return 'Получается. Продолжайте это движение, пока полоска не заполнится.';
+}
 
 export class TutorialScript {
   step = 0;
@@ -86,12 +100,15 @@ export function createTutorial(parent: HTMLElement, dispatch: (command: AppComma
   const label = document.createElement('span'), title = document.createElement('h2'), text = document.createElement('p');
   const demo = document.createElement('div'); demo.className = 'ghost-hands'; demo.setAttribute('aria-hidden', 'true');
   const progress = document.createElement('progress'); progress.max = 1; progress.setAttribute('aria-label', 'Прогресс шага');
-  panel.append(label, title, text, demo, progress); parent.append(panel);
+  const feedback = document.createElement('p'); feedback.className = 'tutorial-feedback';
+  panel.append(label, title, text, demo, progress, feedback); parent.append(panel);
   let lastStep = -1;
+  let lastMessage = '', coaching: Hint | null = null;
+  const spoken = new Map<string, number>();
   return {
-    update(snapshot: EngineSnapshot, nowMs: number): void {
+    update(snapshot: EngineSnapshot, nowMs: number): Hint | null {
       script.update(snapshot, nowMs); panel.hidden = snapshot.phase !== 'tutorial';
-      if (panel.hidden) return;
+      if (panel.hidden) { lastMessage = ''; coaching = null; return null; }
       if (lastStep !== script.step) {
         lastStep = script.step; const step = TUTORIAL_STEPS[lastStep];
         panel.dataset.step = String(lastStep); panel.dataset.demo = step.demo;
@@ -100,6 +117,14 @@ export function createTutorial(parent: HTMLElement, dispatch: (command: AppComma
         demo.innerHTML = `<svg viewBox="0 0 60 76"><path d="${path}"/></svg><svg viewBox="0 0 60 76"><path d="${path}"/></svg>`;
       }
       progress.value = script.progress;
+      const message = lessonFeedback(snapshot, script.step, script.progress);
+      if (message !== lastMessage) {
+        lastMessage = message; feedback.textContent = message;
+        const speak = nowMs - (spoken.get(message) ?? -Infinity) >= 10_000;
+        if (speak) spoken.set(message, nowMs);
+        coaching = { id: 'notMoving', params: { instruction: message }, severity: 'info', priority: 5, expiresAtMs: nowMs + 4000, speak };
+      }
+      return coaching;
     },
     destroy(): void { panel.remove(); },
   };

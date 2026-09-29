@@ -80,7 +80,7 @@ export function hintText(hint: Hint): string {
     case 'handsTooLow': return 'Подними обе открытые ладони выше сосуда и удерживай';
     case 'handsUneven': return `Подними ${p.raise === 'left' ? 'левую' : 'правую'} руку — кисти должны быть на одной высоте`;
     case 'handsNotOpposite': return 'Размести руки по разные стороны сосуда';
-    case 'notMoving': return 'Теперь двигай обе руки вместе: щипком вверх или кулаками вниз';
+    case 'notMoving': return typeof p.instruction === 'string' ? p.instruction : 'Теперь двигай обе руки вместе: щипком вверх или кулаками вниз';
     case 'offWheel': return 'Поднеси руки к стенкам сосуда на одной высоте';
     case 'atLimit': return 'Сосуд уже достиг предельной высоты — попробуй изменить его ширину';
     case 'recovered': return 'Сосуд восстановлен. Можно снова формовать';
