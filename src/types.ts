@@ -197,6 +197,8 @@ export interface SessionResult {
   glazeId: string;
 }
 export type AppCommand =
+  // hand model loaded: 'loading' → 'permission'. The first updateProjection() (camera running) → 'calibrate'
+  | { type: 'modelReady' }
   | { type: 'start'; mode: SessionMode; sessionId: string; targetId?: string }
   | { type: 'restart'; newSessionId: string }
   | { type: 'finishShaping' }
