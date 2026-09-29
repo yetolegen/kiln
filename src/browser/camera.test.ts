@@ -93,12 +93,17 @@ describe('camera permission and lifecycle', () => {
 describe('projection from actual layout', () => {
   it.each([[1440, 900], [390, 844], [844, 390]])('fits the maximum pot at %i by %i', (width, height) => {
     const p = cameraProjection({ videoWidth: 640, videoHeight: 480 }, { width, height }, 7);
-    expect(p).toMatchObject({ revision: 7, fit: 'cover', mirrored: true, axisXPx: width / 2, bottomYPx: height * .8 });
-    expect(p.bottomYPx - 3.2 * p.pixelsPerWorldUnit).toBeGreaterThanOrEqual(height * .2);
+    expect(p).toMatchObject({ revision: 7, fit: 'cover', mirrored: true, axisXPx: width * (height < 500 && width > height ? .74 : .5), bottomYPx: height * .8 });
+    expect(p.bottomYPx - 3.2 * p.pixelsPerWorldUnit).toBeGreaterThanOrEqual(height * .15);
     expect(p.axisXPx - 1.6 * p.pixelsPerWorldUnit).toBeGreaterThan(0);
     expect(p.axisXPx + 1.6 * p.pixelsPerWorldUnit).toBeLessThan(width);
   });
   it('rejects a not-yet-running video', () => {
     expect(() => cameraProjection({ videoWidth: 0, videoHeight: 0 }, { width: 390, height: 844 }, 1)).toThrow();
+  });
+  it('reserves room above and below the phone result pot', () => {
+    const p = cameraProjection({ videoWidth: 640, videoHeight: 480 }, { width: 390, height: 844 }, 1, 'result');
+    expect(p.bottomYPx - 3.2 * p.pixelsPerWorldUnit).toBeGreaterThan(330);
+    expect(p.bottomYPx + .2 * p.pixelsPerWorldUnit).toBeLessThan(844 * .7);
   });
 });

@@ -1,3 +1,11 @@
+### 2026-09-29 23:13 · B · B9 responsive polish and PNG
+**Done:** earthy grain/display typography, portrait result composition, landscape controls beside the pot, projection reset on phase/layout changes, 1200×1200 PNG keepsake. Free mode already wired. Build + 131 unit tests + browser checks at 390×844, 360×740 and 844×390 pass; screenshots reviewed.
+**Contract changes:** none; renderer and core still share the same projection.
+**For you (A):** B8 is deployed at https://kiln-delta-rose.vercel.app; full real-hand testing can start.
+**Blocked / need from you:** awaiting physical-hand T22/device results (asked user).
+**Known issues:** addressed phone result overlap/landscape control space found during review; dwell targets now refresh on scroll. No physical phone support claim from viewport tests. Three.js bundle size warning remains non-fatal.
+**Next:** B10 README, labelled demo GIF, browser matrix and final deployment.
+
 ### 2026-09-29 23:07 · B · B8 finishing and local gallery
 **Done:** 3 dwell glazes, firing glow/material, snapshot target outline, result time/score/execution tips with tracking separate, PNG, validated schema-1 shelf and versioned local best scores. Build + 130 unit tests + Chromium finishing/PNG/gallery flow with storage enabled and disabled pass; portrait result reviewed.
 **Contract changes:** consumes snapshot target/glazeId; mock now supplies a target and selected glaze.

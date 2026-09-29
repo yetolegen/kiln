@@ -10,6 +10,7 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 body { margin: 0; min-width: 280px; }
+body::before { content: ''; position: fixed; inset: 0; z-index: 10; opacity: .035; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%23fff' filter='url(%23n)' d='M0 0h180v180H0z'/%3E%3C/svg%3E"); }
 
 .workshop {
   position: relative;
@@ -125,7 +126,7 @@ progress { display: block; width: min(240px, 80vw); height: 8px; margin: 20px 0;
 @media (max-width: 600px) {
   .glaze-choices { gap: 8px; }
   .glaze-jar { min-width: 94px; padding-top: 64px; }
-  .result-summary { top: 310px; left: 16px; width: calc(100% - 32px); padding: 12px 16px; }
+  .result-summary { top: 70svh; left: 16px; width: calc(100% - 32px); padding: 12px 16px; }
   .result-summary p { margin: 6px 0; font-size: 11px; }
   .result-score { display: inline; font-size: 28px; margin-right: 10px; }
   .gallery-grid { gap: 8px; }
@@ -175,4 +176,31 @@ progress { display: block; width: min(240px, 80vw); height: 8px; margin: 20px 0;
 @media (max-width: 420px) {
   .workshop__header { align-items: flex-start; }
   .workshop__label { max-width: 120px; text-align: right; line-height: 1.6; }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .workshop { padding: 16px 24px; }
+  .workshop--camera .workshop__content { width: 46%; padding: 12px 0 0; }
+  .workshop--camera h1, .workshop[data-phase='studio'] h1, .workshop[data-phase='tutorial'] h1 { font-size: 24px; margin: 0 0 8px; }
+  .workshop--camera .workshop__description { font-size: 12px; line-height: 1.4; }
+  .workshop--camera .phase-actions { gap: 6px; margin-top: 10px; }
+  .dwell-button { min-height: 44px; padding: 10px 12px; font-size: 12px; }
+  .sound-toggle { top: 60px; right: 16px; bottom: auto; }
+  .hud { left: 24px; right: auto; bottom: 28px; }
+  .hud__hint { top: auto; bottom: 76px; left: 24px; transform: none; width: 41%; padding: 8px; font-size: 11px; }
+  .tutorial-card { top: 184px; left: 24px; width: 41%; padding: 10px; }
+  .tutorial-card h2 { font-size: 20px; margin: 6px 0; }
+  .tutorial-card p { font-size: 11px; }
+  .ghost-hands { height: 36px; }
+  .workshop[data-phase='tutorial'] .hud { display: none; }
+  .result-summary { top: 190px; left: 24px; width: 41%; padding: 10px; }
+  .result-summary p { font-size: 10px; margin: 4px 0; }
+  .result-score { display: inline; font-size: 26px; margin-right: 8px; }
+  .glaze-choices { margin: 12px 0; gap: 8px; }
+  .glaze-jar { padding-top: 48px; min-width: 86px; }
+  .gallery-grid { margin-top: 12px; }
+  .gallery-card canvas { height: 90px; width: 116px; }
+  .gallery-card h2 { font-size: 16px; }
+  .gallery-card p { margin: 6px; }
+  .workshop--camera footer { font-size: 9px; align-self: flex-end; }
 }

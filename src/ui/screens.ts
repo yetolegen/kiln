@@ -121,6 +121,7 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
   const layout = new ResizeObserver(refreshTargets);
   layout.observe(content);
   window.addEventListener('resize', refreshTargets);
+  window.addEventListener('scroll', refreshTargets, { passive: true });
   return {
     video, viewport, page, details, actions, addAction, refreshTargets,
     get targets(): readonly DwellRegion[] { return targets; },
@@ -161,6 +162,6 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
         if (tracking !== lastTracking) { status.textContent = ru.tracking[tracking]; lastTracking = tracking; }
       }
     },
-    destroy(): void { layout.disconnect(); window.removeEventListener('resize', refreshTargets); start.removeEventListener('click', onStart); page.remove(); },
+    destroy(): void { layout.disconnect(); window.removeEventListener('resize', refreshTargets); window.removeEventListener('scroll', refreshTargets); start.removeEventListener('click', onStart); page.remove(); },
   };
 }

@@ -122,15 +122,18 @@ export function cameraProjection(
   video: Pick<HTMLVideoElement, 'videoWidth' | 'videoHeight'>,
   viewport: { width: number; height: number },
   revision: number,
+  phase = 'studio',
 ): ProjectionParams {
   const { width, height } = viewport;
   if (![width, height, video.videoWidth, video.videoHeight].every((n) => Number.isFinite(n) && n > 0)) {
     throw new CameraError('playback');
   }
+  const landscape = height < 500 && width > height;
+  const phoneResult = width <= 600 && phase === 'result';
   return {
     revision, videoWidth: video.videoWidth, videoHeight: video.videoHeight,
     viewportWidth: width, viewportHeight: height, fit: 'cover', mirrored: true,
-    axisXPx: width / 2, bottomYPx: height * 0.8,
-    pixelsPerWorldUnit: Math.min(width / 5, height * 0.56 / CONFIG.MAX_HEIGHT),
+    axisXPx: width * (landscape ? .74 : .5), bottomYPx: height * (phoneResult ? .65 : .8),
+    pixelsPerWorldUnit: landscape ? Math.min(width * .43 / 3.8, height * .64 / CONFIG.MAX_HEIGHT) : Math.min(width / 5, height * (phoneResult ? .24 : .48) / CONFIG.MAX_HEIGHT),
   };
 }

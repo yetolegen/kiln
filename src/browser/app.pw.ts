@@ -1,4 +1,31 @@
 import { test, expect } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
+
+test('B9 keeps portrait/landscape controls in view and exports a square PNG', async ({ page }) => {
+  await page.goto('/?dev=1&mock=1');
+  await expect(page.getByTestId('mock-badge')).toBeVisible();
+  for (const size of [{ width: 390, height: 844 }, { width: 360, height: 740 }, { width: 844, height: 390 }]) {
+    await page.setViewportSize(size);
+    for (const phase of ['3', '4', '5', '6', '8', '9']) {
+      await page.keyboard.press(phase);
+      await page.waitForTimeout(120);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(size.width);
+      for (const button of await page.locator('.dwell-button:visible').all()) {
+        const box = await button.boundingBox();
+        expect(box!.x).toBeGreaterThanOrEqual(0); expect(box!.y).toBeGreaterThanOrEqual(0);
+        expect(box!.x + box!.width).toBeLessThanOrEqual(size.width + 1);
+        expect(box!.y + box!.height).toBeLessThanOrEqual(size.height + 1);
+      }
+      if (phase === '8') await page.screenshot({ path: `test-results/b9-result-${size.width}.png` });
+    }
+  }
+  await page.keyboard.press('8');
+  const downloaded = page.waitForEvent('download'); await page.locator('[data-action="download"]').click();
+  const download = await downloaded;
+  const file = await download.path(); const png = await readFile(file!);
+  expect(png.readUInt32BE(16)).toBe(1200); expect(png.readUInt32BE(20)).toBe(1200);
+  await download.saveAs('test-results/b9-export.png');
+});
 
 for (const blockedStorage of [false, true]) test(`B8 finishes a pot, exports PNG and opens gallery (storage blocked: ${blockedStorage})`, async ({ page }) => {
   if (blockedStorage) await page.addInitScript(() => {

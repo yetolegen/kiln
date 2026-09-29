@@ -106,7 +106,20 @@ export function createScene(parent: HTMLElement) {
       try {
         if (!lastSnapshot || !projection) return null;
         if (!canvas.hidden && renderer) renderer.render(scene, camera);
-        return await new Promise<Blob | null>((resolve) => (canvas.hidden ? fallback : canvas).toBlob(resolve, 'image/png'));
+        const source = canvas.hidden ? fallback : canvas;
+        const picture = document.createElement('canvas'); picture.width = 1200; picture.height = 1200;
+        const ctx = picture.getContext('2d'); if (!ctx || !lastSnapshot.clay) return null;
+        const p = projection, clay = lastSnapshot.clay;
+        ctx.fillStyle = '#211d19'; ctx.fillRect(0, 0, 1200, 1200);
+        const x = Math.max(0, p.axisXPx - p.pixelsPerWorldUnit * 1.95);
+        const y = Math.max(0, p.bottomYPx - (clay.height + .45) * p.pixelsPerWorldUnit);
+        const width = Math.min(p.viewportWidth - x, p.pixelsPerWorldUnit * 3.9);
+        const height = Math.min(p.viewportHeight - y, p.bottomYPx + p.pixelsPerWorldUnit * .35 - y);
+        const scale = Math.min(960 / width, 870 / height), dw = width * scale, dh = height * scale;
+        ctx.drawImage(source, x * dpr, y * dpr, width * dpr, height * dpr, (1200 - dw) / 2, 170 + (870 - dh) / 2, dw, dh);
+        ctx.fillStyle = '#eedac4'; ctx.textAlign = 'center'; ctx.font = '54px Georgia'; ctx.fillText('K I L N', 600, 100);
+        ctx.fillStyle = '#bba58d'; ctx.font = '22px system-ui'; ctx.fillText('Форма, созданная движением', 600, 1120);
+        return await new Promise<Blob | null>((resolve) => picture.toBlob(resolve, 'image/png'));
       } catch { return null; }
     },
     dispose(): void {

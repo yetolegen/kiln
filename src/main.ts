@@ -12,7 +12,7 @@ import { createHud } from './ui/hud';
 import { createTutorial } from './ui/tutorial';
 import { createFinishing } from './ui/finishing';
 import { createKiln } from './render/kiln';
-import type { CoreController, EngineSnapshot, ProjectionParams } from './types';
+import type { AppPhase, CoreController, EngineSnapshot, ProjectionParams } from './types';
 import './ui/styles.css';
 
 const root = document.querySelector<HTMLDivElement>('#app');
@@ -52,6 +52,7 @@ let modelLoading: Promise<void> | null = null;
 let animation = 0;
 let resizeFrame = 0;
 let forceProjection = false;
+let layoutPhase: AppPhase = 'loading';
 let debug: { update(snapshot: EngineSnapshot, nowMs: number): void; destroy(): void } | null = null;
 
 function failCamera(problem: NonNullable<StartupState['error']>): void {
@@ -77,7 +78,7 @@ function prepareModel(): Promise<void> {
 
 function project(force = false): void {
   if (!state.cameraActive || document.hidden || (!tracking && !mockMode)) return;
-  const next = cameraProjection(mockMode ? { videoWidth: 1280, videoHeight: 720 } : screens.video, screens.viewport.getBoundingClientRect(), revision + 1);
+  const next = cameraProjection(mockMode ? { videoWidth: 1280, videoHeight: 720 } : screens.video, screens.viewport.getBoundingClientRect(), revision + 1, layoutPhase);
   if (!force && projection && next.viewportWidth === projection.viewportWidth && next.viewportHeight === projection.viewportHeight &&
       next.videoWidth === projection.videoWidth && next.videoHeight === projection.videoHeight) return;
   projection = next;
@@ -141,6 +142,7 @@ window.addEventListener('pagehide', pageHide);
 function render(nowMs: number): void {
   if (disposed) return;
   const snapshot = core.tick(nowMs);
+  if (snapshot.phase !== layoutPhase) { layoutPhase = snapshot.phase; project(true); }
   screens.update(snapshot, state, nowMs);
   finishing.update(snapshot, state.cameraActive && !state.error);
   hud.update(snapshot, nowMs);
