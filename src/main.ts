@@ -5,6 +5,8 @@ import { HandTracker, HandTrackerError } from './tracking/handTracker';
 import { createController } from './engine/controller';
 import { unlockSound } from './audio/sound';
 import { unlockVoice } from './audio/voice';
+import { createScene } from './render/scene';
+import { createOverlay } from './render/overlay';
 import type { CoreController, EngineSnapshot, ProjectionParams } from './types';
 import './ui/styles.css';
 
@@ -23,6 +25,8 @@ if (import.meta.env.DEV && new URLSearchParams(location.search).get('dev') === '
 }
 const state: StartupState = { busy: false, cameraActive: false, error: null };
 const screens = createScreens(root, () => { void start(); });
+const scene = createScene(screens.viewport);
+const overlay = createOverlay(screens.viewport);
 const camera = new CameraSession(screens.video, () => failCamera('interrupted'));
 let tracker: HandTracker | null = null;
 let tracking: ReturnType<typeof connectTracking> | null = null;
@@ -63,6 +67,8 @@ function project(force = false): void {
       next.videoWidth === projection.videoWidth && next.videoHeight === projection.videoHeight) return;
   projection = next;
   revision = next.revision;
+  scene.setProjection(next);
+  overlay.setProjection(next);
   if (mockMode) { core.resetInput(revision); core.updateProjection(next); }
   else tracking?.resume(next, performance.now());
 }
@@ -118,6 +124,8 @@ function render(nowMs: number): void {
   if (disposed) return;
   const snapshot = core.tick(nowMs);
   screens.update(snapshot, state, nowMs);
+  scene.render(snapshot, nowMs);
+  overlay.render(snapshot, nowMs);
   debug?.update(snapshot, nowMs);
   animation = requestAnimationFrame(render);
 }
@@ -134,6 +142,8 @@ function dispose(): void {
   pageHide();
   tracker?.close();
   debug?.destroy();
+  scene.dispose();
+  overlay.dispose();
   destroyMock?.();
   observer.disconnect();
   cancelAnimationFrame(animation);

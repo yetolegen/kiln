@@ -1,5 +1,22 @@
 import { test, expect } from '@playwright/test';
 
+test('B4 renders clay and falls back after WebGL context loss', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto('/?dev=1&mock=1');
+  await expect(page.getByTestId('mock-badge')).toBeVisible();
+  await page.keyboard.press('5');
+  await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'studio');
+  await expect(page.getByTestId('pot-canvas')).toBeVisible();
+  await page.keyboard.press('u');
+  await page.keyboard.press('ArrowRight');
+  await page.screenshot({ path: 'test-results/b4-pot.png' });
+  await page.getByTestId('pot-canvas').dispatchEvent('webglcontextlost');
+  await expect(page.getByTestId('pot-fallback')).toBeVisible();
+  await page.screenshot({ path: 'test-results/b4-fallback.png' });
+  expect(errors).toEqual([]);
+});
+
 test('B3 mock changes phases without loading a model or camera', async ({ page }) => {
   let modelRequests = 0;
   page.on('request', (request) => { if (request.url().includes('hand_landmarker.task')) modelRequests++; });

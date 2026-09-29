@@ -6,6 +6,7 @@ import type {
 
 const PHASES: AppPhase[] = ['loading', 'permission', 'calibrate', 'menu', 'tutorial', 'studio', 'glaze', 'firing', 'result', 'gallery'];
 const EMPTY: readonly ClayEvent[] = [];
+const HAND_POINTS = [[0, 35], [-20, 15], [-35, 0], [-48, -12], [-58, -25], [-25, -10], [-28, -35], [-29, -55], [-30, -75], [0, -15], [0, -42], [0, -68], [0, -88], [23, -10], [25, -37], [27, -59], [29, -78], [40, 0], [45, -22], [49, -42], [52, -56]];
 const makeClay = (): ClayState => ({
   revision: 1, radii: Float32Array.from({ length: CONFIG.N_BANDS }, (_, i) => 1 + .12 * Math.sin(i / 47 * Math.PI)),
   height: 1.6, thickness: .25, wobble: 0, damage: new Float32Array(CONFIG.N_BANDS),
@@ -108,7 +109,7 @@ export class MockCore implements CoreController {
   private hand(side: -1 | 1): HandFeatures {
     const p = this.projection!;
     const palmPx = { x: p.axisXPx + side * 1.1 * p.pixelsPerWorldUnit, y: p.bottomYPx - .8 * p.pixelsPerWorldUnit };
-    const landmarksPx = Array.from({ length: 21 }, (_, i) => ({ x: palmPx.x + Math.sin(i * 1.9) * 30, y: palmPx.y - (i % 4) * 20 }));
+    const landmarksPx = HAND_POINTS.map(([x, y]) => ({ x: palmPx.x + side * x, y: palmPx.y + y }));
     return { trackId: side + 2, palmPx, palmWorld: { x: side * 1.1, y: .8 }, indexTipPx: this.cursor, landmarksPx,
       palmSizePx: 70, referencePalmSizePx: 70, extension: { index: 1, middle: 1, ring: 1, pinky: 1 }, openness: 1, pinchRatio: .7,
       pointing: this.gestureName === 'point', velocityWorldPerS: { x: 0, y: 0 }, velocityPalmPerS: { x: 0, y: 0 }, velocityValid: true };

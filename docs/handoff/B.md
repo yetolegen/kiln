@@ -1,3 +1,11 @@
+### 2026-09-29 22:06 · B · B4 scene + pot + overlay
+**Done:** transparent Three.js scene, hollow reusable lathe mesh, wheel, damage tint, wobble and active-band ring; hand outlines/cursor from snapshots. z=0 interaction plane agrees with core within 0.5 px at desktop/portrait/landscape sizes. Automatic shaded 2D fallback on WebGL failure/context loss. Build + 115 unit tests + Chromium render/fallback check pass; screenshots reviewed.
+**Contract changes:** none.
+**For you (A):** renderer consumes snapshots; no core/clay mutation. B2 production already works with a simulated camera.
+**Blocked / need from you:** please add `target: TargetProfile | null` and `glazeId: string | null` to EngineSnapshot and return your existing controller values. Needed for commission target silhouette and selected-glaze preview without frontend game state.
+**Known issues:** fixed visible lighting seam, closed-looking fallback rim, unrealistic mock landmarks, and test key timing. Full phase screens follow in B5. Physical hands/device performance still unverified.
+**Next:** B5 phase UI, observation-driven dwell, HUD and RU hints.
+
 ### 2026-09-29 21:56 · B · B3 keyboard mock
 **Done:** typed MockCore with phases, gestures, editable clay, event episodes, hints, stats and copied results. Development `?dev=1&mock=1` uses it without camera/model loading; real `?dev=1` retains A's debug recorder. Build, 111 unit tests and B3 browser check pass; production scan excludes mock/debug/recorder.
 **Contract changes:** none.
