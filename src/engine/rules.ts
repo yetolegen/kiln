@@ -4,9 +4,10 @@
 // so 3 s of continuous wobble is one mistake, not 90 frames of mistakes.
 import { CONFIG } from '../config';
 import type {
-  AppPhase, ClayEvent, ClayEventType, ClayState, FrameInput, GestureState, IssueCategory,
+  AppPhase, ClayEvent, ClayEventType, ClayState, FrameInput, GestureState, IssueCategory, TargetProfile,
 } from '../types';
 import { findOverhang, NO_EFFECTS, type ClayEffects } from './clay';
+import { similarity } from './target';
 
 export interface RuleInput {
   tMs: number;
@@ -14,6 +15,7 @@ export interface RuleInput {
   input: FrameInput;
   gesture: GestureState;
   clay: ClayState;
+  target?: TargetProfile | null; // commission mode only
 }
 
 interface Hit {
@@ -119,6 +121,31 @@ const RULES: Rule[] = [
       return nm?.reason === 'handsTooFar' ? { severity: 0.3, data: { ...nm.params } } : null;
     },
   },
+  {
+    // the enter delay doubles as the "every few seconds, not every frame" interval
+    type: 'targetMismatch', category: 'coaching', enterMs: CONFIG.TARGET_HINT_INTERVAL_MS, clearMs: CONFIG.RULE_CLEAR_MS,
+    test: (i): Hit | null => {
+      if (!i.target || i.clay.collapsed) return null;
+      const s = similarity(i.clay.radii, i.clay.height, i.target);
+      const radial = Math.abs(s.signedRadiusDeltaWorld) / CONFIG.TARGET_RADIUS_TOL_WORLD;
+      const vertical = Math.abs(s.signedHeightDeltaWorld) / CONFIG.TARGET_HEIGHT_TOL_WORLD;
+      if (radial <= 1 && vertical <= 1) return null;
+      // coach the bigger problem, relative to its tolerance
+      if (radial >= vertical) {
+        return {
+          severity: 0.3,
+          band: s.worstBand,
+          cause: s.signedRadiusDeltaWorld > 0 ? 'tooWide' : 'tooNarrow',
+          data: { pct: Math.round((100 * s.worstBand) / (i.clay.radii.length - 1)), deltaWorld: round2(s.signedRadiusDeltaWorld) },
+        };
+      }
+      return {
+        severity: 0.3,
+        cause: s.signedHeightDeltaWorld < 0 ? 'tooLow' : 'tooHigh',
+        data: { deltaWorld: round2(s.signedHeightDeltaWorld) },
+      };
+    },
+  },
 ];
 
 type EpState = 'inactive' | 'pending' | 'active' | 'clearing';
@@ -137,6 +164,16 @@ export class RuleEngine {
   /** Forget everything without emitting (new session). */
   reset(): void {
     this.episodes.clear();
+  }
+
+  /** Leaving the studio: end every running episode so consumers never see a begin without an end. */
+  closeAll(tMs: number): ClayEvent[] {
+    const events: ClayEvent[] = [];
+    for (const ep of this.episodes.values()) {
+      if (ep.current) events.push({ ...ep.current, phase: 'end', tMs });
+    }
+    this.episodes.clear();
+    return events;
   }
 
   update(i: RuleInput): RuleOutput {
