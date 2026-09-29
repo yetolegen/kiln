@@ -8,9 +8,12 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; min-width: 280px; }
 
 .workshop {
+  position: relative;
+  isolation: isolate;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
@@ -75,6 +78,23 @@ h1 {
 }
 
 footer { text-align: center; }
+
+.camera-viewport { position: fixed; inset: 0; z-index: -1; visibility: hidden; overflow: hidden; }
+.camera-video { width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; transform: scaleX(-1); }
+.camera-viewport::after { content: ''; position: absolute; inset: 0; background: rgb(18 15 12 / 40%); pointer-events: none; }
+.workshop--camera { background: transparent; }
+.workshop--camera .camera-viewport { visibility: visible; }
+.workshop--camera .workshop__content { justify-content: flex-start; padding-top: 24px; }
+.workshop--camera h1 { margin-top: 8px; font-size: clamp(28px, 4vw, 44px); }
+.workshop--camera .workshop__description { max-width: 460px; color: #f0e5d8; }
+.workshop--camera .workshop__status { margin-top: 20px; background: rgb(33 29 25 / 80%); }
+.workshop__status:empty { display: none; }
+.workshop--error h1 { font-size: clamp(30px, 4vw, 48px); }
+.start-button { margin-top: 28px; padding: 15px 44px; border: 0; border-radius: 999px; background: #eac3a8; color: #211d19; font: 600 16px/1.4 system-ui, sans-serif; cursor: pointer; }
+.start-button:hover { background: #f5d8c4; }
+.start-button:focus-visible { outline: 3px solid #fff; outline-offset: 5px; }
+.start-button:disabled { opacity: .5; cursor: wait; }
+progress { display: block; width: min(240px, 80vw); height: 8px; margin: 20px 0; accent-color: #eac3a8; }
 
 @media (max-width: 420px) {
   .workshop__header { align-items: flex-start; }

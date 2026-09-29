@@ -4,7 +4,7 @@ A virtual pottery wheel controlled by hand gestures through a webcam. A browser 
 
 [Live HTTPS site](https://kiln-delta-rose.vercel.app)
 
-**Current milestone: B1 scaffold.** The landing page runs; camera access, tracking integration and pottery interactions follow in later tasks.
+**Current milestone: B2 camera + tracking.** Wait for the hand model, click «Начать» once and allow the camera. Both hands held still complete calibration. Pottery rendering and gesture navigation follow in the next milestones.
 
 ## Run locally
 
@@ -15,7 +15,9 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite. `?dev=1` enables the development stub only in the dev server; production builds exclude it.
+Open the local URL printed by Vite. `?dev=1` enables A's tracking debug panel only in the dev server. Add `&rec=1` for labelled landmark recordings (0–6 selects a label, R starts/stops). Production excludes debug and recording tools.
+
+The camera uses a mirrored, centered cover crop with an ideal front-camera resolution of 1280×720 and a 640×480 fallback. It never requests the microphone. Resize/orientation changes reset tracker and core together. Audio and speech unlock in the Start click and remain optional. Camera permission requires HTTPS or localhost; see [getUserMedia](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia).
 
 ```sh
 npm run build   # TypeScript check + production bundle in dist/
