@@ -4,3 +4,5 @@ dist/
 *.log
 .vercel/
 *.tsbuildinfo
+test-results/
+playwright-report/

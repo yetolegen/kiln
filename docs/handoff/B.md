@@ -1,3 +1,11 @@
+### 2026-09-29 21:48 · B · B2 browser verification
+**Done:** user authorized Playwright. Chromium with simulated camera passed local real-model loading, mirrored cover video, phone-size resize and model-failure retry screen (2/2). Real-model/camera test also passed on the public production HTTPS URL (1/1). Build/typecheck pass.
+**Contract changes:** none.
+**For you (A):** deployed B2 is ready for physical camera testing and recording.
+**Blocked / need from you:** physical hands/devices still need testing; synthetic camera cannot validate recognition quality.
+**Known issues:** no new bugs in these browser checks.
+**Next:** B3 keyboard snapshot fixture, then B4.
+
 ### 2026-09-29 17:12 · B · B2 camera + real tracking
 **Done:** one Start click requests front camera and unlocks optional audio/speech; mirrored cover video, 640×480 fallback, friendly permission/device/playback/model errors. Real HandTracker → FeatureExtractor → controller wired; modelReady, calibration and dev debug/recording available. Projection uses actual video and viewport sizes; camera/resize/orientation/visibility reset both epochs. Build + 102 tests pass.
 **Contract changes:** none.
