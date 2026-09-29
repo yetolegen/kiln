@@ -1,4 +1,5 @@
-import type { FrameInput, GestureState, HandFeatures, ProjectionParams, Vec3 } from '../src/types';
+import { createController } from '../src/engine/controller';
+import type { CoreController, FrameInput, GestureState, HandFeatures, ProjectionParams, SessionMode, Vec3 } from '../src/types';
 
 export const PROJ: ProjectionParams = {
   revision: 1, videoWidth: 1280, videoHeight: 720, viewportWidth: 1280, viewportHeight: 720,
@@ -65,4 +66,22 @@ export function rawOpenHand(u: number, v: number): Vec3[] {
 
 export function moveGesture(gesture: 'pullUp' | 'pressDown', motionStrength = 1): GestureState {
   return { ...shapeGesture(0.5, 1), gesture, motionStrength, targetRadiusWorld: null };
+}
+
+/** Real controller walked through loading → calibrate (hands held still) → menu. Returns the next free time. */
+export function toMenu(core: CoreController, t0 = 0): number {
+  core.dispatch({ type: 'modelReady' }, t0);
+  core.updateProjection(PROJ);
+  let t = t0;
+  for (; core.tick(t).phase !== 'menu' && t < t0 + 5000; t += 33) core.observe(frame(t, hand(-1, 0.6), hand(1, 0.6)));
+  return t;
+}
+
+/** Controller in a fresh session of the given mode, started at T_START. */
+export const T_START = 2000;
+export function inSession(mode: SessionMode = 'free', sessionId = 's1'): CoreController {
+  const core = createController();
+  toMenu(core);
+  core.dispatch({ type: 'start', mode, sessionId }, T_START);
+  return core;
 }

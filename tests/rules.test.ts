@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { createClay, stepClay } from '../src/engine/clay';
-import { createController } from '../src/engine/controller';
+
 import { RuleEngine, type RuleInput } from '../src/engine/rules';
 import type { ClayEvent, EngineSnapshot, GestureState } from '../src/types';
-import { frame, hand, moveGesture, PROJ, shapeGesture } from './helpers';
+import { frame, hand, inSession, moveGesture, shapeGesture, T_START } from './helpers';
 
 const wobbling = (off: number): GestureState => ({ ...shapeGesture(0.5, 1), centerOffsetPalm: off });
 const input = (tMs: number, g: GestureState): RuleInput =>
@@ -92,8 +92,8 @@ describe('pulling too thin', () => {
 });
 
 describe('controller end-to-end', () => {
-  function drive(ms: number, fast: boolean, core = createController(), t0 = 0) {
-    core.updateProjection(PROJ);
+  function drive(ms: number, fast: boolean, core = inSession(), t0 = T_START) {
+
     const snaps: EngineSnapshot[] = [];
     for (let t = t0; t < t0 + ms; t += 33) {
       const v = { velocityPalmPerS: { x: fast ? 9 : 0.2, y: 0 } };
@@ -111,7 +111,7 @@ describe('controller end-to-end', () => {
     expect(last.hint?.id).toBe('tear');
     expect(last.hint?.params.speedRatio).toBeGreaterThan(1);
 
-    const slow = drive(1000, false, fast.core, 1000);
+    const slow = drive(1000, false, fast.core, T_START + 1000);
     expect(count(slow.events, 'tear', 'end')).toBe(1);
     expect(slow.snaps.at(-1)!.hint?.id).not.toBe('tear');
   });
@@ -119,7 +119,7 @@ describe('controller end-to-end', () => {
   it('events are delivered once, not replayed on the next tick', () => {
     const { core, snaps } = drive(1000, true);
     expect(snaps.filter((s) => s.events.some((e) => e.type === 'tear' && e.phase === 'begin')).length).toBe(1);
-    expect(core.tick(2000).events.length).toBe(0);
+    expect(core.tick(T_START + 2000).events.length).toBe(0);
   });
 
   it('restart forgets clay, episodes and hint', () => {
