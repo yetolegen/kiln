@@ -27,7 +27,7 @@ export const CONFIG = {
   MAX_DR_PER_S: 0.8,
   PULL_RATE: 0.6,
   PRESS_RATE: 0.6,
-  THIN_PER_HEIGHT: 0.1,
+  THIN_PER_HEIGHT: 0.15, // plan had 0.1: pulling alone could never thin below MIN_THICKNESS (0.35 − 0.1·2.0 = 0.15)
   RADIAL_STRAIN_PER_HEIGHT: 0.08,
   WOBBLE_GROWTH_PER_S: 0.5,
   WOBBLE_DAMPING_PER_S: 4.0,
@@ -44,6 +44,11 @@ export const CONFIG = {
   RECOVERY_HEIGHT_MARGIN: 0.1,
   RECOVERY_WOBBLE_MAX: 0.25,
   RECOVERY_ACTIVE_MS: 500,
+  SAG_HEIGHT_FACTOR: 0.7,             // collapse: height → 0.7·height, once
+  SAG_SMOOTH_PASSES: 3,               // collapse: box-blur passes over the upper half
+  OVERHANG_SMOOTH_PER_S: 0.5,         // max radius removed per second at a too-steep band
+  TEAR_SIGMA_BANDS: 1.5,              // spread of tear damage around the band
+  WOBBLE_CENTERED_DAMPING_PER_S: 0.4, // slow wobble decay while shaping centred (press is faster)
 
   // hand features (tune from recordings)
   PINCH_ON: 0.35,
@@ -64,6 +69,14 @@ export const CONFIG = {
   WOBBLE_TOL_PALM: 0.35,
   WOBBLE_CLEAR_TOL_PALM: 0.25,
 
+  // near-miss: only with evidence of an attempt
+  PINCH_LOOSE_MAX: 0.6,            // pinch ratio still counted as "almost pinching"
+  FIST_LOOSE_MAX: 0.55,            // max finger extension still counted as "almost a fist"
+  ATTEMPT_ZONE_X_WORLD: 2.5,       // hands farther than this from the axis aren't attempting anything
+  ATTEMPT_ZONE_Y_MARGIN_WORLD: 0.5,
+  NEAR_MISS_MIN_MS: 400,           // pose held this long before we coach it
+  NOT_MOVING_MS: 800,
+
   // time
   INFERENCE_MAX_HZ: 30,
   MAX_STEP_S: 0.05,
@@ -75,7 +88,12 @@ export const CONFIG = {
   DWELL_MS: 900,
   TEAR_ENTER_MS: 120,
   WOBBLE_ENTER_MS: 500,
+  OVERHANG_ENTER_MS: 200,
+  ONE_HAND_ENTER_MS: 700,
+  NO_HANDS_ENTER_MS: 1500,
+  TRACKING_UNCERTAIN_ENTER_MS: 300,
   RULE_CLEAR_MS: 250,
+  RULE_UPDATE_MS: 500,             // min interval between 'update' events of one episode
   HINT_COOLDOWN_MS: 3500,
   HINT_TTL_MS: 4000,
   TARGET_HINT_INTERVAL_MS: 3000,
