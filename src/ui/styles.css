@@ -107,6 +107,31 @@ progress { display: block; width: min(240px, 80vw); height: 8px; margin: 20px 0;
 .dwell-button:focus-visible { outline: 3px solid #ffe0a2; outline-offset: 4px; }
 .dwell-button:disabled { opacity: .45; cursor: default; }
 .phase-details:empty { display: none; }
+.phase-details { max-width: 680px; }
+.glaze-choices { display: flex; gap: 18px; margin: 24px 0 16px; }
+.glaze-jar { min-width: 108px; padding-top: 64px; background: radial-gradient(ellipse at 50% 34%, var(--glaze) 0 24%, transparent 26%), #211d19e8; }
+.glaze-jar[aria-pressed='true'] { border: 2px solid #ffe0a2; box-shadow: 0 0 25px #ffe0a220; }
+.kiln-glow { position: absolute; inset: 0; z-index: 1; pointer-events: none; background: radial-gradient(ellipse at 50% 65%, #ff7a27dd, #86341299 45%, transparent 75%); }
+.result-summary { position: fixed; top: 320px; left: 4vw; width: min(290px, 27vw); text-align: left; padding: 20px; background: #211d19ee; border: 1px solid #70513c; border-radius: 20px; }
+.result-summary p { font-size: 13px; line-height: 1.5; margin: 12px 0; }
+.result-score { display: block; color: #f3ce91; font: 52px Georgia, serif; }
+.result-summary > span { color: #c4b5a3; font-size: 12px; }
+.result-tracking, .storage-status { color: #baae9c; }
+.gallery-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-top: 24px; }
+.gallery-card { background: #30271fee; border: 1px solid #70513c; border-radius: 20px; overflow: hidden; padding-bottom: 16px; }
+.gallery-card canvas { width: 100%; max-width: 280px; }
+.gallery-card h2 { font: 22px Georgia, serif; margin: 0 12px; }
+.gallery-card p, .gallery-count { font-size: 12px; color: #c4b5a3; }
+@media (max-width: 600px) {
+  .glaze-choices { gap: 8px; }
+  .glaze-jar { min-width: 94px; padding-top: 64px; }
+  .result-summary { top: 310px; left: 16px; width: calc(100% - 32px); padding: 12px 16px; }
+  .result-summary p { margin: 6px 0; font-size: 11px; }
+  .result-score { display: inline; font-size: 28px; margin-right: 10px; }
+  .gallery-grid { gap: 8px; }
+  .gallery-card h2 { font-size: 17px; }
+  .gallery-card p { padding: 0 8px; }
+}
 .sound-toggle { position: fixed; top: 92px; right: 24px; min-height: 44px; padding: 10px 14px; font-size: 12px; }
 .tutorial-card { position: fixed; left: 24px; top: 320px; width: 280px; padding: 20px; border: 1px solid #856b50; border-radius: 20px; background: #211d19ee; }
 .tutorial-card > span { color: #d5b897; font-size: 11px; letter-spacing: .14em; }

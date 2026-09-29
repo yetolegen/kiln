@@ -1,5 +1,36 @@
 import { test, expect } from '@playwright/test';
 
+for (const blockedStorage of [false, true]) test(`B8 finishes a pot, exports PNG and opens gallery (storage blocked: ${blockedStorage})`, async ({ page }) => {
+  if (blockedStorage) await page.addInitScript(() => {
+    Object.defineProperty(window, 'localStorage', { get() { throw new Error('storage disabled'); } });
+    Object.defineProperty(window, 'speechSynthesis', { value: undefined });
+    Object.defineProperty(window, 'AudioContext', { value: undefined });
+  });
+  const errors: string[] = []; page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto('/?dev=1&mock=1');
+  await page.locator('[data-action="commission"]').hover();
+  await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'studio');
+  await page.keyboard.press('u'); await page.keyboard.press('f');
+  await expect(page.locator('[data-action="fire"]')).toBeDisabled();
+  await page.locator('[data-action="glaze-jade"]').hover();
+  await expect(page.locator('[data-action="glaze-jade"]')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('[data-action="fire"]').hover();
+  await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'firing');
+  await expect(page.locator('.result-score')).toHaveText('82%', { timeout: 10_000 });
+  if (blockedStorage) await expect(page.locator('.storage-status')).toContainText('до закрытия');
+  const downloaded = page.waitForEvent('download'); await page.locator('[data-action="download"]').hover();
+  expect((await downloaded).suggestedFilename()).toMatch(/^kiln-.*\.png$/);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: `test-results/b8-result-${blockedStorage}.png` });
+  await page.locator('[data-action="gallery"]').hover();
+  await expect(page.locator('.gallery-card')).toHaveCount(1);
+  if (!blockedStorage) {
+    await page.reload(); await expect(page.getByTestId('mock-badge')).toBeVisible(); await page.keyboard.press('9');
+    await expect(page.locator('.gallery-card')).toHaveCount(1);
+  }
+  expect(errors).toEqual([]);
+});
+
 test('B7 tutorial follows gestures and a complete tear episode', async ({ page }) => {
   await page.goto('/?dev=1&mock=1');
   await page.locator('[data-action="tutorial"]').hover();

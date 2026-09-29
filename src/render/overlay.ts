@@ -10,8 +10,10 @@ export function createOverlay(parent: HTMLElement) {
   parent.append(canvas);
   const ctx = canvas.getContext('2d');
   let width = 0, height = 0, dpr = 1;
+  let projection: ProjectionParams | null = null;
   return {
     setProjection(p: ProjectionParams): void {
+      projection = p;
       width = p.viewportWidth; height = p.viewportHeight;
       dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr);
@@ -20,6 +22,21 @@ export function createOverlay(parent: HTMLElement) {
       if (!ctx) return;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, width, height);
+      if (snapshot.phase === 'studio' && snapshot.target && projection) {
+        const target = snapshot.target, p = projection;
+        ctx.strokeStyle = '#cce5dfbb'; ctx.lineWidth = 2; ctx.setLineDash([6, 6]);
+        for (const side of [-1, 1]) {
+          ctx.beginPath();
+          for (let i = 0; i < target.radii.length; i++) {
+            const x = p.axisXPx + side * target.radii[i] * p.pixelsPerWorldUnit;
+            const y = p.bottomYPx - target.height * i / (target.radii.length - 1) * p.pixelsPerWorldUnit;
+            if (!i) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          }
+          ctx.stroke();
+        }
+        ctx.setLineDash([]); ctx.fillStyle = '#cce5df'; ctx.font = '12px system-ui';
+        ctx.fillText('Образец', p.axisXPx + target.radii.at(-1)! * p.pixelsPerWorldUnit + 10, p.bottomYPx - target.height * p.pixelsPerWorldUnit);
+      }
       const input = snapshot.input;
       if (!input || nowMs - input.tMs > CONFIG.MAX_INPUT_AGE_MS) return;
       ctx.strokeStyle = '#ffddaa'; ctx.lineWidth = 2; ctx.lineCap = 'round';

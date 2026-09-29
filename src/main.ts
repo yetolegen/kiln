@@ -10,6 +10,8 @@ import { createOverlay } from './render/overlay';
 import { DwellController } from './ui/dwell';
 import { createHud } from './ui/hud';
 import { createTutorial } from './ui/tutorial';
+import { createFinishing } from './ui/finishing';
+import { createKiln } from './render/kiln';
 import type { CoreController, EngineSnapshot, ProjectionParams } from './types';
 import './ui/styles.css';
 
@@ -37,6 +39,8 @@ const dwell = new DwellController();
 const hud = createHud(screens.page);
 const tutorial = createTutorial(screens.page, (command) => core.dispatch(command, performance.now()));
 const scene = createScene(screens.viewport);
+const kiln = createKiln(screens.viewport, scene.setSurface);
+const finishing = createFinishing(screens, (command) => core.dispatch(command, performance.now()), scene.exportPng);
 const overlay = createOverlay(screens.viewport);
 const camera = new CameraSession(screens.video, () => failCamera('interrupted'));
 let tracker: HandTracker | null = null;
@@ -138,6 +142,7 @@ function render(nowMs: number): void {
   if (disposed) return;
   const snapshot = core.tick(nowMs);
   screens.update(snapshot, state, nowMs);
+  finishing.update(snapshot, state.cameraActive && !state.error);
   hud.update(snapshot, nowMs);
   tutorial.update(snapshot, nowMs);
   sound.update(snapshot, !document.hidden && state.cameraActive);
@@ -145,6 +150,7 @@ function render(nowMs: number): void {
   const selected = dwell.update(snapshot, nowMs, screens.targets, screens.revision);
   screens.showDwell(dwell.activeId, dwell.progress);
   if (selected) screens.activate(selected);
+  kiln.update(snapshot, nowMs);
   scene.render(snapshot, nowMs);
   overlay.render(snapshot, nowMs, dwell.progress);
   debug?.update(snapshot, nowMs);
@@ -164,6 +170,7 @@ function dispose(): void {
   tracker?.close();
   debug?.destroy();
   scene.dispose();
+  kiln.destroy();
   overlay.dispose();
   hud.destroy();
   tutorial.destroy();

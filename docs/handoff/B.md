@@ -1,3 +1,11 @@
+### 2026-09-29 23:07 · B · B8 finishing and local gallery
+**Done:** 3 dwell glazes, firing glow/material, snapshot target outline, result time/score/execution tips with tracking separate, PNG, validated schema-1 shelf and versioned local best scores. Build + 130 unit tests + Chromium finishing/PNG/gallery flow with storage enabled and disabled pass; portrait result reviewed.
+**Contract changes:** consumes snapshot target/glazeId; mock now supplies a target and selected glaze.
+**For you (A):** full frontend route ready for real-hand M4/T22. Deployment follows this commit.
+**Blocked / need from you:** physical recognition/tuning and both participants' T22 cannot be established with synthetic browser input.
+**Known issues:** tests found that trimming old pots discarded best scores; fixed by persisting best scores independently of shelf entries, in the same atomic payload. Best-effort failures do not stop the result.
+**Next:** B9 polish/phone/export; B10 README/GIF/browser matrix.
+
 ### 2026-09-29 22:59 · B · B7 tutorial
 **Done:** six Russian instruction steps with animated hand diagrams. Progress uses distinct fresh accepted observations; speed lesson requires calm contact, tear begin, matching end and resumed calm contact. Build + 125 unit tests + Chromium full tutorial fixture pass; portrait screenshot reviewed.
 **Contract changes:** none.

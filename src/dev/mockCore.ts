@@ -1,4 +1,5 @@
 import { CONFIG } from '../config';
+import { TARGETS } from '../engine/target';
 import type {
   AppCommand, AppPhase, ClayEvent, ClayEventType, ClayState, CoreController, EngineSnapshot,
   FrameInput, Gesture, GestureState, HandFeatures, Hint, ProjectionParams, SessionResult, SessionStats, Vec2,
@@ -31,7 +32,7 @@ export class MockCore implements CoreController {
   private cursor: Vec2 = { x: 0, y: 0 };
   private stats: SessionStats = this.newStats('mock-1', 'commission');
   private result: SessionResult | null = null;
-  private glazeId = 'amber';
+  private glazeId: string | null = null;
   private firingAt = 0;
   private expected: Gesture | undefined;
   private hint: Hint | null = null;
@@ -52,7 +53,7 @@ export class MockCore implements CoreController {
     switch (command.type) {
       case 'modelReady': this.phase = 'permission'; break;
       case 'start':
-        this.clay = makeClay(); this.result = null; this.active.clear(); this.pending = [];
+        this.clay = makeClay(); this.result = null; this.glazeId = null; this.active.clear(); this.pending = [];
         this.stats = this.newStats(command.sessionId, command.mode);
         this.phase = command.mode === 'tutorial' ? 'tutorial' : 'studio'; break;
       case 'restart': this.dispatch({ type: 'start', mode: this.stats.mode, sessionId: command.newSessionId }, nowMs); break;
@@ -118,7 +119,7 @@ export class MockCore implements CoreController {
   private finalize(): SessionResult {
     return { schemaVersion: 1, id: this.stats.sessionId, completedAtIso: new Date().toISOString(), stats: structuredClone(this.stats),
       finalProfile: Array.from(this.clay.radii), height: this.clay.height, thickness: this.clay.thickness,
-      damage: Array.from(this.clay.damage), collapsed: this.clay.collapsed, glazeId: this.glazeId };
+      damage: Array.from(this.clay.damage), collapsed: this.clay.collapsed, glazeId: this.glazeId ?? 'amber' };
   }
 
   tick(nowMs: number): EngineSnapshot {
@@ -148,7 +149,7 @@ export class MockCore implements CoreController {
     return { phase: this.phase, mode: this.stats.mode, calibrationProgress: this.phase === 'calibrate' ? .6 : 1,
       input: this.input, clay: this.clay, gesture: this.gesture, events, activeIssues: [...this.active.values()],
       hint: this.hint,
-      stats: this.stats, result: this.result, target: null, glazeId: this.glazeId };
+      stats: this.stats, result: this.result, target: this.stats.mode === 'commission' ? TARGETS[0] : null, glazeId: this.glazeId };
   }
 }
 
