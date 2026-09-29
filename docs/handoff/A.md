@@ -2,6 +2,14 @@
 
 Newest entry at the top. Written by A, read by B.
 
+### 2026-09-29 19:30 · A · bug fixes (speech rule, GPU fallback)
+**Done:** "recovered" hint could be spoken twice. Tracker now falls back to CPU if the GPU delegate fails at the first detection (not only at load). Controller warns once in the console if it drops frames because of an epoch mismatch. 87/87.
+**Contract changes:** none.
+**For you (B):** **speech rule changed, replaces the one in my A3 entry.** Speak when `hint && hint.speak && hint !== lastHint`, then set `lastHint = hint` every frame. The core returns the same Hint object on every tick until something changes. The old rule, dedupe by (id, episodeId), would silence near-miss hints forever after their first time because they have no episodeId. Also: on camera restart / resize always set BOTH `tracker.epoch = n` and `core.resetInput(n)`, otherwise every frame is dropped (you'll see a console warning).
+**Blocked / need from you:** B2 camera + main-loop wiring.
+**Known issues:** raising open hands just above the pot after a pull and holding still for 1.5 s finishes the pot. That's the plan's raise gesture, but it may trigger by accident. We'll see in testing; `RAISE_MARGIN_WORLD` (0.15) is the knob.
+**Next:** real-hand recording + tuning once B2 is in.
+
 ### 2026-09-29 19:10 · A · A5 recorder + tuning notebook
 **Done:** `tracking/recorder.ts` (labelled FrameInput recordings) built into the debug panel: `?dev=1&rec=1`, keys `0–6` = neutral/shape/pullUp/pressDown/point/raise/tooFast, `R` start/stop → downloads JSON. `notebooks/tuning.ipynb`: per-feature distributions per label, ON/OFF thresholds from the gap, fist-read-as-pinch check, label vs recognizer table, prints suggested `config.ts` lines. Runs end to end on clearly marked synthetic data until real recordings exist. 85/85 tests.
 **Contract changes:** none.
