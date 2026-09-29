@@ -1,4 +1,6 @@
 // Dev-only numbers panel. Load it only behind `import.meta.env.DEV && ?dev=1` so it never ships.
+// With `&rec=1` it also records: keys 0–6 pick the label, R starts/stops, stop downloads the JSON.
+import { FrameRecorder, LABELS } from '../tracking/recorder';
 import type { EngineSnapshot, HandFeatures } from '../types';
 
 const f = (n: number | null | undefined, d = 2) => (n === null || n === undefined ? '–' : n.toFixed(d));
@@ -22,9 +24,27 @@ export function createDebugPanel(parent: HTMLElement = document.body) {
   parent.append(el);
   let renders = 0, observations = 0, lastFrameId = -1, windowStartMs = -1, fps = 0, obsHz = 0, lastPaintMs = 0;
 
+  const recorder = new URLSearchParams(location.search).get('rec') === '1' ? new FrameRecorder() : null;
+  let recording = false;
+  const onKey = (e: KeyboardEvent) => {
+    if (!recorder) return;
+    const n = Number(e.key);
+    if (Number.isInteger(n) && n >= 0 && n < LABELS.length) recorder.label = LABELS[n];
+    if (e.key.toLowerCase() !== 'r') return;
+    recording = !recording;
+    if (!recording && recorder.count > 0) {
+      const url = URL.createObjectURL(new Blob([recorder.flush({ userAgent: navigator.userAgent })], { type: 'application/json' }));
+      const a = Object.assign(document.createElement('a'), { href: url, download: `kiln-rec-${Date.now()}.json` });
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  };
+  addEventListener('keydown', onKey);
+
   return {
     update(s: EngineSnapshot, nowMs: number): void {
       renders++;
+      if (recording) recorder?.push(s.input, s.gesture);
       if (s.input && s.input.frameId !== lastFrameId) {
         lastFrameId = s.input.frameId;
         observations++;
@@ -57,9 +77,14 @@ export function createDebugPanel(parent: HTMLElement = document.body) {
           `maxDmg ${f(Math.max(...c.damage))} ${c.collapsed ? `COLLAPSED(${c.collapseCause})` : ''} rev ${c.revision}` : 'clay –',
         `issues ${s.activeIssues.map((e) => e.type).join(', ') || '–'}`,
         s.hint ? `hint ${s.hint.id} ${s.hint.severity} p${s.hint.priority} ${JSON.stringify(s.hint.params)}` : 'hint –',
+        recorder
+          ? `${recording ? '● REC' : '○ rec (R)'} label [${LABELS.indexOf(recorder.label)}] ${recorder.label} · ` +
+            `${recorder.count} frames · 0–6: ${LABELS.join(' ')}`
+          : '',
       ].join('\n');
     },
     destroy(): void {
+      removeEventListener('keydown', onKey);
       el.remove();
     },
   };
