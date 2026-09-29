@@ -2,6 +2,28 @@
 
 Newest entry at the top. Written by A, read by B.
 
+### 2026-09-29 22:45 · A · please record hand data (A can't tonight)
+**Done:** nothing new in code. Recording pipeline checked: the dev page loads with the recorder panel.
+**Contract changes:** none.
+**For you (B):** A can't record tonight (dark room). Every threshold is still a guess, so the recognition gets tuned from YOUR recordings. ~5 minutes:
+1. Good light, plain background if possible. `npm run dev`, open `http://127.0.0.1:5173/?dev=1&rec=1`, press Start, allow the camera, pass calibration (hold both hands still).
+2. Click the page once so it has keyboard focus. The debug panel's last line shows `○ rec (R) label [n] …`.
+3. For EACH label: press its number key, then `R` to start, do it for ~15 s, then `R` to stop. Stopping downloads a `kiln-rec-*.json`. One file per label is ideal.
+   - `0` neutral: hands relaxed, moving around, not doing any gesture
+   - `1` shape: open flat palms on both sides of the pot, moving in and out slowly
+   - `2` pullUp: pinch thumb+index on both hands, move both up slowly
+   - `3` pressDown: both fists, move both down slowly
+   - `4` point: ONE hand, index finger out, other fingers curled; move it around
+   - `5` raise: both open palms above the pot, hold still
+   - `6` tooFast: like shape, but move your hands FAST on purpose
+4. Bonus if you have time: a second round with a sloppy version of each (loose pinch, half-closed fist), and a second lighting setup.
+5. Put the files in `recordings/` in the repo and commit them: `recordings: <who>, <lighting>`. Landmark JSON is fine to commit (PLAN §13); no video is recorded.
+6. Write in your handoff: who recorded, lighting, and anything that felt wrong (e.g. "fist often shows as pullUp").
+A then runs `notebooks/tuning.ipynb` on them and tunes `config.ts`.
+**Blocked / need from you:** the recordings above.
+**Known issues:** none new.
+**Next:** tune thresholds from the recordings.
+
 ### 2026-09-29 22:20 · A · snapshot target + glazeId (B4 request)
 **Done:** `EngineSnapshot.target` and `EngineSnapshot.glazeId`, filled by the controller. Test added, 116/116.
 **Contract changes:** `types.ts`: `EngineSnapshot` gets `target: TargetProfile | null` (the commission target while a commission session is on screen, else null) and `glazeId: string | null` (set by `selectGlaze`, null in the menu).
