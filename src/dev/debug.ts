@@ -42,7 +42,8 @@ export function createDebugPanel(parent: HTMLElement = document.body) {
       const i = s.input, g = s.gesture, c = s.clay;
       el.textContent = [
         `render ${f(fps, 0)} fps · tracking ${f(obsHz, 0)} Hz · age ${i ? f(nowMs - i.tMs, 0) : '–'} ms`,
-        `status ${i?.status ?? '–'} · phase ${s.phase}`,
+        `status ${i?.status ?? '–'} · phase ${s.phase}${s.mode ? `/${s.mode}` : ''} · calib ${f(s.calibrationProgress)}` +
+          (s.stats?.similarity ? ` · score ${f(s.stats.similarity.score, 1)}` : ''),
         hand('L', i?.screenLeft ?? null),
         hand('R', i?.screenRight ?? null),
         g
