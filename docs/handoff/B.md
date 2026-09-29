@@ -1,3 +1,11 @@
+### 2026-09-29 22:22 · B · B5 screens, dwell and HUD
+**Done:** phase-driven Russian screens, menu/studio navigation, observation-driven dwell, gesture/tracking chips and contextual hints. Build + 119 unit tests + Chromium dwell navigation pass; desktop/390px screenshots reviewed.
+**Contract changes:** consumed A's target/glazeId additions; mock updated.
+**For you (A):** camera/core integration stays live. Long dwell is one-shot even after session restart.
+**Blocked / need from you:** none.
+**Known issues:** regression test found repeated restarts while holding the same button; fixed by retaining the latch across sessionId changes. Physical gesture/device tests remain outstanding.
+**Next:** B6 optional sound/voice and mute.
+
 ### 2026-09-29 22:06 · B · B4 scene + pot + overlay
 **Done:** transparent Three.js scene, hollow reusable lathe mesh, wheel, damage tint, wobble and active-band ring; hand outlines/cursor from snapshots. z=0 interaction plane agrees with core within 0.5 px at desktop/portrait/landscape sizes. Automatic shaded 2D fallback on WebGL failure/context loss. Build + 115 unit tests + Chromium render/fallback check pass; screenshots reviewed.
 **Contract changes:** none.

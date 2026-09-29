@@ -7,6 +7,8 @@ import { unlockSound } from './audio/sound';
 import { unlockVoice } from './audio/voice';
 import { createScene } from './render/scene';
 import { createOverlay } from './render/overlay';
+import { DwellController } from './ui/dwell';
+import { createHud } from './ui/hud';
 import type { CoreController, EngineSnapshot, ProjectionParams } from './types';
 import './ui/styles.css';
 
@@ -24,7 +26,9 @@ if (import.meta.env.DEV && new URLSearchParams(location.search).get('dev') === '
   mockMode = true;
 }
 const state: StartupState = { busy: false, cameraActive: false, error: null };
-const screens = createScreens(root, () => { void start(); });
+const screens = createScreens(root, () => { void start(); }, (command) => core.dispatch(command, performance.now()));
+const dwell = new DwellController();
+const hud = createHud(screens.page);
 const scene = createScene(screens.viewport);
 const overlay = createOverlay(screens.viewport);
 const camera = new CameraSession(screens.video, () => failCamera('interrupted'));
@@ -69,6 +73,8 @@ function project(force = false): void {
   revision = next.revision;
   scene.setProjection(next);
   overlay.setProjection(next);
+  dwell.reset();
+  screens.refreshTargets();
   if (mockMode) { core.resetInput(revision); core.updateProjection(next); }
   else tracking?.resume(next, performance.now());
 }
@@ -124,8 +130,12 @@ function render(nowMs: number): void {
   if (disposed) return;
   const snapshot = core.tick(nowMs);
   screens.update(snapshot, state, nowMs);
+  hud.update(snapshot, nowMs);
+  const selected = dwell.update(snapshot, nowMs, screens.targets, screens.revision);
+  screens.showDwell(dwell.activeId, dwell.progress);
+  if (selected) screens.activate(selected);
   scene.render(snapshot, nowMs);
-  overlay.render(snapshot, nowMs);
+  overlay.render(snapshot, nowMs, dwell.progress);
   debug?.update(snapshot, nowMs);
   animation = requestAnimationFrame(render);
 }
@@ -144,6 +154,7 @@ function dispose(): void {
   debug?.destroy();
   scene.dispose();
   overlay.dispose();
+  hud.destroy();
   destroyMock?.();
   observer.disconnect();
   cancelAnimationFrame(animation);

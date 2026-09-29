@@ -148,7 +148,7 @@ export class MockCore implements CoreController {
     return { phase: this.phase, mode: this.stats.mode, calibrationProgress: this.phase === 'calibrate' ? .6 : 1,
       input: this.input, clay: this.clay, gesture: this.gesture, events, activeIssues: [...this.active.values()],
       hint: this.hint,
-      stats: this.stats, result: this.result };
+      stats: this.stats, result: this.result, target: null, glazeId: this.glazeId };
   }
 }
 

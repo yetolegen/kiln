@@ -98,6 +98,31 @@ footer { text-align: center; }
 .start-button:disabled { opacity: .5; cursor: wait; }
 progress { display: block; width: min(240px, 80vw); height: 8px; margin: 20px 0; accent-color: #eac3a8; }
 
+.phase-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 24px; max-width: 760px; }
+.dwell-button { position: relative; overflow: hidden; min-height: 58px; padding: 16px 24px; border: 1px solid #99775c; border-radius: 16px; background: rgb(33 29 25 / 88%); color: #f0e5d8; font: 500 15px/1.35 system-ui, sans-serif; cursor: pointer; }
+.dwell-button::after { content: ''; position: absolute; height: 4px; bottom: 0; left: 0; width: 0; background: #edc89e; }
+.dwell-button.is-dwelling { border-color: #ffe0a2; box-shadow: 0 0 22px #eebc7520; }
+.dwell-button.is-dwelling::after { width: var(--dwell, 0%); }
+.dwell-button:hover { background: #584133; }
+.dwell-button:focus-visible { outline: 3px solid #ffe0a2; outline-offset: 4px; }
+.dwell-button:disabled { opacity: .45; cursor: default; }
+.phase-details:empty { display: none; }
+.hud { position: fixed; inset: auto 24px 76px; display: flex; align-items: center; justify-content: space-between; gap: 16px; pointer-events: none; }
+.hud__gesture, .hud__tracking { border-radius: 30px; background: #211d19dd; border: 1px solid #70513c; padding: 10px 16px; font-size: 13px; }
+.hud__hint { position: fixed; top: 290px; left: 50%; transform: translateX(-50%); width: min(600px, calc(100% - 32px)); padding: 14px 20px; margin: 0; border-radius: 16px; border: 1px solid #ad9270; background: #211d19ed; text-align: center; line-height: 1.5; }
+.hud__hint[data-severity='warn'] { border-color: #d9a751; color: #ffe3a8; }
+.hud__hint[data-severity='error'] { border-color: #e17c60; color: #ffd4c1; }
+.workshop[data-phase='studio'] h1, .workshop[data-phase='tutorial'] h1 { font-size: 30px; }
+
+@media (max-width: 600px) {
+  .phase-actions { gap: 8px; margin-top: 16px; }
+  .dwell-button { padding: 13px 16px; min-height: 52px; font-size: 13px; }
+  .workshop[data-phase='menu'] .phase-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .hud { inset: auto 12px 52px; gap: 8px; }
+  .hud__gesture, .hud__tracking { font-size: 11px; padding: 8px 10px; }
+  .hud__hint { top: 290px; font-size: 13px; padding: 10px 12px; }
+}
+
 @media (max-width: 420px) {
   .workshop__header { align-items: flex-start; }
   .workshop__label { max-width: 120px; text-align: right; line-height: 1.6; }

@@ -1,5 +1,21 @@
 import { test, expect } from '@playwright/test';
 
+test('B5 navigates by dwell and shows a readable phone HUD', async ({ page }) => {
+  await page.goto('/?dev=1&mock=1');
+  await expect(page.locator('[data-action="free"]')).toBeVisible();
+  await page.locator('[data-action="free"]').hover();
+  await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'studio');
+  await page.keyboard.press('s');
+  await page.keyboard.press('w');
+  await expect(page.locator('.hud__hint')).toContainText('влево');
+  await page.screenshot({ path: 'test-results/b5-desktop.png' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: 'test-results/b5-phone.png' });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  await page.locator('[data-action="menu"]').hover();
+  await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'menu');
+});
+
 test('B4 renders clay and falls back after WebGL context loss', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));

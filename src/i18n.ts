@@ -1,3 +1,5 @@
+import type { AppPhase, Gesture, Hint } from './types';
+
 export const ru = {
   brand: 'KILN',
   eyebrow: 'Гончарная мастерская',
@@ -35,3 +37,50 @@ export const ru = {
 } as const;
 
 export type StartupProblem = keyof typeof ru.errors;
+
+export const phaseText: Record<AppPhase, readonly [string, string]> = {
+  loading: [ru.title, ru.loading], permission: [ru.title, ru.permission],
+  calibrate: [ru.calibrateTitle, ru.calibrateText],
+  menu: ['Что создадим?', 'Укажите на карточку и задержите палец, пока круг не заполнится.'],
+  tutorial: ['Почувствуйте глину', 'Учимся управлять формой, шаг за шагом.'],
+  studio: ['Ваша форма', 'Поднимите обе открытые ладони выше сосуда и удерживайте, чтобы завершить.'],
+  glaze: ['Последний штрих', 'Выберите глазурь для своего сосуда.'],
+  firing: ['В тепле печи', 'Глина обжигается. Ещё немного…'],
+  result: ['Ваш сосуд готов', 'У каждой формы — свой характер.'],
+  gallery: ['Ваша полка', 'Сосуды и лучшие результаты, сохранённые в этом браузере.'],
+};
+
+export const gestureText: Record<Gesture, string> = {
+  none: 'Ждём жест', oneHand: 'Нужна вторая рука', shape: 'Формуем', pullUp: 'Тянем вверх',
+  pressDown: 'Сжимаем вниз', raise: 'Завершаем', point: 'Выбираем',
+};
+
+export function hintText(hint: Hint): string {
+  const p = hint.params;
+  const hand = p.side === 'left' ? 'левой' : p.side === 'right' ? 'правой' : 'отмеченной';
+  switch (hint.id) {
+    case 'tear': return 'Слишком быстро на отмеченном участке — веди руки медленнее, держи их у стенок';
+    case 'wobble': return `Смести обе руки ${p.dir === 'right' ? 'вправо' : 'влево'} — середина между ними должна совпасть с осью круга`;
+    case 'tooThin': return 'Стенка стала слишком тонкой — хватит тянуть вверх, сожми кулаки и веди руки вниз';
+    case 'collapse': return p.cause === 'tooTall' ? 'Сосуд слишком высокий для такого основания — опусти его кулаками вниз' : 'Сосуд осел из-за тонкой стенки — сожми кулаки и веди руки вниз, чтобы восстановить';
+    case 'overhang': return 'На отмеченном участке стенка слишком резко расширяется — сузь его или расширь участок ниже';
+    case 'handsTooFar': return `Поднеси ${p.side === 'left' ? 'левую руку к левой' : p.side === 'right' ? 'правую руку к правой' : 'отмеченную руку к её'} стенке`;
+    case 'oneHand': return 'Не вижу вторую руку — разведи кисти, чтобы камера видела обе';
+    case 'noHands': return 'Покажи обе руки камере';
+    case 'trackingUncertain': return 'Не могу уверенно распознать руки — разведи кисти и держи их в освещённой части кадра';
+    case 'targetMismatch':
+      if (p.cause === 'tooWide') return 'На отмеченной высоте сосуд шире образца — сведи руки';
+      if (p.cause === 'tooNarrow') return 'На отмеченной высоте сосуд уже образца — разведи руки шире';
+      if (p.cause === 'tooHigh') return 'Сосуд выше образца — сожми кулаки и веди руки вниз';
+      return 'Сосуд ниже образца — щипком обеими руками потяни вверх';
+    case 'pinchLoose': return `Сведи большой и указательный пальцы плотнее на ${hand} руке`;
+    case 'fistLoose': return `Сожми пальцы в кулак на ${hand} руке`;
+    case 'handsTooLow': return 'Подними обе открытые ладони выше сосуда и удерживай';
+    case 'handsUneven': return `Подними ${p.raise === 'left' ? 'левую' : 'правую'} руку — кисти должны быть на одной высоте`;
+    case 'handsNotOpposite': return 'Размести руки по разные стороны сосуда';
+    case 'notMoving': return 'Теперь двигай обе руки вместе: щипком вверх или кулаками вниз';
+    case 'offWheel': return 'Поднеси руки к стенкам сосуда на одной высоте';
+    case 'atLimit': return 'Сосуд уже достиг предельной высоты — попробуй изменить его ширину';
+    case 'recovered': return 'Сосуд восстановлен. Можно снова формовать';
+  }
+}
