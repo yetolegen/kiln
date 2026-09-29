@@ -44,6 +44,18 @@ describe('features', () => {
     expect(back.screenRight!.velocityValid).toBe(false);
   });
 
+  it('a hand missing for a few frames returns with its real speed, not a fake jerk', () => {
+    const fx = new FeatureExtractor();
+    fx.compute(packet(1, 0, [at(0.3), at(0.7)]), PROJ);
+    fx.compute(packet(2, 33, [at(0.3), at(0.7)]), PROJ);
+    for (let k = 3; k <= 4; k++) fx.compute(packet(k, k * 33, [at(0.7)]), PROJ); // one hand gone 2 frames
+    const back = fx.compute(packet(5, 5 * 33, [at(0.32), at(0.7)]), PROJ); // moved 0.02 of width over 132 ms (< REACQUIRE_MS)
+    const moved = back.screenRight!;
+    expect(moved.velocityValid).toBe(true);
+    // 0.02·1280 px / 0.132 s ≈ 194 px/s raw; the filter only lowers it. Dividing by one frame (33 ms) would give ~4×.
+    expect(Math.abs(moved.velocityPalmPerS.x * moved.referencePalmSizePx)).toBeLessThan(200);
+  });
+
   it('invalid landmarks are reported, not used', () => {
     const bad: RawHand = { landmarks: rawOpenHand(0.5, 0.5).map((p, i) => (i === 3 ? { ...p, x: NaN } : p)) };
     const f = new FeatureExtractor().compute(packet(1, 0, [bad]), PROJ);

@@ -57,7 +57,7 @@ export class FeatureExtractor {
 
     const valid = packet.hands.filter(isValidHand);
     let status: TrackingStatus | null = valid.length < packet.hands.length ? 'invalidLandmarks' : null;
-    const obs = valid.map((h) => measure(h, proj)).filter((o) => o.sizePx > 0);
+    const obs = valid.slice(0, 2).map((h) => measure(h, proj)).filter((o) => o.sizePx > 0);
     const inFrame = obs.filter((o) => inside(o.palmPx, proj));
     if (!status && inFrame.length < obs.length) status = 'outOfFrame';
 
@@ -83,10 +83,15 @@ export class FeatureExtractor {
         tr = { id: this.nextTrackId++, filter: new OneEuroVec2(CONFIG.ONE_EURO), palmPx: o.palmPx, lastSeenMs: t };
         reacquired = true;
       }
-      const smooth = tr.filter.filter(o.palmPx, dtS);
+      // time since THIS hand was last seen, not since the last packet: a hand that dropped out
+      // for a few frames moved over that whole gap, and dividing by one frame would fake a fast jerk
+      const trackDtS = isNew ? 0 : (t - tr.lastSeenMs) / 1000;
+      const smooth = tr.filter.filter(o.palmPx, trackDtS);
       // first frame of a track has no history: velocity would be a fake jump
-      const velocityValid = !isNew && dtS > 0;
-      const vPx = velocityValid ? { x: (smooth.x - tr.palmPx.x) / dtS, y: (smooth.y - tr.palmPx.y) / dtS } : { x: 0, y: 0 };
+      const velocityValid = !isNew && trackDtS > 0;
+      const vPx = velocityValid
+        ? { x: (smooth.x - tr.palmPx.x) / trackDtS, y: (smooth.y - tr.palmPx.y) / trackDtS }
+        : { x: 0, y: 0 };
       tr.palmPx = smooth;
       tr.lastSeenMs = t;
       seen.push(tr);
