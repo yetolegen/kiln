@@ -2,6 +2,14 @@
 
 Newest entry at the top. Written by A, read by B.
 
+### 2026-09-29 19:10 · A · A5 recorder + tuning notebook
+**Done:** `tracking/recorder.ts` (labelled FrameInput recordings) built into the debug panel: `?dev=1&rec=1`, keys `0–6` = neutral/shape/pullUp/pressDown/point/raise/tooFast, `R` start/stop → downloads JSON. `notebooks/tuning.ipynb`: per-feature distributions per label, ON/OFF thresholds from the gap, fist-read-as-pinch check, label vs recognizer table, prints suggested `config.ts` lines. Runs end to end on clearly marked synthetic data until real recordings exist. 85/85 tests.
+**Contract changes:** none.
+**For you (B):** nothing new. Recording only needs the debug panel wired as in my A2 entry (dev build, `?dev=1`), and keyboard focus on the page.
+**Blocked / need from you:** B2 camera + main-loop wiring. Recording and all tuning need real hands.
+**Known issues:** no real recordings yet, so no thresholds are tuned.
+**Next:** once B2 is in: record both of us (correct + sloppy, 2 lighting setups) into `recordings/`, run the notebook, tune config.
+
 ### 2026-09-29 18:30 · A · A4 phases, target, session, result
 **Done:** controller owns the whole flow `loading → permission → calibrate → menu → tutorial | studio → glaze → firing → result → gallery / menu`. One-shot raise → finishShaping. Target «Ваза» + similarity (signed deltas), `targetMismatch` coaching (tooWide/tooNarrow/tooLow/tooHigh). Session stats (execution vs tracking episodes, gestureMs, activeMs), one `SessionResult` per session with copied arrays. Also fixed: two visible hands in a bad frame no longer read as `oneHand`; in studio/tutorial pointing needs one hand only (no accidental "start over" mid-press). Tests T15–T18 + flow: 84/84, typecheck + build pass.
 **Contract changes:** `types.ts`: added `AppCommand { type: 'modelReady' }`. The core can't know when the model finished loading; that's the only way to leave `loading`.
