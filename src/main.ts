@@ -5,13 +5,22 @@ import { HandTracker, HandTrackerError } from './tracking/handTracker';
 import { createController } from './engine/controller';
 import { unlockSound } from './audio/sound';
 import { unlockVoice } from './audio/voice';
-import type { EngineSnapshot, ProjectionParams } from './types';
+import type { CoreController, EngineSnapshot, ProjectionParams } from './types';
 import './ui/styles.css';
 
 const root = document.querySelector<HTMLDivElement>('#app');
 if (!root) throw new Error('KILN app root is missing.');
 
-const core = createController({ nowIso: () => new Date().toISOString() });
+let core: CoreController = createController({ nowIso: () => new Date().toISOString() });
+let mockMode = false;
+let destroyMock: (() => void) | null = null;
+if (import.meta.env.DEV && new URLSearchParams(location.search).get('dev') === '1' && new URLSearchParams(location.search).get('mock') === '1') {
+  const { installMockCore } = await import('./dev/mockCore');
+  const mock = installMockCore();
+  core = mock.core;
+  destroyMock = mock.destroy;
+  mockMode = true;
+}
 const state: StartupState = { busy: false, cameraActive: false, error: null };
 const screens = createScreens(root, () => { void start(); });
 const camera = new CameraSession(screens.video, () => failCamera('interrupted'));
@@ -48,13 +57,14 @@ function prepareModel(): Promise<void> {
 }
 
 function project(force = false): void {
-  if (!state.cameraActive || document.hidden || !tracking) return;
-  const next = cameraProjection(screens.video, screens.viewport.getBoundingClientRect(), revision + 1);
+  if (!state.cameraActive || document.hidden || (!tracking && !mockMode)) return;
+  const next = cameraProjection(mockMode ? { videoWidth: 1280, videoHeight: 720 } : screens.video, screens.viewport.getBoundingClientRect(), revision + 1);
   if (!force && projection && next.viewportWidth === projection.viewportWidth && next.viewportHeight === projection.viewportHeight &&
       next.videoWidth === projection.videoWidth && next.videoHeight === projection.videoHeight) return;
   projection = next;
   revision = next.revision;
-  tracking.resume(next, performance.now());
+  if (mockMode) { core.resetInput(revision); core.updateProjection(next); }
+  else tracking?.resume(next, performance.now());
 }
 
 async function start(): Promise<void> {
@@ -112,9 +122,10 @@ function render(nowMs: number): void {
   animation = requestAnimationFrame(render);
 }
 animation = requestAnimationFrame(render);
-void prepareModel();
+if (mockMode) { state.cameraActive = true; project(true); }
+else void prepareModel();
 
-if (import.meta.env.DEV && new URLSearchParams(location.search).get('dev') === '1') {
+if (import.meta.env.DEV && new URLSearchParams(location.search).get('dev') === '1' && !mockMode) {
   void import('./dev/debug').then(({ createDebugPanel }) => { if (!disposed) debug = createDebugPanel(); });
 }
 
@@ -123,6 +134,7 @@ function dispose(): void {
   pageHide();
   tracker?.close();
   debug?.destroy();
+  destroyMock?.();
   observer.disconnect();
   cancelAnimationFrame(animation);
   cancelAnimationFrame(resizeFrame);

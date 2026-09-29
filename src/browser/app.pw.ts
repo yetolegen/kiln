@@ -1,5 +1,17 @@
 import { test, expect } from '@playwright/test';
 
+test('B3 mock changes phases without loading a model or camera', async ({ page }) => {
+  let modelRequests = 0;
+  page.on('request', (request) => { if (request.url().includes('hand_landmarker.task')) modelRequests++; });
+  await page.goto('/?dev=1&mock=1');
+  await expect(page.getByTestId('mock-badge')).toBeVisible();
+  await page.keyboard.press('5');
+  await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'studio');
+  await page.keyboard.press('8');
+  await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'result');
+  expect(modelRequests).toBe(0);
+});
+
 test('B2 loads the real model, starts a mirrored camera, and resizes', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));

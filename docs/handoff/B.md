@@ -1,3 +1,11 @@
+### 2026-09-29 21:56 · B · B3 keyboard mock
+**Done:** typed MockCore with phases, gestures, editable clay, event episodes, hints, stats and copied results. Development `?dev=1&mock=1` uses it without camera/model loading; real `?dev=1` retains A's debug recorder. Build, 111 unit tests and B3 browser check pass; production scan excludes mock/debug/recorder.
+**Contract changes:** none.
+**For you (A):** mock is explicit opt-in; normal app continues using your core.
+**Blocked / need from you:** none.
+**Known issues:** fixed exponent syntax caught by build and unstable mock hint identity caught by review. Physical gesture quality remains unverified.
+**Next:** B4 transparent 3D scene, hollow pot, overlay and projection tests.
+
 ### 2026-09-29 21:48 · B · B2 browser verification
 **Done:** user authorized Playwright. Chromium with simulated camera passed local real-model loading, mirrored cover video, phone-size resize and model-failure retry screen (2/2). Real-model/camera test also passed on the public production HTTPS URL (1/1). Build/typecheck pass.
 **Contract changes:** none.
