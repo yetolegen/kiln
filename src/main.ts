@@ -9,6 +9,7 @@ import { createScene } from './render/scene';
 import { createOverlay } from './render/overlay';
 import { DwellController } from './ui/dwell';
 import { createHud } from './ui/hud';
+import { createTutorial } from './ui/tutorial';
 import type { CoreController, EngineSnapshot, ProjectionParams } from './types';
 import './ui/styles.css';
 
@@ -34,6 +35,7 @@ const screens = createScreens(root, () => { void start(); }, (command) => core.d
 });
 const dwell = new DwellController();
 const hud = createHud(screens.page);
+const tutorial = createTutorial(screens.page, (command) => core.dispatch(command, performance.now()));
 const scene = createScene(screens.viewport);
 const overlay = createOverlay(screens.viewport);
 const camera = new CameraSession(screens.video, () => failCamera('interrupted'));
@@ -137,6 +139,7 @@ function render(nowMs: number): void {
   const snapshot = core.tick(nowMs);
   screens.update(snapshot, state, nowMs);
   hud.update(snapshot, nowMs);
+  tutorial.update(snapshot, nowMs);
   sound.update(snapshot, !document.hidden && state.cameraActive);
   voice.update(document.hidden || !state.cameraActive ? null : snapshot.hint);
   const selected = dwell.update(snapshot, nowMs, screens.targets, screens.revision);
@@ -163,6 +166,7 @@ function dispose(): void {
   scene.dispose();
   overlay.dispose();
   hud.destroy();
+  tutorial.destroy();
   sound.destroy();
   voice.destroy();
   destroyMock?.();

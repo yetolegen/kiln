@@ -1,3 +1,11 @@
+### 2026-09-29 22:59 · B · B7 tutorial
+**Done:** six Russian instruction steps with animated hand diagrams. Progress uses distinct fresh accepted observations; speed lesson requires calm contact, tear begin, matching end and resumed calm contact. Build + 125 unit tests + Chromium full tutorial fixture pass; portrait screenshot reviewed.
+**Contract changes:** none.
+**For you (A):** script dispatches tutorialStep only; core owns gestures, episodes and tutorial exit.
+**Blocked / need from you:** none.
+**Known issues:** no new bugs found. Real-hand tutorial/T22 still unverified; mock test does not establish recognition quality.
+**Next:** B8 glaze/firing/results/storage/gallery and target outline.
+
 ### 2026-09-29 22:44 · B · B6 sound and voice
 **Done:** synthesized wheel/clay/tear/collapse/kiln/chime sounds; Russian hint speech uses object identity and replaces queued speech; dwell mute. Build + 123 unit tests + Chromium disabled-audio/mute test pass.
 **Contract changes:** none.

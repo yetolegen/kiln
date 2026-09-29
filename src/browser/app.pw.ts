@@ -1,5 +1,22 @@
 import { test, expect } from '@playwright/test';
 
+test('B7 tutorial follows gestures and a complete tear episode', async ({ page }) => {
+  await page.goto('/?dev=1&mock=1');
+  await page.locator('[data-action="tutorial"]').hover();
+  const lesson = page.locator('.tutorial-card');
+  await expect(lesson).toHaveAttribute('data-step', '0');
+  await page.keyboard.press('s'); await expect(lesson).toHaveAttribute('data-step', '1');
+  await page.keyboard.press('u'); await expect(lesson).toHaveAttribute('data-step', '2');
+  await page.keyboard.press('d'); await expect(lesson).toHaveAttribute('data-step', '3');
+  await page.keyboard.press('s');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: 'test-results/b7-tutorial-phone.png' });
+  await page.keyboard.press('t'); await expect(lesson).toHaveAttribute('data-step', '4');
+  await page.keyboard.press('t'); await expect(lesson).toHaveAttribute('data-step', '5');
+  await page.keyboard.press('f'); await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'menu');
+});
+
 test('B6 continues without sound APIs and toggles mute by dwell', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(window, 'speechSynthesis', { value: undefined });

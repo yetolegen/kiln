@@ -108,6 +108,28 @@ progress { display: block; width: min(240px, 80vw); height: 8px; margin: 20px 0;
 .dwell-button:disabled { opacity: .45; cursor: default; }
 .phase-details:empty { display: none; }
 .sound-toggle { position: fixed; top: 92px; right: 24px; min-height: 44px; padding: 10px 14px; font-size: 12px; }
+.tutorial-card { position: fixed; left: 24px; top: 320px; width: 280px; padding: 20px; border: 1px solid #856b50; border-radius: 20px; background: #211d19ee; }
+.tutorial-card > span { color: #d5b897; font-size: 11px; letter-spacing: .14em; }
+.tutorial-card h2 { margin: 10px 0; font: 400 26px/1.1 Georgia, serif; }
+.tutorial-card p { font-size: 14px; line-height: 1.5; margin: 0; }
+.tutorial-card progress { width: 100%; margin: 10px 0 0; height: 4px; }
+.ghost-hands { display: flex; justify-content: center; gap: 40px; height: 70px; padding: 8px 0; }
+.ghost-hands svg { width: 44px; fill: #e5ba7b15; stroke: #eccb9c; stroke-width: 2; stroke-linecap: round; animation: ghost-drift 2s ease-in-out infinite alternate; }
+.ghost-hands svg + svg { scale: -1 1; }
+[data-demo='pinch'] .ghost-hands svg, [data-demo='raise'] .ghost-hands svg { animation-name: ghost-up; }
+[data-demo='fist'] .ghost-hands svg { animation-name: ghost-down; }
+[data-demo='fast'] .ghost-hands svg { animation-duration: .3s; }
+@keyframes ghost-drift { to { translate: 10px 0; } }
+@keyframes ghost-up { from { translate: 0 6px; } to { translate: 0 -6px; } }
+@keyframes ghost-down { from { translate: 0 -6px; } to { translate: 0 6px; } }
+@media (prefers-reduced-motion: reduce) { .ghost-hands svg { animation: none; } }
+@media (max-width: 600px) {
+  .tutorial-card { left: 16px; top: 280px; width: calc(100% - 32px); padding: 14px; }
+  .tutorial-card h2 { font-size: 22px; }
+  .tutorial-card p { font-size: 12px; }
+  .ghost-hands { height: 54px; }
+  .workshop[data-phase='tutorial'] .hud__hint { top: auto; bottom: 125px; }
+}
 @media (max-width: 600px) { .sound-toggle { top: auto; bottom: 8px; right: 12px; z-index: 4; } }
 .hud { position: fixed; inset: auto 24px 76px; display: flex; align-items: center; justify-content: space-between; gap: 16px; pointer-events: none; }
 .hud__gesture, .hud__tracking { border-radius: 30px; background: #211d19dd; border: 1px solid #70513c; padding: 10px 16px; font-size: 13px; }
