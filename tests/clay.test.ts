@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { CONFIG } from '../src/config';
-import { createClay, enforceInvariants, stepClay } from '../src/engine/clay';
+import { createClay, enforceInvariants, maxStableHeight, stepClay, type ClayModel } from '../src/engine/clay';
 import type { ClayState } from '../src/types';
-import { rng, shapeGesture } from './helpers';
+import { moveGesture, rng, shapeGesture } from './helpers';
 
 const EPS = 1e-6; // radii are Float32, so 1.6 is stored as 1.6000000238
 
@@ -60,5 +60,83 @@ describe('clay', () => {
     two = stepClay(two, shapeGesture(0.5, 0.25), 0.02);
     expect(1 - one.radii[24]).toBeLessThanOrEqual(CONFIG.MAX_DR_PER_S * 0.04 + EPS);
     expect(two.radii[24]).toBeCloseTo(one.radii[24], 3);
+  });
+});
+
+describe('pull / press / collapse', () => {
+  const pull = moveGesture('pullUp');
+  const press = moveGesture('pressDown');
+
+  it('pull raises and thins; press lowers, thickens and repairs', () => {
+    let c = createClay();
+    for (let k = 0; k < 10; k++) c = stepClay(c, pull, 0.05);
+    expect(c.height).toBeGreaterThan(1.2);
+    expect(c.thickness).toBeLessThan(CONFIG.INIT_THICKNESS);
+    const thin = c.thickness;
+    c.damage.fill(0.5);
+    c.wobble = 0.5;
+    for (let k = 0; k < 10; k++) c = stepClay(c, press, 0.05);
+    expect(c.thickness).toBeGreaterThan(thin);
+    expect(c.damage[10]).toBeLessThan(0.5);
+    expect(c.wobble).toBeLessThan(0.5);
+  });
+
+  it('T10 pulling at MAX_HEIGHT does not thin the walls', () => {
+    let c: ClayModel = { ...createClay(), height: CONFIG.MAX_HEIGHT };
+    c.radii.fill(1.6); // wide base so it doesn't collapse
+    c = enforceInvariants(c);
+    const before = { t: c.thickness, r: c.radii[20] };
+    for (let k = 0; k < 40; k++) c = stepClay(c, pull, 0.05);
+    expect(c.thickness).toBe(before.t);
+    expect(c.radii[20]).toBe(before.r);
+    expect(c.height).toBe(CONFIG.MAX_HEIGHT);
+  });
+
+  it('press still repairs at MIN_HEIGHT', () => {
+    let c: ClayModel = { ...createClay(), height: CONFIG.MIN_HEIGHT };
+    c.damage.fill(1);
+    c = stepClay(c, press, 0.05);
+    expect(c.damage[0]).toBeLessThan(1);
+  });
+
+  it('T12 collapse happens once; pressing recovers it without restart', () => {
+    let c = createClay();
+    let collapses = 0;
+    for (let k = 0; k < 200; k++) { // keep pulling well past the collapse
+      const was = c.collapsed;
+      c = stepClay(c, pull, 0.05);
+      if (!was && c.collapsed) collapses++;
+    }
+    expect(collapses).toBe(1);
+    expect(c.collapseCause).toBe('tooTall');
+    expect(c.height).toBeLessThan(maxStableHeight(c.radii));
+
+    let recoveredAt = -1;
+    for (let k = 0; k < 200 && recoveredAt < 0; k++) {
+      c = stepClay(c, press, 0.05);
+      if (!c.collapsed) recoveredAt = k;
+    }
+    expect(recoveredAt).toBeGreaterThanOrEqual(Math.ceil(CONFIG.RECOVERY_ACTIVE_MS / 50) - 1);
+    expect(c.collapseCause).toBeNull();
+  });
+
+  it('shape and pull do nothing while collapsed', () => {
+    let c: ClayModel = { ...createClay(), collapsed: true, collapseCause: 'thinWall' };
+    const h = c.height;
+    c = stepClay(c, pull, 0.05);
+    c = stepClay(c, shapeGesture(0.5, 0.4), 0.05);
+    expect(c.height).toBe(h);
+    expect(c.radii[24]).toBe(1);
+  });
+
+  it('tear effect damages the band and thins; overhang is pulled in, never out', () => {
+    const torn = stepClay(createClay(), shapeGesture(0.5, 1, false), 0.5, { tearBand: 24, wobbling: false });
+    expect(torn.damage[24]).toBeGreaterThan(0);
+    expect(torn.damage[0]).toBe(0);
+    const c = createClay();
+    c.radii[30] = 1.5; // sharp outward step at band 30
+    const next = stepClay(c, shapeGesture(0.5, 1, false), 0.05);
+    expect(next.radii[30]).toBeLessThan(1.5);
+    expect(next.radii[29]).toBe(1);
   });
 });

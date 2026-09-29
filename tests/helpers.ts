@@ -62,3 +62,7 @@ export function rawOpenHand(u: number, v: number): Vec3[] {
   });
   return p;
 }
+
+export function moveGesture(gesture: 'pullUp' | 'pressDown', motionStrength = 1): GestureState {
+  return { ...shapeGesture(0.5, 1), gesture, motionStrength, targetRadiusWorld: null };
+}
