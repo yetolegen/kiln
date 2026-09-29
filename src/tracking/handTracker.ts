@@ -60,6 +60,7 @@ export class HandTracker {
 
     const onFrame = (mediaTimeS: number) => {
       if (!this.running) return;
+      schedule(); // first, so an exception below can't kill the loop
       const mediaTimeMs = mediaTimeS * 1000;
       const now = performance.now();
       if (video.readyState >= 2 && mediaTimeMs !== this.lastMediaTimeMs && now - this.lastSubmitMs >= minIntervalMs) {
@@ -67,8 +68,15 @@ export class HandTracker {
         this.lastSubmitMs = now;
         // MediaPipe requires strictly increasing timestamps
         this.lastTimestampMs = Math.max(now, this.lastTimestampMs + 1);
+        let result: HandLandmarkerResult | null = null;
         try {
-          const result = this.landmarker.detectForVideo(video, this.lastTimestampMs);
+          result = this.landmarker.detectForVideo(video, this.lastTimestampMs);
+        } catch (e) {
+          if (!this.errorLogged) console.error('HandTracker.detectForVideo failed', e);
+          this.errorLogged = true;
+        }
+        // outside the try: errors in the core must surface, not be swallowed as inference errors
+        if (result) {
           onPacket({
             frameId: ++this.frameId,
             epoch: this.epoch,
@@ -77,12 +85,8 @@ export class HandTracker {
             mediaTimeMs,
             hands: toRawHands(result),
           });
-        } catch (e) {
-          if (!this.errorLogged) console.error('HandTracker.detectForVideo failed', e);
-          this.errorLogged = true;
         }
       }
-      schedule();
     };
 
     const schedule = () => {
