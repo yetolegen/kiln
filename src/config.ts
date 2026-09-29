@@ -55,6 +55,11 @@ export const CONFIG = {
   MOTION_ON_PALM_PER_S: 0.4,
   MOTION_OFF_PALM_PER_S: 0.15,
   FULL_MOTION_PALM_PER_S: 1.5,
+  FINGER_ANGLE_CURLED_DEG: 90, // extension = (min(PIP, DIP angle) − this) / range
+  FINGER_ANGLE_RANGE_DEG: 70,
+  CALIBRATION_STILL_PALM_PER_S: 0.5,
+  REACQUIRE_JUMP_PALM: 2.0,    // palm moved farther than this between frames → new track
+  HAND_OVERLAP_PALM: 0.6,      // two palms closer than this → ambiguous
   TEAR_SPEED_PALM_PER_S: 6.0,
   WOBBLE_TOL_PALM: 0.35,
   WOBBLE_CLEAR_TOL_PALM: 0.25,
@@ -80,8 +85,11 @@ export const CONFIG = {
   TARGET_RADIUS_TOL_WORLD: 0.05,
   TARGET_HEIGHT_TOL_WORLD: 0.08,
 
-  // filter
+  // filter (applied to palm position in px, so beta is per px/s)
   ONE_EURO: { minCutoff: 1.0, beta: 0.02, dCutoff: 1.0 },
+
+  // must equal the @mediapipe/tasks-vision version in package.json (checked by tests)
+  MEDIAPIPE_VERSION: '1.0.1',
 } as const;
 
 export type Config = typeof CONFIG;

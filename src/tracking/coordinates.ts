@@ -26,6 +26,11 @@ export function sourceToPx(pt: Vec2, p: Frame): Vec2 {
   return { x: ox + s * p.videoWidth * u, y: oy + s * p.videoHeight * pt.y };
 }
 
+/** Px per source-normalized unit of x. MediaPipe's z uses roughly the x scale, so this also converts z. */
+export function pxPerSourceX(p: Frame): number {
+  return fitLayout(p).s * p.videoWidth;
+}
+
 /** Inverse of sourceToPx. */
 export function pxToSource(pt: Vec2, p: Frame): Vec2 {
   const { s, ox, oy } = fitLayout(p);
