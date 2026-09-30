@@ -54,7 +54,7 @@ Rim compression was selected from [Clayground's wheel tutorial](https://www.clay
 
 ## Run locally
 
-Use Node.js 22.12+ (22 LTS) or 24+.
+Use Node.js 24.x. The deployment runtime is pinned to this tested major version.
 
 ```sh
 npm install
@@ -85,7 +85,7 @@ Import this repository into Vercel using the Vite preset. `vercel.json` sets the
 Deployed to the `kiln` project via Vercel CLI. To update production from this linked checkout:
 
 ```sh
-npx vercel@61.0.0 deploy --prod
+npx vercel@61.0.0 deploy --prod --scope mansurertaj5-4014
 ```
 
 Automatic deployments on GitHub pushes are not connected yet: Vercel requires a GitHub login connection for the account. Until that is configured, deploy with the CLI.
