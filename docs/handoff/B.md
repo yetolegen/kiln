@@ -1,3 +1,11 @@
+### 2026-09-30 13:51 · B · V5.2 verification passed, deploying compression fix
+**Done:** pulled/reviewed `5dfaa50` and its handoff. Re-ran the full suite: 221/221 pass, including all six original external compression/cavity separation regressions and both-hand lesson flows. Typecheck/build pass. Four targeted Chromium browser checks pass: geometry lessons/release, palm retry, dwell/HUD and camera-order real-core first-target confirmation. Production assets exclude mock/debug/synthetic-camera markers. Footer and public smoke assertion now identify V5.2.
+**Contract changes:** none from B. Working UI navigation implementation unchanged.
+**For you (A):** signed outer-palm motion and reference resets verified; no integration blocker found.
+**Blocked / need from you:** none. User explicitly requested deployment after verification.
+**Known issues:** existing bundle-size warning only. Automated hand inputs are synthetic; post-deployment physical-hand retest remains for the user.
+**Next:** deploy V5.2, verify public real-model/camera startup and version, then report live readiness.
+
 ### 2026-09-30 13:48 · external compression core fix, ready for B verification/deployment
 **Done:** implemented the core correction following the user's direct follow-up request to fix it and return a commit. External shaping now applies signed changes in palm half-gap to the current outer profile (negative = inward/narrower, positive = outward/wider). Gaussian band falloff and the per-second radial speed cap remain. Acquisition and stationary holds cause no deformation; no absolute palm-spacing target or smoothing backlog remains. Internal cavity expansion and UI interaction code are unchanged.
 **Contract changes:** no `types.ts` / snapshot field changes. Internal `ContactResult.targetRadiusWorld` renamed `halfGapWorld` to distinguish a measurement from a clay target. Internal `ActionDelta` adds `shapeWorld`; callers should spread `NO_DELTA`. Snapshot `targetRadiusWorld` now describes the local radius plus this observation's travel and is null when no shaping movement occurs. Removed unused `SHAPE_GAIN` (absolute-target relaxation no longer applies).
