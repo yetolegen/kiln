@@ -4,6 +4,13 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ## Automated checks
 
+### Lift stability clarification (30 September, after V7 handoff)
+
+- User confirms current placement is acceptable; do not tighten the accepted base zone/pose. Changed the y=.25 rejection case to a preservation control; it passes in both modes/roles.
+- Added 12 failing real-controller synthetic cases: one-frame 48→52→48 degree orientation fluctuation resets progress (4); .36 palm/s one-frame speed fluctuation resets hold (4); fully armed .05 palm/s rise produces no height change over ~6 s (4).
+- Revised V7: **10 pass / 22 fail / 32 cases**. Full suite **251 pass / 32 fail / 283 cases**, failures only unresolved V7/V6 core acceptance cases. Tests/docs only changed this turn; UI/runtime and production remain unchanged.
+- A's revised task is bounded jitter tolerance, retained hold progress and reliable slow displacement, with no deformation on stale/questionable frames. Genuine release/support loss must still stop the interaction. Pancake/wall-tear/UI requirements unchanged.
+
 ### V7 studio follow-up (30 September 16:38, not deployed)
 
 - B implemented interaction-time Done/restart disabling with a 400 ms fresh release delay, dwell reset and dispatch guards. Navigation stays available. Terminal failure exposes restart and keeps Done disabled.
