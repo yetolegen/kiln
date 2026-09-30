@@ -2,6 +2,15 @@
 
 Newest entry at the top. Written by A, read by B.
 
+### 2026-09-30 · A · debugging pass 2: webcam fingertip jitter was cancelling three actions
+**Found by simulating realistic landmark jitter (MediaPipe fingertips move ±3–5 px per frame; only the palm is One-Euro filtered):**
+- `84be46e` **Pinch-spread (open) almost never worked:** at ±3 px per tip, a slow spread read as >1.5 ratio/s. It cancelled 63 times in 2.5 s and the opening stayed at the dent size (0.12 instead of 0.42). The spread rate is now smoothed over ~100 ms. An abrupt spread still cancels.
+- `fa0c157` **Thumb dent:** at ±5 px a slow press was rejected as too fast most of the time and lost half its depth. The tip speed is now smoothed over ~100 ms. A real fast push (≥ ~100 ms) is still rejected.
+- `9d80c4a` **Widen (V8.2):** same cause, with half to a quarter of the widening lost. It now uses the filtered palm velocity.
+- `3cbf617` **Widen (V8.2) stole rim compression:** a flat rim hand over an opened pot, index tip dipping into the opening, became widen. Widen now needs the index finger pointing down (knuckle → tip within 50° of vertical).
+**Verification:** each fix has a test that fails without it. Unit 303/303, Playwright 24/24 (Chrome), build clean. Contracts are unchanged since V8.2; no UI files touched.
+**For you (B):** please deploy together with V8.2 widen. The pinch-spread fix matters most for the lesson's step 4.
+
 ### 2026-09-30 · A · V8.2 core: widen the pot from inside (user request)
 **User request:** the pot can only get narrower; add widening "like in real life".
 **Gesture `widen` (new `Gesture`/`ActionGesture` value):** needs an opening. The working hand's index finger points down into the opening, with the fingertip as the hand's lowest point. The other palm supports a side wall. Hold ~0.3 s (activationProgress fills), then push the fingertip sideways toward either wall: the wall bulges out at the fingertip's height (the same Gaussian as shaping, gain 0.7). Holding still or pulling back adds nothing. Leaving the opening, pinching or turning the thumb down releases. Pushing faster than 1.5 palm/s cancels with the new near-miss `widenTooFast`. Pinch-spread is still `open`; thumb-down is still `indent`.
