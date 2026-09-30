@@ -4,6 +4,14 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ## Automated checks
 
+### V7 studio follow-up (30 September 16:38, not deployed)
+
+- B implemented interaction-time Done/restart disabling with a 400 ms fresh release delay, dwell reset and dispatch guards. Navigation stays available. Terminal failure exposes restart and keeps Done disabled.
+- 14 new synthetic core failures: above-base lift false acquisition (4 mode/role cases), armed lift after sideways withdrawal (4), premature pancake freeze at .695833 vs .24 (4), unreachable 10% opening-wall tear (1), recoverable sag instead of terminal local tear (1). Four valid under-base lift controls and two permanent-failure freeze cases pass. See `studioV7.test.ts` and `GESTURES_V7.md`.
+- Full suite: **247 pass / 24 fail / 271 total**. Failures exclusively 14 new V7 plus 10 known V6 cases. Build/typecheck pass. Four lock unit tests and ten renderer tests pass, including distinct real mesh geometry for local rupture and 20% pancake.
+- Eight relevant Chromium checks pass across the runs: free/commission lock, terminal restart, Free Done, both finishing/storage variants, lesson completion and palm retry. Inspected lock screenshot. Fixed a browser-test sampling race by measuring the unlock transition with animation frames.
+- Physical V5.3 failures are reported by the user; assistant tests remain synthetic. Production remains V5.3, awaiting A's core changes before V7 deployment.
+
 ### V5.3 production verification (30 September 15:05)
 
 - Deployed `0cd501d`, including A's gate fix `2242d15`, to https://kiln-delta-rose.vercel.app; deployment `dpl_DcH3kKdZw4XMxfkSCjHqYip9Qfu2` READY.

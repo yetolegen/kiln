@@ -103,6 +103,50 @@ for (const blockedStorage of [false, true]) test(`B8 finishes a pot, exports PNG
   expect(errors).toEqual([]);
 });
 
+for (const mode of ['free', 'commission']) test(`studio sculpting locks Done/restart and resets palm dwell in ${mode}`, async ({ page }) => {
+  await page.goto('/?dev=1&mock=1');
+  await page.keyboard.press('h'); await page.locator(`[data-action="${mode}"]`).hover();
+  await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'studio');
+  const done = page.locator('[data-action="done"]'), restart = page.locator('[data-action="restart"]');
+  await done.hover();
+  await expect(done).toHaveClass(/is-dwelling/);
+  await page.keyboard.press('s');
+  await expect(done).toBeDisabled(); await expect(restart).toBeDisabled();
+  await expect(page.locator('[data-action="menu"]')).toBeEnabled();
+  await done.dispatchEvent('click');
+  await page.waitForTimeout(1200); // longer than a full dwell: blocked input must never finish
+  await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'studio');
+  await expect(done).not.toHaveClass(/is-dwelling/);
+  await page.screenshot({ path: `test-results/sculpting-lock-${mode}.png` });
+  const unlocked = await page.evaluate(() => new Promise<{ progress: number; elapsed: number }>((resolve, reject) => {
+    const start = performance.now();
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    const sample = () => {
+      const button = document.querySelector<HTMLButtonElement>('[data-action="done"]')!;
+      if (!button.disabled) resolve({ progress: parseFloat(button.style.getPropertyValue('--dwell')) || 0, elapsed: performance.now() - start });
+      else if (performance.now() - start > 3000) reject(new Error('sculpting lock never released'));
+      else requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+  }));
+  expect(unlocked.elapsed).toBeGreaterThanOrEqual(350);
+  expect(unlocked.progress).toBeLessThan(10);
+  await expect(restart).toBeEnabled();
+  await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'glaze');
+});
+
+test('studio terminal damage keeps Done disabled and restart available', async ({ page }) => {
+  await page.goto('/?dev=1&mock=1');
+  await page.locator('[data-action="free"]').click(); await page.mouse.move(0, 0);
+  await page.keyboard.press('s'); await page.keyboard.press('n');
+  await expect(page.locator('[data-action="done"]')).toBeDisabled();
+  await expect(page.locator('[data-action="restart"]')).toBeEnabled();
+  await page.locator('[data-action="done"]').dispatchEvent('click');
+  await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'studio');
+  await page.locator('[data-action="restart"]').click(); await page.keyboard.press('Escape');
+  await expect(page.locator('[data-action="done"]')).toBeEnabled();
+});
+
 test('studio Free Mode unlocks glazing only through the palm-selectable Done button', async ({ page }) => {
   await page.goto('/?dev=1&mock=1');
   await page.keyboard.press('h'); await page.locator('[data-action="free"]').hover();

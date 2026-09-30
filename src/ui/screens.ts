@@ -2,6 +2,7 @@ import { phaseText, ru, type StartupProblem } from '../i18n';
 import type { AppCommand, AppPhase, EngineSnapshot } from '../types';
 import type { DwellRegion } from './dwell';
 import { CONFIG } from '../config';
+import { SculptingLock, isDestroyed } from './sculptingLock';
 
 export interface StartupState {
   busy: boolean;
@@ -77,6 +78,8 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
   let dwelling: HTMLButtonElement | null = null;
   let lastDwell = -1;
   let muted = false;
+  const sculpting = new SculptingLock();
+  let controlsLocked = false, destroyed = false;
   function refreshTargets(): void {
     targets.length = 0;
     for (const entry of entries) {
@@ -88,8 +91,9 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
   function addAction(id: string, label: string, run: () => void, parent: HTMLElement = actions): HTMLButtonElement {
     const button = document.createElement('button');
     button.type = 'button'; button.className = 'dwell-button'; button.textContent = label; button.dataset.action = id;
-    button.addEventListener('click', run);
-    entries.push({ id, element: button, run }); parent.append(button);
+    const guarded = () => { if (!button.disabled && button.isConnected) run(); };
+    button.addEventListener('click', guarded);
+    entries.push({ id, element: button, run: guarded }); parent.append(button);
     return button;
   }
   const newSession = () => crypto.randomUUID();
@@ -117,7 +121,16 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
       });
       mute.classList.add('sound-toggle');
     }
+    applySculptingLock();
     refreshTargets();
+  }
+  function applySculptingLock(): void {
+    for (const entry of entries) {
+      if (entry.id !== 'done' && entry.id !== 'restart') continue;
+      entry.element.disabled = controlsLocked || (entry.id === 'done' && destroyed);
+      entry.element.title = entry.element.disabled ? destroyed ? 'Сосуд повреждён. Начните сначала.' : 'Уберите руки от глины, чтобы выбрать действие.' : '';
+    }
+    page.dataset.sculpting = String(controlsLocked);
   }
   const layout = new ResizeObserver(refreshTargets);
   layout.observe(content);
@@ -142,6 +155,11 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
       if (dwelling && progress !== lastDwell) { dwelling.style.setProperty('--dwell', `${progress * 100}%`); lastDwell = progress; }
     },
     update(snapshot: EngineSnapshot, state: StartupState, nowMs: number): void {
+      const nextLock = sculpting.update(snapshot, nowMs), nextDestroyed = snapshot.phase === 'studio' && isDestroyed(snapshot);
+      if (nextLock !== controlsLocked || nextDestroyed !== destroyed) {
+        controlsLocked = nextLock; destroyed = nextDestroyed;
+        applySculptingLock(); screenRevision++; refreshTargets();
+      }
       if (snapshot.phase !== lastPhase || snapshot.mode !== lastMode || state.busy !== lastBusy || state.cameraActive !== lastActive || state.error !== lastError) {
         lastPhase = snapshot.phase; lastMode = snapshot.mode; lastBusy = state.busy; lastActive = state.cameraActive; lastError = state.error;
         page.dataset.phase = snapshot.phase;

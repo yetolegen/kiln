@@ -4,6 +4,8 @@ import { configureCamera } from './scene';
 import { fillProfile, createPotView } from './pot';
 import { cameraProjection } from '../browser/camera';
 import { MockCore } from '../dev/mockCore';
+import { createClay } from '../engine/clay';
+import { CONFIG } from '../config';
 
 it.each([[1440, 900], [390, 844], [844, 390]])('matches the core interaction plane within 0.5px at %i × %i', (width, height) => {
   const p = cameraProjection({ videoWidth: 1280, videoHeight: 720 }, { width, height }, 1);
@@ -35,6 +37,36 @@ it('removes faces for a torn cavity wall and restores intact topology for an und
   expect(Array.from(mesh.geometry.getIndex()!.array).filter((v, i) => v !== intact[i]).length).toBeGreaterThan(20);
   clay.damage.fill(0); clay.revision++; view.update(clay, null, 0);
   expect(Array.from(mesh.geometry.getIndex()!.array)).toEqual(intact); view.dispose();
+});
+
+it('localized wall rupture removes only damaged wall faces without lowering the mesh', () => {
+  const clay = createClay(), view = createPotView();
+  clay.cavityRadiusWorld = .9; clay.cavityDepthWorld = .8;
+  view.update(clay, null, 0);
+  const mesh = view.group.children.find((child) => child instanceof Mesh && child.geometry instanceof LatheGeometry) as Mesh<LatheGeometry>;
+  const intact = Array.from(mesh.geometry.getIndex()!.array);
+  const positions = Array.from(mesh.geometry.getAttribute('position').array);
+  clay.damage[32] = .8; clay.collapsed = true; clay.collapseCause = 'wallTorn'; clay.revision++;
+  view.update(clay, null, 1);
+  const torn = Array.from(mesh.geometry.getIndex()!.array);
+  expect(torn.some((v, i) => v !== intact[i])).toBe(true);
+  expect(Array.from(mesh.geometry.getAttribute('position').array)).toEqual(positions);
+  const p = mesh.geometry.getAttribute('position');
+  for (let i = 0; i < torn.length; i += 3) {
+    if (torn[i] !== intact[i]) expect(Math.round(p.getY(intact[i]) / clay.height * 47)).toBe(32);
+  }
+  view.dispose();
+});
+
+it('20 percent pancake uses actual flat geometry without the rupture effect', () => {
+  const clay = createClay(), view = createPotView();
+  clay.height = CONFIG.INIT_HEIGHT * .2; clay.collapsed = true; clay.collapseCause = 'pancake';
+  view.update(clay, null, 0);
+  const mesh = view.group.children.find((child) => child instanceof Mesh && child.geometry instanceof LatheGeometry) as Mesh<LatheGeometry>;
+  mesh.geometry.computeBoundingBox();
+  expect(mesh.geometry.boundingBox!.max.y).toBeCloseTo(CONFIG.INIT_HEIGHT * .2);
+  expect(mesh.geometry.boundingBox!.min.y).toBe(0);
+  view.dispose();
 });
 
 it.each([[0, 0], [.12, .12], [.6, 1]])('renders explicit cavity radius %f / depth %f without changing the clay', (radius, depth) => {
