@@ -63,13 +63,15 @@ export class SessionTracker {
   finalize(clay: ClayState, glazeId: string, completedAtIso: string, nowMs: number): SessionResult {
     this.freeze(nowMs);
     this.result ??= {
-      schemaVersion: 1,
+      schemaVersion: 2,
       id: this.sessionId,
       completedAtIso,
       stats: this.stats(nowMs),
       finalProfile: Array.from(clay.radii),
       height: clay.height,
       thickness: clay.thickness,
+      cavityRadiusWorld: clay.cavityRadiusWorld,
+      cavityDepthWorld: clay.cavityDepthWorld,
       damage: Array.from(clay.damage),
       collapsed: clay.collapsed,
       glazeId,

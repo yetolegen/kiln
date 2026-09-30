@@ -62,6 +62,8 @@ class Controller implements CoreController {
       return;
     }
     if (frame.epoch > this.epoch) this.resetInput(frame.epoch);
+    // the same observation twice must not deform twice (holds and shaping would double)
+    if (this.input && this.input.frameId === frame.frameId && this.input.epoch === frame.epoch) return;
     // freshness gate: an observation that arrived too late never moves clay or confirms anything
     const stale = frame.receivedAtMs - frame.tMs > CONFIG.MAX_INPUT_AGE_MS;
     this.input = stale ? { ...frame, status: 'stale' } : frame;
@@ -79,7 +81,9 @@ class Controller implements CoreController {
     if (!isShaping(this.phase)) return;
 
     // consequences of episodes active since the last observation (one-frame lag is invisible)
-    this.clay = stepClay(this.clay, this.gesture, Math.min(frame.dtSampleS, CONFIG.MAX_STEP_S), this.effects);
+    this.clay = stepClay(
+      this.clay, this.gesture, Math.min(frame.dtSampleS, CONFIG.MAX_STEP_S), this.effects, this.gestures.delta,
+    );
     const out = this.rules.update({
       tMs: frame.tMs, phase: this.phase, input: this.input, gesture: this.gesture, clay: this.clay,
       target: this.mode === 'commission' ? this.target : null,

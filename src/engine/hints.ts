@@ -13,15 +13,19 @@ const PRIORITY: Partial<Record<Hint['id'], number>> = {
   tear: 80,
   wobble: 70,
   tooThin: 60, overhang: 60,
-  pinchLoose: 50, fistLoose: 50, handsTooLow: 50, handsUneven: 50, handsNotOpposite: 50, notMoving: 50,
+  liftTooFast: 55, spreadTooFast: 55, noSupport: 55,
+  pinchLoose: 50, handsTooLow: 50, handsUneven: 50, handsNotOpposite: 50,
+  notHorizontal: 50, thumbNotOnTop: 50, noIndentation: 50, pinchFirst: 50, rimPlacement: 50,
   handsTooFar: 45,
   atLimit: 42,
   targetMismatch: 40,
+  holdStill: 35, notMoving: 35, // progress guidance: anything wrong outranks it
   recovered: 30,
 };
 const SEVERITY: Partial<Record<Hint['id'], Hint['severity']>> = {
   collapse: 'error', tear: 'error',
   wobble: 'warn', tooThin: 'warn', overhang: 'warn', noHands: 'warn', oneHand: 'warn', trackingUncertain: 'warn',
+  liftTooFast: 'warn', spreadTooFast: 'warn',
 };
 
 type Candidate = Omit<Hint, 'expiresAtMs' | 'speak'>;
@@ -59,7 +63,7 @@ export class HintManager {
     const nm = i.gesture?.nearMiss;
     if (nm && nm.reason !== 'handsTooFar') { // handsTooFar comes through its coaching episode
       live.push({
-        id: nm.reason, params: nm.params, severity: 'info', priority: PRIORITY[nm.reason] ?? 50,
+        id: nm.reason, params: nm.params, severity: SEVERITY[nm.reason] ?? 'info', priority: PRIORITY[nm.reason] ?? 50,
         handTrackId: nm.handTrackId,
       });
     }

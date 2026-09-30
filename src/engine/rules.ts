@@ -89,7 +89,8 @@ const RULES: Rule[] = [
     type: 'wobble', category: 'execution', enterMs: CONFIG.WOBBLE_ENTER_MS, clearMs: CONFIG.RULE_CLEAR_MS,
     test: (i, active) => {
       const g = i.gesture, off = g.centerOffsetPalm;
-      if (!g.deforming || off === null) return null; // off-centre only matters while acting on the clay
+      // off-centre only matters for two-hand shaping; one-hand actions put the hands asymmetric on purpose
+      if (!g.deforming || g.gesture !== 'shape' || off === null) return null;
       if (Math.abs(off) <= (active ? CONFIG.WOBBLE_CLEAR_TOL_PALM : CONFIG.WOBBLE_TOL_PALM)) return null;
       // dir = where the user should move both hands
       return {
@@ -100,8 +101,9 @@ const RULES: Rule[] = [
   },
   {
     type: 'tooThin', category: 'execution', enterMs: 0, clearMs: CONFIG.RULE_CLEAR_MS,
-    test: (i) => (i.gesture.gesture === 'pullUp' && !i.clay.collapsed &&
-      i.clay.thickness < CONFIG.MIN_THICKNESS + CONFIG.TOO_THIN_MARGIN
+    // lifting an opened pot, or squeezing it with shape, thins the wall around the opening
+    test: (i) => (['pullUp', 'open', 'shape'].includes(i.gesture.gesture) && !i.clay.collapsed &&
+      i.clay.cavityDepthWorld > 0 && i.clay.thickness < CONFIG.MIN_THICKNESS + CONFIG.TOO_THIN_MARGIN
       ? { severity: 0.7, data: { thickness: round2(i.clay.thickness) } }
       : null),
   },

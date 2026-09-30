@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { createClay, stepClay } from '../src/engine/clay';
-
+import { createClay, NO_DELTA, stepClay } from '../src/engine/clay';
 import { RuleEngine, type RuleInput } from '../src/engine/rules';
 import type { ClayEvent, EngineSnapshot, GestureState } from '../src/types';
-import { frame, hand, inSession, moveGesture, shapeGesture, T_START } from './helpers';
+import { actionGesture, frame, hand, inSession, shapeGesture, T_START } from './helpers';
 
 const wobbling = (off: number): GestureState => ({ ...shapeGesture(0.5, 1), centerOffsetPalm: off });
 const input = (tMs: number, g: GestureState): RuleInput =>
@@ -67,20 +66,29 @@ describe('rules / episodes', () => {
   });
 });
 
-describe('pulling too thin', () => {
-  it('a wide pot pulled up warns tooThin BEFORE it collapses with thinWall', () => {
+describe('lifting too thin', () => {
+  it('an opened, wide pot lifted up warns tooThin BEFORE it collapses with thinWall', () => {
     const rules = new RuleEngine();
-    const pull = moveGesture('pullUp');
+    const lift = actionGesture('pullUp');
     let clay = createClay();
     clay.radii.fill(1.6); // wide base, so tooTall doesn't come first
+    clay = stepClay(clay, actionGesture('indent'), 0.05, undefined, { ...NO_DELTA, indent: true });
+    for (let k = 0; k < 60; k++) clay = stepClay(clay, actionGesture('open'), 0.05, undefined, { ...NO_DELTA, spreadRatio: 0.2 });
     const order: string[] = [];
     for (let t = 0; t < 8000 && !clay.collapsed; t += 50) {
-      clay = stepClay(clay, pull, 0.05);
-      for (const e of rules.update({ ...input(t, pull), clay }).events) if (e.phase === 'begin') order.push(e.type);
+      clay = stepClay(clay, lift, 0.05, undefined, { ...NO_DELTA, liftWorld: 0.01 });
+      for (const e of rules.update({ ...input(t, lift), clay }).events) if (e.phase === 'begin') order.push(e.type);
     }
     expect(clay.collapseCause).toBe('thinWall');
     expect(order.indexOf('tooThin')).toBeGreaterThanOrEqual(0);
     expect(order.indexOf('tooThin')).toBeLessThan(order.indexOf('collapse'));
+  });
+
+  it('one-hand actions never wobble (their hands are asymmetric on purpose)', () => {
+    const rules = new RuleEngine();
+    const ev: ClayEvent[] = [];
+    feed(rules, 0, 2000, { ...actionGesture('pullUp'), centerOffsetPalm: 3 }, ev);
+    expect(count(ev, 'wobble', 'begin')).toBe(0);
   });
 
   it('wobble needs actual deformation, not just hands resting at the walls', () => {
