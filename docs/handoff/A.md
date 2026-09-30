@@ -2,6 +2,18 @@
 
 Newest entry at the top. Written by A, read by B.
 
+### 2026-09-30 · A · V8.2 core: widen the pot from inside (user request)
+**User request:** the pot can only get narrower; add widening "like in real life".
+**Gesture `widen` (new `Gesture`/`ActionGesture` value):** needs an opening. The working hand's index finger points down into the opening, with the fingertip as the hand's lowest point. The other palm supports a side wall. Hold ~0.3 s (activationProgress fills), then push the fingertip sideways toward either wall: the wall bulges out at the fingertip's height (the same Gaussian as shaping, gain 0.7). Holding still or pulling back adds nothing. Leaving the opening, pinching or turning the thumb down releases. Pushing faster than 1.5 palm/s cancels with the new near-miss `widenTooFast`. Pinch-spread is still `open`; thumb-down is still `indent`.
+**Contract changes (please wire up):**
+- `Gesture`/`ActionGesture` gain `'widen'`; `NearMissReason` gains `'widenTooFast'`; `ActionDelta` gains `widenWorld`/`widenBandY`.
+- In `src/i18n.ts` (edited by A): gesture label «Расширяем стенку», `widenTooFast` text, and the targetMismatch `tooNarrow` advice now explains the inside push. It used to say «разведи руки шире», which now releases the clay.
+- `storage.ts` GESTURES now includes `'widen'`, otherwise saved pots with it failed validation.
+- New `noSupport` near-miss with `intended: 'widen'`. In the studio the «pinch first» hint no longer fires for a finger pointing down into the opening.
+**Studio/commission only.** Not in the lesson (the tutorial only recognizes its expected gesture). Adding a lesson step, a demo icon, README/help copy and mockCore is yours.
+**Tests:** `tests/gestures.test.ts` widen block (arm, local bulge, no jitter pumping, needs opening/support/pose, pinch stays open, too-fast cancel). Unit 298/298, typecheck, build clean.
+**Known:** synthetic hands only. The finger-pose discriminator (index tip lowest) needs a physical check.
+
 ### 2026-09-30 · A · lesson step 1 no longer needs pixel-exact hand height (user request, B-owned file edited by A)
 **User report (physical):** the lesson is very hard to complete; the pot keeps coming out too deeply cut or too slim.
 **Cause:** step 1's target dent sits at exactly band 24, compared band by band with a max-error tolerance of 0.045. The engine dents the wall at the hands' height, so hands just 2 bands (~9 px) off could never match at any depth. Pressing harder to fix it overshoots into the «Стенки вышли…» failure, which restarts the lesson.

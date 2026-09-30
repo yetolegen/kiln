@@ -82,10 +82,11 @@ export interface FrameInput {
  * (either hand may be active): pullUp = armed lift (3 s still hold at the base, then slow rise),
  * indent = thumb-down shallow indentation at the top centre, open = pinch inside the indentation then spread,
  * compressRim = open horizontal hand just above the rim, brief hold, then slowly down.
+ * widen (v8.2) = fingertips inside the opening, brief hold, then pushed sideways: the wall bulges out there.
  */
 export type Gesture =
-  | 'none' | 'oneHand' | 'shape' | 'pullUp' | 'indent' | 'open' | 'compressRim' | 'raise' | 'point';
-export type ActionGesture = 'shape' | 'pullUp' | 'indent' | 'open' | 'compressRim' | 'raise';
+  | 'none' | 'oneHand' | 'shape' | 'pullUp' | 'indent' | 'open' | 'compressRim' | 'widen' | 'raise' | 'point';
+export type ActionGesture = 'shape' | 'pullUp' | 'indent' | 'open' | 'compressRim' | 'widen' | 'raise';
 export type NearMissReason =
   | 'pinchLoose' | 'handsTooLow' | 'handsTooFar' | 'handsUneven' | 'notMoving' | 'handsNotOpposite'
   | 'noSupport'      // active pose is right, the other hand isn't at a side wall
@@ -96,6 +97,7 @@ export type NearMissReason =
   | 'noIndentation'  // open: make the indentation first
   | 'pinchFirst'     // open: start with thumb and index pinched inside the opening
   | 'spreadTooFast'  // open cancelled: fingers spread too fast
+  | 'widenTooFast'   // widen cancelled: fingertip pushed outward too fast
   | 'indentTooFast'  // indent: thumb tip pushed in too fast; nothing applied, push again slowly
   | 'compressTooFast' // rim: palm pressed down too fast; cancelled, hold above the rim again
   | 'rimPlacement';  // rim: params.dir 'lower' (hand too high) | 'closer' (too far out)

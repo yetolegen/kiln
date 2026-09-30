@@ -76,6 +76,10 @@ export const CONFIG = {
   COMPRESS_GAIN: 1.0,               // height removed per world unit the hand moves down (no cap: v5 → pancake)
   COMPRESS_SMOOTH_PER_S: 2.0,       // upper-profile smoothing rate while compressing
   COMPRESS_CAVITY_SHRINK_PER_WORLD: 0.3, // opening narrows (wall strengthens) per unit compressed
+  WIDEN_ACQUIRE_MS: 300,            // v8.2 widen: fingertip held still inside the opening this long arms it
+  WIDEN_GAIN: 0.7,                  // wall radius gained per world unit the fingertip pushes outward (= SHAPE_GAIN)
+  WIDEN_MAX_PALM_PER_S: 1.5,        // fingertip pushing outward faster than this cancels (widenTooFast)
+  WIDEN_RIM_MARGIN_WORLD: 0.1,      // fingertip may sit this far above the rim and still count as inside
   NEAR_MISS_LATCH_MS: 1500,         // "too fast" hints stay this long after the cancel
 
   // v5 failure mechanics (docs/GESTURES_V5.md); game-model values, not physical measurements

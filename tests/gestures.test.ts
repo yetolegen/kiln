@@ -444,3 +444,49 @@ describe('raise / point / near-miss', () => {
     expect(lift.clay.height).toBe(CONFIG.INIT_HEIGHT);
   });
 });
+
+describe('widen (v8.2): fingertip inside the opening pushes the wall out, like a potter', () => {
+  const opened = (): ClayModel => enforceInvariants({ ...createClay(), cavityDepthWorld: 0.6, cavityRadiusWorld: 0.4 });
+  /** Index finger pointing down into the pot: its tip (the hand's lowest point) at world (x, y). */
+  const poke = (x: number, y: number, over: Partial<HandFeatures> = {}) => {
+    const h = poseHand('spread', x, y, { trackId: 2, ratio: 1, ...over });
+    const lm = h.landmarksPx.map((p) => ({ ...p }));
+    const tip = { x: PROJ.axisXPx + x * 180, y: PROJ.bottomYPx - y * 180 };
+    lm[8] = tip;
+    lm[4] = { x: tip.x - 40, y: tip.y - 60 }; // thumb higher up, beside the finger
+    return { ...h, landmarksPx: lm, indexTipPx: tip };
+  };
+  const band = (y: number, c: ClayModel) => Math.round((y / c.height) * 47);
+
+  it('hold still, then push sideways: the wall bulges out at the fingertip height only', () => {
+    const armed = run([SUPPORT(), poke(0, 0.9)], CONFIG.WIDEN_ACQUIRE_MS + 100, { rec: new GestureRecognizer(), clay: opened(), t: 0 });
+    expect(armed.g.gesture).toBe('widen');
+    expect(armed.g.activationProgress).toBe(1);
+    expect(armed.clay.radii[band(0.9, armed.clay)]).toBeCloseTo(1); // arming changes nothing
+    const pushed = run((t) => [SUPPORT(), poke(Math.min(0.3, ((t - armed.t) / 1000) * 0.3), 0.9, moving(0.5, 0))], 1200, cont(armed));
+    const at = band(0.9, pushed.clay);
+    expect(pushed.clay.radii[at]).toBeGreaterThan(1.15);
+    expect(pushed.clay.radii[at]).toBeLessThan(1 + 0.3 * CONFIG.WIDEN_GAIN + 0.01);
+    expect(pushed.clay.radii[5]).toBeCloseTo(1, 2); // the base stays put
+    // holding the pushed-out finger still adds nothing (jitter can't pump the wall)
+    const held = run([SUPPORT(), poke(0.3, 0.9)], 800, cont(pushed));
+    expect(held.clay.radii[at]).toBeCloseTo(pushed.clay.radii[at], 5);
+  });
+
+  it('needs an opening, support and the finger pose; a pinch there is still the opening action', () => {
+    const solid = run([SUPPORT(), poke(0, 1.1)], 800, { rec: new GestureRecognizer(), clay: createClay(), t: 0 });
+    expect(solid.g.gesture).not.toBe('widen');
+    const alone = run([hand(-3, 0.6, { trackId: 1 }), poke(0, 0.9)], 800, { rec: new GestureRecognizer(), clay: opened(), t: 0 });
+    expect(alone.g.gesture).not.toBe('widen');
+    expect(alone.g.nearMiss).toMatchObject({ intended: 'widen', reason: 'noSupport' });
+    const pinch = run([SUPPORT(), poseHand('pinch', 0, 0.9, { trackId: 2 })], 800, { rec: new GestureRecognizer(), clay: opened(), t: 0 });
+    expect(pinch.g.gesture).toBe('open');
+  });
+
+  it('pushing too fast cancels without widening and says so', () => {
+    const armed = run([SUPPORT(), poke(0, 0.9)], CONFIG.WIDEN_ACQUIRE_MS + 100, { rec: new GestureRecognizer(), clay: opened(), t: 0 });
+    const fast = run((t) => [SUPPORT(), poke(t - armed.t < 40 ? 0 : 0.3, 0.9)], 300, cont(armed));
+    expect(fast.clay.radii[band(0.9, fast.clay)]).toBeCloseTo(1, 2);
+    expect(fast.seen.some((g) => g.nearMiss?.reason === 'widenTooFast')).toBe(true);
+  });
+});

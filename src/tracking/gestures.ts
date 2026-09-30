@@ -92,7 +92,7 @@ function zonesFor(palmW: number): Zones {
 // below always see this frame's zones. Pass Zones explicitly if recognizers ever run concurrently.
 let Z: Zones = zonesFor(0);
 
-type Kind = 'pullUp' | 'indent' | 'open' | 'compressRim';
+type Kind = 'pullUp' | 'indent' | 'open' | 'compressRim' | 'widen';
 /** One engagement of a one-hand action. `ms` = hold / acquisition time; `armed` = allowed to deform. */
 interface Engagement {
   kind: Kind;
@@ -311,11 +311,11 @@ export class GestureRecognizer {
     }
 
     // start a new one: try both role assignments (right hand active first, then left)
-    for (const kind of ['open', 'indent', 'compressRim', 'pullUp'] as const) {
+    for (const kind of ['open', 'widen', 'indent', 'compressRim', 'pullUp'] as const) {
       if (!allowed(kind)) continue; // a lesson only recognizes its own action
       for (const [active, support] of [[r, l], [l, r]] as const) {
         if (!supportOk(support) || !QUALIFIES[kind](active, clay, world)) continue;
-        if (kind === 'open' && clay.cavityDepthWorld <= 0) continue; // needs an indentation first
+        if ((kind === 'open' || kind === 'widen') && clay.cavityDepthWorld <= 0) continue; // needs an indentation first
         const fresh: Engagement = {
           kind, activeId: active.trackId, supportId: support.trackId, ms: 0, armed: false,
           travel: 0, armedMs: 0, span: active.pinchRatio, stillSinceMs: null, topY: NaN, lastY: NaN, started: false, pauseSinceMs: null, lastMs: t,
@@ -418,8 +418,12 @@ export class GestureRecognizer {
         if (held(`noIndent${hs}`, inOpening && isPinch(h, false) && clay.cavityDepthWorld <= 0)) {
           return { intended: 'open', reason: 'noIndentation', handTrackId: h.trackId, params: {} };
         }
-        if (held(`pinch${hs}`, inOpening && clay.cavityDepthWorld > 0 && !isPinch(h, false) && h.extension.index >= CONFIG.FINGER_OPEN_OFF)) {
-          const loose = h.pinchRatio < CONFIG.PINCH_LOOSE_MAX;
+        const loose = h.pinchRatio < CONFIG.PINCH_LOOSE_MAX;
+        // v8.2: outside the opening lesson an unpinched finger in the opening is the widen action
+        if (held(`noSupportWiden${hs}`, expected !== 'open' && !loose && inOpening && clay.cavityDepthWorld > 0 && !supported && QUALIFIES.widen(h, clay, world))) {
+          return { intended: 'widen', reason: 'noSupport', handTrackId: o.trackId, params: { side: side(o, l) } };
+        }
+        if (held(`pinch${hs}`, (expected === 'open' || loose || !poking(h, false)) && inOpening && clay.cavityDepthWorld > 0 && !isPinch(h, false) && h.extension.index >= CONFIG.FINGER_OPEN_OFF)) {
           return { intended: 'open', reason: loose ? 'pinchLoose' : 'pinchFirst', handTrackId: h.trackId, params: { side: hs } };
         }
         if (held(`noSupportPinch${hs}`, inOpening && clay.cavityDepthWorld > 0 && isPinch(h, false) && !supported)) {
@@ -479,7 +483,7 @@ interface ActionResult {
 type StepResult = Omit<ActionResult, 'kind' | 'activeId' | 'supportId' | 'engagedMs'>;
 type World = (p: Vec2) => Vec2;
 
-const isKind = (g: Gesture): g is Kind => g === 'pullUp' || g === 'indent' || g === 'open' || g === 'compressRim';
+const isKind = (g: Gesture): g is Kind => g === 'pullUp' || g === 'indent' || g === 'open' || g === 'compressRim' || g === 'widen';
 
 /** Screen-x (world) of the hand's point closest to the axis: dir 1 = left hand (largest x), -1 = right hand. */
 function innerEdgeX(h: HandFeatures, proj: ProjectionParams, dir: 1 | -1): number {
@@ -529,7 +533,24 @@ const QUALIFIES: Record<Kind, (h: HandFeatures, clay: ClayState, world: World) =
   },
   open: (h, clay, world) => isPinch(h, false) && atOpening(h, clay, world),
   compressRim: (h, clay) => allOpen(h, false) && !isPinch(h, false) && isHorizontal(h) && inRimZone(h, clay),
+  widen: (h, clay, world) => poking(h, false) && fingertipInOpening(h, clay, world, 0),
 };
+
+/**
+ * v8.2 widen pose: index extended, not pinched, and the index tip is the hand's lowest point (it points down
+ * into the pot). A thumbs-down has the thumb tip lowest, a pinch has the tips together, so neither reads as this.
+ */
+function poking(h: HandFeatures, sticky: boolean): boolean {
+  if (!hasLandmarks(h)) return false;
+  return h.extension.index >= (sticky ? CONFIG.FINGER_OPEN_OFF : CONFIG.FINGER_OPEN_ON) &&
+    h.pinchRatio > (sticky ? CONFIG.PINCH_ON : CONFIG.PINCH_OFF) && h.landmarksPx[INDEX_TIP].y > h.landmarksPx[THUMB_TIP].y;
+}
+/** Index tip inside the opening: within its radius (+ reach, once pushing) and between its floor and the rim. */
+function fingertipInOpening(h: HandFeatures, clay: ClayState, world: World, reach: number): boolean {
+  const tip = world(h.landmarksPx[INDEX_TIP]);
+  return Math.abs(tip.x) <= clay.cavityRadiusWorld + reach &&
+    tip.y >= clay.height - clay.cavityDepthWorld && tip.y <= clay.height + CONFIG.WIDEN_RIM_MARGIN_WORLD;
+}
 
 type Step = (rec: GestureRecognizer, e: Engagement, h: HandFeatures, clay: ClayState, world: World, dtS: number, t: number) => StepResult | null;
 const idle = (progress: number): StepResult => ({ progress, deforming: false, motionStrength: 0, delta: NO_DELTA });
@@ -636,6 +657,42 @@ const STEP: Record<Kind, Step> = {
     return {
       progress: 1, deforming: true, motionStrength: dtS > 0 ? Math.min(1, grow / dtS / CONFIG.OPEN_MAX_SPREAD_PER_S) : 0,
       delta: { ...NO_DELTA, spreadRatio: grow },
+    };
+  },
+
+  // v8.2: fingertip inside the opening, brief still hold, then pushed sideways: the outward reach beyond the
+  // farthest point already applied (after a jitter deadband) widens the wall at the fingertip's height.
+  // Either side works (the pot is round). Leaving the opening, pinching or turning the thumb down releases.
+  widen: (rec, e, h, clay, world, dtS, t) => {
+    if (!poking(h, true) || clay.cavityDepthWorld <= 0) return null;
+    const tip = world(h.landmarksPx[INDEX_TIP]);
+    const band = Math.round(Math.max(0, Math.min(1, tip.y / clay.height)) * (clay.radii.length - 1));
+    // once pushing, the tip may follow the inner wall out, but never past the outer wall
+    if (!fingertipInOpening(h, clay, world, e.armed ? clay.radii[band] - clay.cavityRadiusWorld : 0)) return null;
+    const x = Math.abs(tip.x);
+    const gap = t - e.lastMs > CONFIG.MAX_INPUT_AGE_MS;
+    const prevX = e.lastY;
+    e.lastMs = t;
+    e.lastY = x;
+    if (!e.armed) {
+      e.ms = speedOf(h) < CONFIG.STILL_PALM_PER_S ? e.ms + dtS * 1000 : 0;
+      if (e.ms < CONFIG.WIDEN_ACQUIRE_MS) return idle(e.ms / CONFIG.WIDEN_ACQUIRE_MS);
+      e.armed = true;
+      e.topY = x;
+      return idle(1);
+    }
+    const speed = !gap && dtS > 0 && Number.isFinite(prevX) ? (x - prevX) / dtS / Z.palmW : 0;
+    if (speed > CONFIG.WIDEN_MAX_PALM_PER_S) {
+      rec.latch({ intended: 'widen', reason: 'widenTooFast', handTrackId: h.trackId, params: {} }, t);
+      return null;
+    }
+    const push = gap || (!e.started && x - e.topY <= Z.deadband) ? 0 : x - e.topY;
+    if (push > 0) e.started = true;
+    if (e.started) e.topY = Math.max(e.topY, x);
+    if (push <= 0) return idle(1);
+    return {
+      progress: 1, deforming: true, motionStrength: Math.min(1, speed / CONFIG.WIDEN_MAX_PALM_PER_S),
+      delta: { ...NO_DELTA, widenWorld: push, widenBandY: tip.y / clay.height },
     };
   },
 

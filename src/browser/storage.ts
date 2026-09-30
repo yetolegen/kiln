@@ -4,7 +4,7 @@ import type { SessionResult } from '../types';
 export const GALLERY_KEY = 'kiln.gallery.v1';
 export const MAX_POTS = 24;
 const ISSUES = ['tear', 'wobble', 'collapse', 'overhang', 'tooThin', 'thinFloor', 'overStretch', 'tooFlat', 'offWheel', 'handsTooFar', 'oneHand', 'noHands', 'trackingUncertain', 'targetMismatch'];
-const GESTURES = ['none', 'oneHand', 'shape', 'pullUp', 'indent', 'open', 'compressRim', 'raise', 'point'];
+const GESTURES = ['none', 'oneHand', 'shape', 'pullUp', 'indent', 'open', 'compressRim', 'widen', 'raise', 'point'];
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value);
 const number = (value: unknown, min = 0, max = Number.MAX_SAFE_INTEGER): value is number => typeof value === 'number' && Number.isFinite(value) && value >= min - 1e-6 && value <= max + 1e-6;
 const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0 && value.length <= 200;

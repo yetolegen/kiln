@@ -20,8 +20,10 @@ export interface ActionDelta {
   spreadRatio: number;   // pinch-ratio growth since the widest span so far
   compressWorld: number; // hand descent while the rim compression is armed
   stretchMs: number;     // how long the opening has been engaged (armed), for the v5 over-stretch
+  widenWorld: number;    // v8.2: outward fingertip push from inside the opening this observation
+  widenBandY: number;    // ... at this relative height 0..1
 }
-export const NO_DELTA: ActionDelta = { shapeWorld: 0, liftWorld: 0, indentWorld: 0, spreadRatio: 0, compressWorld: 0, stretchMs: 0 };
+export const NO_DELTA: ActionDelta = { shapeWorld: 0, liftWorld: 0, indentWorld: 0, spreadRatio: 0, compressWorld: 0, stretchMs: 0, widenWorld: 0, widenBandY: 0 };
 
 /** Limits that come from outside the clay (screen, hand size); the controller supplies them each step. */
 export interface ClayLimits { maxHeightWorld: number; safeIndentDepthWorld: number }
@@ -152,6 +154,11 @@ export function stepClay(
         c.bottomHole = true;
         fail(c, 'bottomHole');
       }
+      changed = true;
+    }
+    if (acting && g.gesture === 'widen' && d.widenWorld > 0 && c.cavityDepthWorld > 0) {
+      // v8.2: fingers inside push the wall out at their height, the mirror of the external shaping press
+      shape(c, d.widenBandY, CONFIG.WIDEN_GAIN * d.widenWorld, dtS);
       changed = true;
     }
     if (acting && g.gesture === 'open' && d.spreadRatio > 0 && c.cavityDepthWorld > 0) {
