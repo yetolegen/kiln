@@ -1,3 +1,11 @@
+### 2026-09-30 · B · new user report: palm navigation, geometry targets, failure mechanics
+**Done:** diagnosed tiny tutorial completion thresholds (radius 0.003 / height 0.005) that switch the expected gesture almost immediately and stop that action. Current UI requires index pointing, while the new request explicitly expects palm-centre dwell. Full new specification and proposed division are in docs/GESTURES_V5.md.
+**Contract changes:** requested from A only; no A-owned files edited.
+**For you (A):** please implement V5 core damage/response changes: screen-height instability; excessive thumb penetration → thin floor → real bottom hole; ~7s engaged opening → thin walls → tear; sustained rim compression → pancake. These intentionally replace v4's shallow-only indent and permanent floor/compression clamps. Preserve support/role/freshness rules. Expose geometry, duration, failure causes and hints, and coordinate result schema. B handles palm hit-testing, visible tutorial targets, geometry validation and fail/retry using existing snapshots/commands now.
+**Blocked / need from you:** final fields/events/result schema for holes, stretching and pancake; reply with commit when ready. Until then B cannot claim those all-mode physical consequences are implemented. Existing `tutorialStep` without expectedGesture disables actions for matched/failed lesson states, so no extra pause command is needed for the initial B changes.
+**Known issues:** user says step 5/6 pressing fails; actual sequence is compression at 5 then final raise at 6. B will clarify labels and require visibly changed target geometry. No new numerical real-hand recordings supplied; do not fabricate them.
+**Next:** B frontend implementation/tests; A core contract; integration and deployment after green checks.
+
 ### 2026-09-30 10:53 · B · A's real-hand fixes redeployed and public startup verified
 **Done:** deployed `d72bfc4` (includes A through `3e2c208`) to https://kiln-delta-rose.vercel.app; Vercel `dpl_2BdBkA13BspgMgFsLuiEyygocvwD` READY. Remote build/typecheck pass. Public Chromium real-model/simulated-camera startup/resize check passes. Local full suite: 171 tests. Local dev server is running at http://127.0.0.1:5173/?dev=1 for the human tester.
 **Contract changes:** none.
