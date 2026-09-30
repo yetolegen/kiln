@@ -18,7 +18,7 @@ const NO_CONTACT: ContactState = {
 };
 const TWO_HAND: readonly Gesture[] = ['shape', 'raise'];
 const UNTRUSTED = ['stale', 'invalidLandmarks', 'ambiguousTracks'];
-const WRIST = 0, THUMB_MCP = 2, THUMB_TIP = 4, INDEX_TIP = 8, MIDDLE_MCP = 9;
+const WRIST = 0, THUMB_MCP = 2, THUMB_TIP = 4, INDEX_MCP = 5, INDEX_TIP = 8, MIDDLE_MCP = 9;
 
 // Hysteresis: entering a pose needs the strict threshold, staying in it only the loose one.
 const fingers = (h: HandFeatures) => [h.extension.index, h.extension.middle, h.extension.ring, h.extension.pinky];
@@ -537,13 +537,15 @@ const QUALIFIES: Record<Kind, (h: HandFeatures, clay: ClayState, world: World) =
 };
 
 /**
- * v8.2 widen pose: index extended, not pinched, and the index tip is the hand's lowest point (it points down
- * into the pot). A thumbs-down has the thumb tip lowest, a pinch has the tips together, so neither reads as this.
+ * v8.2 widen pose: index extended, not pinched, pointing down (knuckle → tip within THUMB_DOWN_TOL_DEG of straight
+ * down) and lower than the thumb tip. A thumbs-down has the thumb tip lowest, a pinch has the tips together, and
+ * a flat rim hand over the opening has its fingers sideways, so none of them reads as this.
  */
 function poking(h: HandFeatures, sticky: boolean): boolean {
   if (!hasLandmarks(h)) return false;
   return h.extension.index >= (sticky ? CONFIG.FINGER_OPEN_OFF : CONFIG.FINGER_OPEN_ON) &&
-    h.pinchRatio > (sticky ? CONFIG.PINCH_ON : CONFIG.PINCH_OFF) && h.landmarksPx[INDEX_TIP].y > h.landmarksPx[THUMB_TIP].y;
+    h.pinchRatio > (sticky ? CONFIG.PINCH_ON : CONFIG.PINCH_OFF) && h.landmarksPx[INDEX_TIP].y > h.landmarksPx[THUMB_TIP].y &&
+    angleFrom(h.landmarksPx[INDEX_MCP], h.landmarksPx[INDEX_TIP], { x: 0, y: 1 }) <= CONFIG.THUMB_DOWN_TOL_DEG;
 }
 /** Index tip inside the opening: within its radius (+ reach, once pushing) and between its floor and the rim. */
 function fingertipInOpening(h: HandFeatures, clay: ClayState, world: World, reach: number): boolean {

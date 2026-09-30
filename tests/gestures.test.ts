@@ -454,6 +454,7 @@ describe('widen (v8.2): fingertip inside the opening pushes the wall out, like a
     const tip = { x: PROJ.axisXPx + x * 180, y: PROJ.bottomYPx - y * 180 };
     lm[8] = tip;
     lm[4] = { x: tip.x - 40, y: tip.y - 60 }; // thumb higher up, beside the finger
+    lm[5] = { x: tip.x, y: tip.y - 60 };      // index knuckle straight above its tip
     return { ...h, landmarksPx: lm, indexTipPx: tip };
   };
   const band = (y: number, c: ClayModel) => Math.round((y / c.height) * 47);
@@ -481,6 +482,16 @@ describe('widen (v8.2): fingertip inside the opening pushes the wall out, like a
     expect(alone.g.nearMiss).toMatchObject({ intended: 'widen', reason: 'noSupport' });
     const pinch = run([SUPPORT(), poseHand('pinch', 0, 0.9, { trackId: 2 })], 800, { rec: new GestureRecognizer(), clay: opened(), t: 0 });
     expect(pinch.g.gesture).toBe('open');
+  });
+
+  it('a flat rim hand over an opened pot is still rim compression, even with the index tip dipping in', () => {
+    const flat = poseHand('flat', -0.3, 1.28, { trackId: 2 });
+    const lm = flat.landmarksPx.map((p) => ({ ...p }));
+    lm[5] = { ...lm[9] };
+    lm[8] = { x: lm[9].x + 30, y: lm[9].y + 8 }; // fingers sideways, tip slightly low and inside the opening
+    lm[4] = { x: lm[0].x + 20, y: lm[0].y - 10 };
+    const s = run([SUPPORT(), { ...flat, landmarksPx: lm, indexTipPx: lm[8] }], 800, { rec: new GestureRecognizer(), clay: opened(), t: 0 });
+    expect(s.g.gesture).toBe('compressRim');
   });
 
   it('pushing too fast cancels without widening and says so', () => {
