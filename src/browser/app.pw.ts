@@ -174,7 +174,12 @@ test('B7 tutorial validates geometry for all actions and requires release', asyn
     await page.keyboard.press('Escape'); await expect(lesson).toHaveAttribute('data-step', String(step + 1));
   };
   await expect(lesson).toHaveAttribute('data-step', '0');
-  await complete('s', 0); await complete('u', 1);
+  await complete('s', 0);
+  await expect(lesson.locator('h2')).toHaveText('Расширьте весь корпус');
+  await expect(lesson).toContainText('2 / 7');
+  await expect(lesson.locator('.tutorial-instruction')).toContainText('разомкните щипки');
+  await page.screenshot({ path: 'test-results/v91-widen-lesson.png' });
+  await complete('g', 1); await complete('u', 2);
   await expect(lesson.locator('.tutorial-instruction')).toContainText('фаланга');
   await page.screenshot({ path: 'test-results/v6-thumb-depth.png' });
   await page.setViewportSize({ width: 390, height: 844 });
@@ -182,7 +187,7 @@ test('B7 tutorial validates geometry for all actions and requires release', asyn
   await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
   await page.screenshot({ path: 'test-results/v6-thumb-depth-phone.png' });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await complete('i', 2);
+  await complete('i', 3);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.mouse.move(0, 0);
   await page.keyboard.press('Escape');
@@ -199,11 +204,11 @@ test('B7 tutorial validates geometry for all actions and requires release', asyn
   await page.keyboard.press('x');
   await page.keyboard.press('w'); await expect(page.locator('.hud__hint')).toContainText('Смести');
   await expect(page.locator('.hud__hint')).toBeVisible(); await page.keyboard.press('w');
-  await complete('o', 3);
+  await complete('o', 4);
   await page.screenshot({ path: 'test-results/v6-wall-section.png' });
   await page.keyboard.press('d');
   await expect(lesson).toHaveAttribute('data-state', 'completed');
-  await expect(lesson).toHaveAttribute('data-step', '5');
+  await expect(lesson).toHaveAttribute('data-step', '6');
   await expect(page.locator('h1')).toHaveText('Обучение окончено');
   await expect(page.locator('.hud__hint')).toContainText('Обучение окончено');
   await page.keyboard.press('x');
@@ -344,7 +349,7 @@ test('B2 loads the real model, starts a mirrored camera, and resizes', async ({ 
   await start.click();
   try { await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'calibrate', { timeout: 20_000 }); }
   catch (error) { throw new Error(`Camera startup failed: ${startupErrors.join('\n')}`, { cause: error }); }
-  await expect(page.locator('footer')).toContainText('V9.0');
+  await expect(page.locator('footer')).toContainText('V9.1');
   await expect(page.locator('.camera-viewport')).toHaveCSS('background-image', /workshop-dusk\.png/);
   await page.evaluate(() => new Promise<void>((resolve, reject) => {
     const art = new Image(); art.onload = () => resolve(); art.onerror = () => reject(new Error('Workshop artwork missing')); art.src = '/workshop-dusk.png';

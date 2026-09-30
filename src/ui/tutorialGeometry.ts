@@ -18,6 +18,7 @@ export interface ShapeAssessment {
   failure: string | null;
   instruction: string;
 }
+export const LESSON_FINISH_STEP = 6;
 // Lesson step 1: a 0.20 narrowing centred on band 24. The dent lands wherever the hands touch, so any centre
 // within NARROW_SHIFT_BANDS of it counts (±6 bands ≈ ±0.15 of the height, ~±30 px on a laptop webcam).
 const NARROW_DEPTH = .20, NARROW_BAND = 24, NARROW_SHIFT_BANDS = 6;
@@ -31,10 +32,11 @@ export const copyShape = (c: LessonShape | ClayState): LessonShape => ({ radii: 
 export function createLessonGoal(step: number, clay: LessonShape | ClayState): LessonGoal {
   const start = copyShape(clay), target = copyShape(clay);
   if (step === 0) target.radii = narrowed(start.radii, NARROW_BAND);
-  if (step === 1) { target.height += .30; target.radii = start.radii.map((r) => r * .977); }
-  if (step === 2) { target.cavityRadiusWorld = CONFIG.INDENT_RADIUS_WORLD; target.cavityDepthWorld = CONFIG.INDENT_DEPTH_WORLD; }
-  if (step === 3) { target.cavityRadiusWorld += .26; target.cavityDepthWorld += .468; }
-  if (step === 4) {
+  if (step === 1) target.radii = start.radii.map((r) => r + .18);
+  if (step === 2) { target.height += .30; target.radii = start.radii.map((r) => r * .977); }
+  if (step === 3) { target.cavityRadiusWorld = CONFIG.INDENT_RADIUS_WORLD; target.cavityDepthWorld = CONFIG.INDENT_DEPTH_WORLD; }
+  if (step === 4) { target.cavityRadiusWorld += .26; target.cavityDepthWorld += .468; }
+  if (step === 5) {
     target.height -= .22; target.radii = start.radii.map((r) => r * 1.018);
     target.cavityRadiusWorld = Math.max(0, start.cavityRadiusWorld - .066);
     target.cavityDepthWorld = Math.max(0, start.cavityDepthWorld - .22);
@@ -53,7 +55,7 @@ export function assessLessonShape(clay: ClayState, goal: LessonGoal): ShapeAsses
       if (e < best) { best = e; t = { ...t, radii }; }
     }
   }
-  const dent = step === 2;
+  const dent = step === 3;
   const hTol = .035, rTol = .045, cavityRTol = dent ? .025 : .045, cavityDTol = dent ? .025 : .065;
   const radiusError = maxError(clay.radii, t.radii);
   const errors = [Math.abs(clay.height - t.height) / hTol, radiusError / rTol,
@@ -66,13 +68,14 @@ export function assessLessonShape(clay: ClayState, goal: LessonGoal): ShapeAsses
   else if (clay.collapseCause === 'pancake') failure = 'Сосуд сплющен в лепёшку. Начните заново и останавливайте давление у прозрачного края.';
   else if (clay.collapsed) failure = 'Сосуд обрушился. Начните заново и двигайте рабочую руку медленнее, сохраняя опору.';
   else if (Math.max(...clay.damage) > .35) failure = 'Стенка повреждена. Начните заново и работайте медленнее, не растягивая её за образец.';
-  else if (clay.height > Math.max(s.height, t.height) + (step === 1 ? hTol : .08)) failure = 'Вы подняли сосуд выше образца. Поднимайте только до прозрачного края.';
-  else if (clay.height < Math.min(s.height, t.height) - (step === 4 ? hTol : .08)) failure = 'Вы сжали сосуд ниже образца. Остановите ладонь, когда края совпадут.';
+  else if (clay.height > Math.max(s.height, t.height) + (step === 2 ? hTol : .08)) failure = 'Вы подняли сосуд выше образца. Поднимайте только до прозрачного края.';
+  else if (clay.height < Math.min(s.height, t.height) - (step === 5 ? hTol : .08)) failure = 'Вы сжали сосуд ниже образца. Остановите ладонь, когда края совпадут.';
+  else if (step === 1 && clay.radii.some((r, i) => r > t.radii[i] + rTol)) failure = 'Корпус шире образца. Разводите обе руки медленно и разомкните щипки у прозрачных стенок.';
   else if (clay.cavityRadiusWorld > Math.max(s.cavityRadiusWorld, t.cavityRadiusWorld) + cavityRTol) failure = 'Отверстие стало шире образца. Разводите пальцы медленно и остановитесь у прозрачного контура.';
   else if (clay.cavityDepthWorld > Math.max(s.cavityDepthWorld, t.cavityDepthWorld) + cavityDTol) failure = 'Углубление слишком глубокое. Вдавливайте палец только до отмеченного дна.';
   else if (clay.radii.some((r, i) => r < Math.min(s.radii[i], t.radii[i]) - .10 || r > Math.max(s.radii[i], t.radii[i]) + .10)) failure = 'Стенки вышли за допустимую форму. Работайте на отмеченной высоте до прозрачного контура.';
   const instructions = [clay.height < t.height ? 'Поднимите верхний край до прозрачного контура.' : 'Опустите верхний край до прозрачного контура.',
-    'Совместите стенки с прозрачным контуром на отмеченной высоте.',
+    step === 1 ? 'Удерживайте щипок каждой рукой снаружи у стенок, затем медленно разводите обе руки до прозрачного контура.' : 'Совместите стенки с прозрачным контуром на отмеченной высоте.',
     clay.cavityRadiusWorld < t.cavityRadiusWorld ? 'Расширьте отверстие до прозрачного внутреннего контура.' : 'Отверстие шире цели. Уплотняйте край до внутреннего контура.',
     clay.cavityDepthWorld < t.cavityDepthWorld ? 'Углубите ямку до отмеченного дна.' : 'Дно ниже цели. Остановитесь у отмеченной глубины.'];
   return { similarity: Math.max(0, Math.floor(100 - 10 * worst)), matched: worst <= 1 && !failure,

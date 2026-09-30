@@ -1,9 +1,10 @@
 import { CONFIG } from '../config';
 import type { AppCommand, ClayState, EngineSnapshot, Hint } from '../types';
-import { assessLessonShape, createLessonGoal, type LessonGoal, type ShapeAssessment } from './tutorialGeometry';
+import { assessLessonShape, createLessonGoal, LESSON_FINISH_STEP, type LessonGoal, type ShapeAssessment } from './tutorialGeometry';
 
 export const TUTORIAL_STEPS = [
   { gesture: 'shape', title: 'Сузьте середину', text: 'Ладони у стенок на средней высоте. Медленно сводите их, пока стенки не совпадут с прозрачным образцом.', demo: 'shape' },
+  { gesture: 'widen', title: 'Расширьте весь корпус', text: 'Большой и указательный пальцы каждой руки соедините в щипок снаружи у двух стенок. Замрите на полсекунды, затем медленно разведите обе руки. У цели разомкните щипки — это отпускает глину.', demo: 'widen' },
   { gesture: 'pullUp', title: 'Поднимите глину', text: 'Одна раскрытая ладонь горизонтально у основания, другая у стенки. Замрите на 3 секунды, затем очень медленно поднимайте нижнюю руку.', demo: 'lift' },
   { gesture: 'indent', title: 'Сделайте маленькую ямку', text: 'Поддерживайте стенку. Медленно вводите большой палец вниз до голубой отметки дна. Жёлтая линия — безопасный предел: примерно одна фаланга. Глубже — риск пробить дно. Подойдёт любая рука.', demo: 'indent' },
   { gesture: 'open', title: 'Раскройте углубление', text: 'Поддерживайте стенку. Соедините большой и указательный пальцы другой руки внутри ямки, задержите щипок, затем медленно разведите пальцы.', demo: 'open' },
@@ -13,17 +14,18 @@ export const TUTORIAL_STEPS = [
 
 export function lessonFeedback(snapshot: EngineSnapshot, step: number, progress: number, waitingRelease = false): string {
   const gesture = snapshot.gesture;
-  if (step === 5) return 'Обучение окончено. Ваша форма готова — можно вернуться в мастерскую.';
+  if (step === LESSON_FINISH_STEP) return 'Обучение окончено. Ваша форма готова — можно вернуться в мастерскую.';
   if (!snapshot.input || snapshot.input.status !== 'ready') return 'Покажите обе руки камере. Глина и урок ждут надёжного отслеживания.';
   if (waitingRelease) return 'Предыдущий шаг выполнен. Отпустите жест и переместите руки для следующего действия.';
   if (gesture?.gesture !== TUTORIAL_STEPS[step].gesture) {
     return step === 0 ? 'Раскройте все пальцы обеих рук, отведите большие пальцы от указательных и поверните ладони к камере.' : TUTORIAL_STEPS[step].text;
   }
   if (step === 0 && !gesture?.contact.valid) return 'Ладони распознаны. Подведите каждую к своей стенке сосуда, на одной высоте и ниже верхнего края.';
-  if (step === 1 && progress < 1) return 'Держите ладонь горизонтально у основания три секунды, пока круг не заполнится. Другую руку держите у стенки.';
-  if (step === 3 && progress < 1) return 'Сначала задержите сомкнутый щипок внутри ямки. Затем медленно разводите пальцы, сохраняя опору у стенки.';
-  if (step === 4 && progress < 1) return 'Держите горизонтальную ладонь над краем полсекунды, пока круг не заполнится. Затем медленно опускайте.';
-  return step === 0 ? 'Медленно сводите ладони у стенок, пока ширина не совпадёт с образцом. Движение наружу отпускает глину.' : step === 1 ? 'Активация завершена. Очень медленно поднимайте нижнюю руку, чтобы сосуд стал выше.' : step === 2 ? 'Большой палец вниз: слегка протолкните его в верхнюю поверхность, чтобы появилась неглубокая ямка.' : step === 3 ? 'Медленно разведите большой и указательный пальцы: отверстие должно стать шире и глубже.' : 'Медленно опускайте горизонтальную ладонь: верхний край должен стать ниже.';
+  if (step === 1) return progress < 1 ? 'Задержите оба щипка у противоположных стенок на полсекунды. Дождитесь полного круга.' : 'Медленно разводите обе руки: расширяется весь корпус. Разомкните щипки, чтобы остановиться.';
+  if (step === 2 && progress < 1) return 'Держите ладонь горизонтально у основания три секунды, пока круг не заполнится. Другую руку держите у стенки.';
+  if (step === 4 && progress < 1) return 'Сначала задержите сомкнутый щипок внутри ямки. Затем медленно разводите пальцы, сохраняя опору у стенки.';
+  if (step === 5 && progress < 1) return 'Держите горизонтальную ладонь над краем полсекунды, пока круг не заполнится. Затем медленно опускайте.';
+  return step === 0 ? 'Медленно сводите ладони у стенок, пока ширина не совпадёт с образцом. Движение наружу отпускает глину.' : step === 2 ? 'Активация завершена. Очень медленно поднимайте нижнюю руку, чтобы сосуд стал выше.' : step === 3 ? 'Большой палец вниз: слегка протолкните его в верхнюю поверхность, чтобы появилась неглубокая ямка.' : step === 4 ? 'Медленно разведите большой и указательный пальцы: отверстие должно стать шире и глубже.' : 'Медленно опускайте горизонтальную ладонь: верхний край должен стать ниже.';
 }
 
 export class TutorialScript {
@@ -41,11 +43,11 @@ export class TutorialScript {
   private confirming = false;
   constructor(private dispatch: (command: AppCommand) => void) {}
   private enter(step: number, clay: ClayState | null): void {
-    const source = step === 5 ? this.goal?.target ?? clay : clay;
+    const source = step === LESSON_FINISH_STEP ? this.goal?.target ?? clay : clay;
     this.step = step; this.progress = 0; this.status = 'working'; this.waitingRelease = false;
     this.goal = source ? createLessonGoal(step, source) : null;
     this.assessment = null; this.actionSeen = false; this.matchedSince = null; this.confirming = false;
-    if (step === 5) {
+    if (step === LESSON_FINISH_STEP) {
       this.status = 'completed';
       this.assessment = clay && this.goal ? assessLessonShape(clay, this.goal) : null;
       this.progress = (this.assessment?.similarity ?? 100) / 100;
@@ -97,7 +99,7 @@ export class TutorialScript {
       this.dispatch({ type: 'tutorialStep', step: this.step });
     }
     if (input.tMs - this.matchedSince >= 350) {
-      if (this.step === 4) { this.enter(5, snapshot.clay); return; }
+      if (this.step === LESSON_FINISH_STEP - 1) { this.enter(LESSON_FINISH_STEP, snapshot.clay); return; }
       this.status = 'matched'; this.waitingRelease = true;
       // Freeze at the accepted geometry. The next action is armed only after a reliable release.
       this.dispatch({ type: 'tutorialStep', step: this.step });
@@ -139,23 +141,23 @@ export function createTutorial(parent: HTMLElement, dispatch: (command: AppComma
         lastSession = snapshot.stats?.sessionId; lastMessage = ''; coaching = null; spoken.clear();
         lastStep = script.step; const step = TUTORIAL_STEPS[lastStep];
         panel.dataset.step = String(lastStep); panel.dataset.demo = step.demo;
-        label.textContent = `УРОК · ${lastStep + 1} / 6`; title.textContent = step.title; text.textContent = step.text;
+        label.textContent = `УРОК · ${lastStep + 1} / ${TUTORIAL_STEPS.length}`; title.textContent = step.title; text.textContent = step.text;
         demo.hidden = script.status === 'completed';
-        const path = step.demo === 'open' ? PINCH : step.demo === 'indent' ? THUMB_DOWN : OPEN;
+        const path = step.demo === 'open' || step.demo === 'widen' ? PINCH : step.demo === 'indent' ? THUMB_DOWN : OPEN;
         const rotate = step.demo === 'lift' || step.demo === 'rim' ? 'rotate(90 30 38)' : '';
-        demo.innerHTML = `<svg viewBox="0 0 76 76"><path transform="translate(8 0)" d="${OPEN}"/></svg><svg viewBox="0 0 76 76"><path transform="translate(8 0) ${rotate}" d="${path}"/></svg>`;
+        demo.innerHTML = `<svg viewBox="0 0 76 76"><path transform="translate(8 0)" d="${step.demo === 'widen' ? PINCH : OPEN}"/></svg>${step.demo === 'widen' ? '<span>← →</span>' : ''}<svg viewBox="0 0 76 76"><path transform="translate(8 0) ${rotate}" d="${path}"/></svg>`;
       }
       progress.value = script.progress;
       match.textContent = `Форма: ${Math.round(script.progress * 100)}% · цель ≥ 90%`;
       const technique = lessonFeedback(snapshot, script.step, snapshot.gesture?.activationProgress ?? 0);
-      const message = failed ? `Этап не выполнен. ${script.assessment!.failure} Повтор начинается с первого шага.` : script.status === 'matched' ? 'Форма совпала! Уберите рабочую руку от глины, чтобы перейти дальше.' : script.step < 5 && script.assessment?.matched ? 'Форма в допуске. Остановите движение и ненадолго удержите форму.' :
+      const message = failed ? `Этап не выполнен. ${script.assessment!.failure} Повтор начинается с первого шага.` : script.status === 'matched' ? 'Форма совпала! Уберите рабочую руку от глины, чтобы перейти дальше.' : script.step < LESSON_FINISH_STEP && script.assessment?.matched ? 'Форма в допуске. Остановите движение и ненадолго удержите форму.' :
         snapshot.gesture && snapshot.gesture.gesture === TUTORIAL_STEPS[script.step].gesture && script.assessment && !script.assessment.matched && (snapshot.gesture.activationProgress >= 1 || script.step === 0) ? script.assessment.instruction : technique;
-      feedback.hidden = script.step === 5 || message === TUTORIAL_STEPS[script.step].text || (!failed && snapshot.input?.status !== 'ready');
+      feedback.hidden = script.step === LESSON_FINISH_STEP || message === TUTORIAL_STEPS[script.step].text || (!failed && snapshot.input?.status !== 'ready');
       if (message !== lastMessage) {
         lastMessage = message; feedback.textContent = message;
         const speak = nowMs - (spoken.get(message) ?? -Infinity) >= 10_000;
         if (speak) spoken.set(message, nowMs);
-        coaching = { id: 'notMoving', params: { instruction: message, banner: script.step === 5 ? 'true' : 'false' }, severity: failed ? 'error' : 'info', priority: failed ? 95 : 5, expiresAtMs: nowMs + 4000, speak };
+        coaching = { id: 'notMoving', params: { instruction: message, banner: script.step === LESSON_FINISH_STEP ? 'true' : 'false' }, severity: failed ? 'error' : 'info', priority: failed ? 95 : 5, expiresAtMs: nowMs + 4000, speak };
       }
       return coaching;
     },

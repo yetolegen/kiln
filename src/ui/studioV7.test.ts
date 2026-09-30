@@ -110,7 +110,7 @@ it.each(['pancake', 'wallTorn'] as const)('terminal %s freezes every shaping act
   if (cause === 'pancake') clay.height = CONFIG.INIT_HEIGHT * .2;
   else { clay.cavityRadiusWorld = .9; clay.cavityDepthWorld = .8; clay.damage[32] = .8; }
   for (const g of [shapeGesture(.5, .8), ...(['pullUp', 'indent', 'open', 'compressRim'] as const).map((a) => actionGesture(a))]) {
-    const next = stepClay(clay, g, .033, undefined, { shapeWorld: -.2, liftWorld: .1, indentWorld: .1, spreadRatio: .2, compressWorld: .1, stretchMs: 12_000, widenWorld: .1, widenBandY: .8 });
+    const next = stepClay(clay, g, .033, undefined, { shapeWorld: -.2, liftWorld: .1, indentWorld: .1, spreadRatio: .2, compressWorld: .1, stretchMs: 12_000, widenWorld: .1, widenBandY: .8, externalWidenWorld: .2 });
     expect(next).toEqual(clay);
   }
   expect(createClay().collapsed).toBe(false);

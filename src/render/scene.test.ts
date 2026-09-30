@@ -94,11 +94,12 @@ it.each([[0, 0], [.12, .12], [.6, 1]])('renders explicit cavity radius %f / dept
   const points: Vector2[] = [];
   fillProfile(clay, points);
   const n = clay.radii.length;
-  expect(points[n].y).toBe(clay.height);
-  expect(points[n + 1].y).toBe(clay.height);
-  expect(points[n + 1].x).toBeCloseTo(radius || clay.radii[n - 1]);
+  expect(Math.max(...points.map(p => p.y))).toBe(clay.height);
+  expect(points[n].x).toBeCloseTo(clay.radii[n - 1]);
+  expect(points.every(p => p.x <= Math.max(...clay.radii) + 1e-6)).toBe(true);
+  expect(points[n + 9].x).toBeCloseTo(radius || clay.radii[n - 1] - .018);
   expect(points.at(-1)!.y).toBeCloseTo(clay.height - depth);
-  if (radius) expect(points.slice(n + 1, -1).every((p) => p.x === radius)).toBe(true);
+  if (radius) expect(points.slice(n + 9, -1).every((p) => p.x === radius)).toBe(true);
   expect(points[points.length - 1].y).toBeGreaterThan(0);
   expect(points.every((point) => point.x > 0 && Number.isFinite(point.y))).toBe(true);
   expect(Array.from(clay.radii)).toEqual(original);

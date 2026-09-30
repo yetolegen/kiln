@@ -30,21 +30,22 @@ it('completion replaces all gesture instructions, even when hands are lost or ra
   const f = fixture(); const snap = f.tick();
   for (const gesture of ['none', 'compressRim', 'raise'] as const) {
     snap.gesture!.gesture = gesture;
-    const advice = lessonFeedback(snap, 5, 1);
+    const advice = lessonFeedback(snap, 6, 1);
     expect(advice).toContain('Обучение окончено');
     expect(advice).not.toContain('Поднимите');
     expect(advice).not.toContain('опускайте');
   }
 });
 
-it('completes exactly the five pottery actions and then finishes', () => {
+it('completes all six lesson actions including whole-body widening and then finishes', () => {
   const f = fixture();
   f.complete('s'); expect(f.script.step).toBe(1);
   f.hold('s'); expect(f.script.step).toBe(1);
-  f.complete('u'); expect(f.script.step).toBe(2);
-  f.complete('i'); expect(f.script.step).toBe(3);
-  f.complete('o'); expect(f.script.step).toBe(4);
-  f.hold('d'); expect(f.script.step).toBe(5); expect(f.script.status).toBe('completed');
+  f.complete('g'); expect(f.script.step).toBe(2);
+  f.complete('u'); expect(f.script.step).toBe(3);
+  f.complete('i'); expect(f.script.step).toBe(4);
+  f.complete('o'); expect(f.script.step).toBe(5);
+  f.hold('d'); expect(f.script.step).toBe(6); expect(f.script.status).toBe('completed');
   const height = f.tick().clay!.height;
   f.hold('d'); expect(f.tick().clay!.height).toBe(height);
   f.hold('x'); expect(f.script.status).toBe('completed');
@@ -69,22 +70,22 @@ it('does not accept a deforming flag without a matching shape change, replayed i
 });
 
 it('requires both opening dimensions to match the target, not merely increase', () => {
-  const f = fixture(); f.complete('s'); f.complete('u'); f.complete('i');
+  const f = fixture(); f.complete('s'); f.complete('g'); f.complete('u'); f.complete('i');
   const snap = f.tick(); snap.gesture!.gesture = 'open'; snap.gesture!.deforming = true;
   snap.clay!.cavityRadiusWorld += .1;
   snap.input!.frameId++; snap.gesture!.sourceFrameId = snap.input!.frameId;
-  f.script.update(snap, f.now()); expect(f.script.step).toBe(3);
+  f.script.update(snap, f.now()); expect(f.script.step).toBe(4);
   snap.clay!.cavityDepthWorld += .1;
   snap.input!.frameId++; snap.gesture!.sourceFrameId = snap.input!.frameId;
-  f.script.update(snap, f.now()); expect(f.script.step).toBe(3); expect(f.script.status).toBe('working');
+  f.script.update(snap, f.now()); expect(f.script.step).toBe(4); expect(f.script.status).toBe('working');
 });
 
 it('latches geometry failure, disables actions, and restarts the whole attempt', () => {
-  const f = fixture(); f.complete('s'); f.key('u');
+  const f = fixture(); f.complete('s'); f.complete('g'); f.key('u');
   f.core.tick(f.now()).clay!.height += .4;
   f.tick(); expect(f.script.status).toBe('failed'); expect(f.script.assessment!.failure).toContain('выше');
   const height = f.core.tick(f.now()).clay!.height;
-  f.hold('u'); expect(f.core.tick(f.now()).clay!.height).toBe(height); expect(f.script.step).toBe(1);
+  f.hold('u'); expect(f.core.tick(f.now()).clay!.height).toBe(height); expect(f.script.step).toBe(2);
   f.core.dispatch({ type: 'restart', newSessionId: 'retry' }, f.now()); f.tick();
   expect(f.script.step).toBe(0); expect(f.script.status).toBe('working');
 });

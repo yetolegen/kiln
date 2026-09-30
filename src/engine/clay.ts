@@ -22,8 +22,9 @@ export interface ActionDelta {
   stretchMs: number;     // how long the opening has been engaged (armed), for the v5 over-stretch
   widenWorld: number;    // v8.2: outward fingertip push from inside the opening this observation
   widenBandY: number;    // ... at this relative height 0..1
+  externalWidenWorld: number; // two pinched outside grips spread the whole profile
 }
-export const NO_DELTA: ActionDelta = { shapeWorld: 0, liftWorld: 0, indentWorld: 0, spreadRatio: 0, compressWorld: 0, stretchMs: 0, widenWorld: 0, widenBandY: 0 };
+export const NO_DELTA: ActionDelta = { shapeWorld: 0, liftWorld: 0, indentWorld: 0, spreadRatio: 0, compressWorld: 0, stretchMs: 0, widenWorld: 0, widenBandY: 0, externalWidenWorld: 0 };
 
 /** Limits that come from outside the clay (screen, hand size); the controller supplies them each step. */
 export interface ClayLimits { maxHeightWorld: number; safeIndentDepthWorld: number }
@@ -159,6 +160,11 @@ export function stepClay(
     if (acting && g.gesture === 'widen' && d.widenWorld > 0 && c.cavityDepthWorld > 0) {
       // v8.2: fingers inside push the wall out at their height, the mirror of the external shaping press
       shape(c, d.widenBandY, CONFIG.WIDEN_GAIN * d.widenWorld, dtS);
+      changed = true;
+    }
+    if (acting && g.gesture === 'widen' && d.externalWidenWorld > 0 && Number.isFinite(d.externalWidenWorld)) {
+      const increase = Math.min(CONFIG.WIDEN_GAIN * d.externalWidenWorld, CONFIG.MAX_DR_PER_S * dtS);
+      for (let i = 0; i < c.radii.length; i++) c.radii[i] += increase;
       changed = true;
     }
     if (acting && g.gesture === 'open' && d.spreadRatio > 0 && c.cavityDepthWorld > 0) {

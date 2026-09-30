@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1320" viewBox="0 0 1200 1320" role="img" aria-labelledby="title desc">
   <title id="title">KILN — шесть способов изменить форму глины</title>
-  <desc id="desc">Схемы перед камерой: ладони снаружи движутся навстречу; нижняя рука поднимается после трёх секунд; большой палец создаёт ямку; щипок раскрывает полость; верхняя ладонь опускается; указательный палец расширяет стенку изнутри. Зелёная рука поддерживает сосуд, золотая выполняет движение. Рабочей может быть любая рука.</desc>
+  <desc id="desc">Схемы перед камерой: ладони снаружи движутся навстречу; нижняя рука поднимается после трёх секунд; большой палец создаёт ямку; щипок раскрывает полость; верхняя ладонь опускается; два щипка у внешних стенок расширяют весь корпус при разведении рук. Зелёная рука поддерживает сосуд, золотая выполняет движение. Рабочей может быть любая рука.</desc>
   <defs>
     <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L7 4L0 8Z" fill="#986016"/></marker>
     <g id="hand" fill="currentColor" fill-opacity=".12" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -13,6 +13,9 @@
     <g id="index" fill="currentColor" fill-opacity=".12" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
       <path d="M14 10Q13 3 21 3H44Q54 4 54 14V27Q50 37 43 31L36 27V78Q36 87 30 87Q24 87 24 79V27L16 23Z"/>
       <path d="M42 10V24M48 11V24"/>
+    </g>
+    <g id="grip" fill="currentColor" fill-opacity=".12" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M22 64L10 39Q7 30 14 28L24 36L34 27Q40 22 42 28Q43 34 35 40L28 45L38 48L38 18Q42 12 46 20V51Q47 61 40 67Z"/>
     </g>
     <g id="pot">
       <path d="M219 158Q222 195 225 241Q276 254 327 241Q330 195 333 158Z" fill="#bf7d55" stroke="#75472f" stroke-width="2"/>
@@ -126,18 +129,17 @@
   <g transform="translate(612 892)">
     <rect width="564" height="354" rx="16" class="card"/>
     <circle cx="37" cy="36" r="18" fill="#392c25"/><text x="37" y="43" class="number">6</text>
-    <text x="67" y="44" class="heading">Расширить стенку</text>
-    <text x="24" y="76" class="small">Указательный внутри · выдержка 0,3 с</text>
+    <text x="67" y="44" class="heading">Расширить весь корпус</text>
+    <text x="24" y="76" class="small">Два щипка снаружи · выдержка 0,5 с</text>
     <use href="#wheel"/>
-    <path d="M219 158Q196 196 225 241Q276 254 327 241Q356 196 333 158Z" fill="#bf7d55" stroke="#75472f" stroke-width="2"/>
-    <ellipse cx="276" cy="158" rx="57" ry="12" fill="#d49c73" stroke="#75472f" stroke-width="2"/>
-    <ellipse cx="276" cy="158" rx="37" ry="8" fill="#714a36"/>
+    <path d="M200 158L206 241Q276 258 346 241L352 158Z" fill="#bf7d55" stroke="#75472f" stroke-width="2"/>
+    <ellipse cx="276" cy="158" rx="76" ry="12" fill="#d49c73" stroke="#75472f" stroke-width="2"/>
     <path d="M219 158Q222 195 225 241M333 158Q330 195 327 241" class="ghost"/>
-    <use href="#support"/>
-    <use href="#index" transform="translate(246 100)" color="#986016"/>
-    <path d="M289 192H325M263 192H227" class="action"/>
-    <text x="24" y="306" class="body">Толкайте изнутри в сторону стенки.</text>
-    <text x="24" y="333" class="small">Свободная лепка / образец. Это не щипок.</text>
+    <use href="#grip" transform="translate(142 153)" color="#986016"/>
+    <use href="#grip" transform="translate(410 153) scale(-1 1)" color="#986016"/>
+    <path d="M183 232H143M369 232H409" class="action"/>
+    <text x="24" y="306" class="body">Два захвата → медленно разведите руки.</text>
+    <text x="24" y="333" class="small">Разомкните щипки, чтобы отпустить глину.</text>
   </g>
   <text x="36" y="1281" class="body">Зелёная рука держит стенку. Золотая движется только после подготовки, если она нужна.</text>
   <text x="36" y="1307" class="small">Подробные условия, отпускание глины и последствия ошибок — в инструкции под схемой.</text>

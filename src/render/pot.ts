@@ -4,17 +4,30 @@ import { createClaySurface } from './claySurface';
 
 export function fillProfile(clay: ClayState, points: Vector2[]): void {
   const n = clay.radii.length;
-  while (points.length < n * 2 + 2) points.push(new Vector2());
-  points.length = n * 2 + 2;
+  while (points.length < n * 2 + 10) points.push(new Vector2());
+  points.length = n * 2 + 10;
   const hollow = clay.cavityRadiusWorld > 0 && clay.cavityDepthWorld > 0;
   const floor = hollow ? clay.height - clay.cavityDepthWorld : clay.height;
+  const outer = clay.radii[n - 1], inner = clay.cavityRadiusWorld;
+  const bevel = Math.min(.018, clay.height * .018, hollow ? (outer - inner) * .18 : .018, hollow ? clay.cavityDepthWorld * .2 : .018);
   points[0].set(clay.bottomHole ? clay.cavityRadiusWorld : .001, 0);
   for (let i = 0; i < n; i++) points[i + 1].set(clay.radii[i], clay.height * i / (n - 1));
+  points[n].y -= bevel;
+  // A small rounded lip stays inside the real outer radius and above the real cavity floor.
+  for (let i = 0; i < 4; i++) {
+    const a = (i + 1) / 4 * Math.PI / 2;
+    points[n + 1 + i].set(outer - bevel + bevel * Math.cos(a), clay.height - bevel + bevel * Math.sin(a));
+  }
+  for (let i = 0; i < 4; i++) {
+    const a = i / 3 * Math.PI / 2;
+    points[n + 5 + i].set(hollow ? inner + bevel - bevel * Math.sin(a) : outer - bevel, hollow ? clay.height - bevel + bevel * Math.cos(a) : clay.height);
+  }
   for (let i = 0; i < n; i++) {
-    const y = clay.height - (clay.height - floor) * i / (n - 1);
+    const innerTop = hollow ? clay.height - bevel : clay.height;
+    const y = innerTop - (innerTop - floor) * i / (n - 1);
     // Fixed point count allows solid → shallow dent → deep opening without reallocating geometry.
-    const r = hollow ? clay.cavityRadiusWorld : clay.radii[n - 1] * (1 - i / (n - 1));
-    points[n + 1 + i].set(Math.max(.001, r), y);
+    const r = hollow ? clay.cavityRadiusWorld : (outer - bevel) * (1 - i / (n - 1));
+    points[n + 9 + i].set(Math.max(.001, r), y);
   }
   // A perforation closes only the annular wall, never a disk across the axis.
   points[points.length - 1].set(clay.bottomHole ? clay.cavityRadiusWorld : .001, floor);
@@ -47,7 +60,7 @@ export function createPotView() {
   let intactIndices = new Uint32Array();
   let revision = -1;
   let radii: Float32Array | null = null;
-  const segments = 64;
+  const segments = 96;
 
   return {
     group, material,
@@ -73,7 +86,9 @@ export function createPotView() {
             positions.setXYZ(index, points[j].x * Math.sin(angle), points[j].y, points[j].x * Math.cos(angle));
             const b = Math.round(points[j].y / clay.height * (clay.damage.length - 1));
             const damage = clay.damage[b] ?? 0;
-            const shade = 1 - damage * (.45 + .25 * Math.sin(angle * 7) ** 2);
+            const inside = clay.cavityDepthWorld > 0 && j >= clay.radii.length + 9;
+            const depth = inside ? Math.max(0, (clay.height - points[j].y) / clay.cavityDepthWorld) : 0;
+            const shade = (inside ? .96 - depth * .20 : 1) * (1 - damage * (.45 + .25 * Math.sin(angle * 7) ** 2));
             colors.setXYZ(index, shade, shade * (1 - damage * .15), shade * (1 - damage * .2));
           }
         }

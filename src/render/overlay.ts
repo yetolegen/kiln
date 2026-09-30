@@ -1,6 +1,7 @@
 import { CONFIG } from '../config';
 import type { EngineSnapshot, ProjectionParams, Vec2 } from '../types';
 import type { LessonGoal, LessonShape } from '../ui/tutorialGeometry';
+import { LESSON_FINISH_STEP } from '../ui/tutorialGeometry';
 import { HandVisuals } from './handVisuals';
 import { drawCavitySection } from './cavitySection';
 
@@ -86,7 +87,8 @@ export function createOverlay(parent: HTMLElement, cursorParent: HTMLElement = p
           section(snapshot.clay, snapshot.clay.bottomHole ? '#ff927c' : '#ffd4a0', snapshot.clay.bottomHole);
         }
         ctx.setLineDash([]); ctx.fillStyle = color; ctx.font = '12px system-ui';
-        const label = goal.step === 5 ? '6/6 · Обучение окончено' : `Цель ${goal.step + 1}/6${t.cavityDepthWorld ? ' · глубина в разрезе' : ''}`;
+        const total = LESSON_FINISH_STEP + 1;
+        const label = goal.step === LESSON_FINISH_STEP ? `${total}/${total} · Обучение окончено` : `Цель ${goal.step + 1}/${total}${t.cavityDepthWorld ? ' · глубина в разрезе' : ''}`;
         ctx.fillText(label, p.axisXPx - t.radii.at(-1)! * scale, top - 22);
       }
       if (snapshot.phase === 'studio' && snapshot.target && projection) {
@@ -105,7 +107,7 @@ export function createOverlay(parent: HTMLElement, cursorParent: HTMLElement = p
         ctx.fillText('Образец', p.axisXPx + target.radii.at(-1)! * p.pixelsPerWorldUnit + 10, p.bottomYPx - target.height * p.pixelsPerWorldUnit);
       }
       if (projection && snapshot.clay && ['studio', 'tutorial'].includes(snapshot.phase)) {
-        const thumbLimit = snapshot.phase === 'tutorial' ? goal?.step === 2 : snapshot.gesture?.gesture === 'indent' || snapshot.clay.cavityDepthWorld === 0;
+        const thumbLimit = snapshot.phase === 'tutorial' ? goal?.step === 3 : snapshot.gesture?.gesture === 'indent' || snapshot.clay.cavityDepthWorld === 0;
         drawCavitySection(ctx, snapshot.clay, projection, thumbLimit);
       }
       const input = snapshot.input;
@@ -136,7 +138,8 @@ export function createOverlay(parent: HTMLElement, cursorParent: HTMLElement = p
       if (input.status === 'ready' && action?.inputUsable && action.sourceFrameId === input.frameId && ['studio', 'tutorial'].includes(snapshot.phase)) {
         for (const hand of [input.screenLeft, input.screenRight]) {
           if (!hand) continue;
-          const active = hand.trackId === action.activeTrackId, support = hand.trackId === action.supportTrackId;
+          const dualGrip = action.gesture === 'widen' && action.supportTrackId === null && action.contact.valid;
+          const active = dualGrip || hand.trackId === action.activeTrackId, support = hand.trackId === action.supportTrackId;
           if (!active && !support) continue;
           const { x, y } = hand.palmPx;
           ctx.strokeStyle = support ? '#9ee3c4' : '#ffffff66'; ctx.lineWidth = 2;

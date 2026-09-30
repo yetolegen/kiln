@@ -107,6 +107,6 @@ it.each([1, 2])('cavity growth already thins the real wall and mesh, active trac
   const a: Vector2[] = [], b: Vector2[] = [];
   fillProfile(before, a); fillProfile(after, b);
   const n = before.radii.length;
-  expect(b[n].x - b[n + 1].x).toBeLessThan(a[n].x - a[n + 1].x);
+  expect(b[n].x - b[n + 9].x).toBeLessThan(a[n].x - a[n + 9].x);
   expect(Array.from(after.radii)).toEqual(Array.from(before.radii));
 });

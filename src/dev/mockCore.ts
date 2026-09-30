@@ -84,6 +84,11 @@ export class MockCore implements CoreController {
       case 'i': this.gestureName = 'indent'; this.clay.cavityRadiusWorld ||= CONFIG.INDENT_RADIUS_WORLD; this.clay.cavityDepthWorld ||= CONFIG.INDENT_DEPTH_WORLD; break;
       case 'o': this.gestureName = 'open'; if (this.clay.cavityDepthWorld > 0) { this.clay.cavityRadiusWorld = Math.min(.7, this.clay.cavityRadiusWorld + .26); this.clay.cavityDepthWorld = Math.min(this.clay.height - CONFIG.FLOOR_WORLD, this.clay.cavityDepthWorld + .468); } break;
       case 'g': {
+        if (this.phase === 'tutorial' && this.expected === 'widen') {
+          this.gestureName = 'widen';
+          for (let i = 0; i < this.clay.radii.length; i++) this.clay.radii[i] += .18;
+          break;
+        }
         if (this.clay.cavityDepthWorld <= 0) { this.gestureName = 'none'; return; }
         this.gestureName = 'widen';
         const band = Math.round((1 - this.clay.cavityDepthWorld / this.clay.height / 2) * (CONFIG.N_BANDS - 1));

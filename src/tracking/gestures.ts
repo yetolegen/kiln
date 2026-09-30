@@ -12,6 +12,7 @@ import type {
 } from '../types';
 import { pxToWorld } from './coordinates';
 import { isPointingPose } from './features';
+import { ExternalWiden } from './externalWiden';
 
 const NO_CONTACT: ContactState = {
   valid: false, activeBand: null, bandY: null, leftErrorWorld: null, rightErrorWorld: null, reason: null,
@@ -121,6 +122,7 @@ export class GestureRecognizer {
   private candidate: Gesture = 'none';
   private candidateSinceMs = 0;
   private contactValid = false;
+  private externalWiden = new ExternalWiden();
   private shapeContact: {
     leftId: number; rightId: number; band: number; deepest: number; tMs: number;
     epoch: number; projection: number; phase: GestureContext['phase'];
@@ -136,6 +138,7 @@ export class GestureRecognizer {
     this.current = 'none';
     this.candidate = 'none';
     this.contactValid = false;
+    this.externalWiden.reset();
     this.resetShapeContact();
     this.engagement = null;
     this.lastT = null;
@@ -149,6 +152,8 @@ export class GestureRecognizer {
 
   /** New lesson step: no action, latched coaching or attempt evidence carries over from the previous one. */
   resetAction(): void {
+    this.externalWiden.reset();
+    this.resetShapeContact();
     this.engagement = null;
     this.latched = null;
     this.evidenceSince.clear();
@@ -191,12 +196,18 @@ export class GestureRecognizer {
     let act: ActionResult | null = null;
     // a lesson frozen at its target (no expected action) keeps the held engagement, without deforming
     const keep = (g: ActionGesture) => allowed(g) || (ctx.phase === 'tutorial' && ctx.expectedGesture === undefined);
-    if (both && shapingPhase && !pointer) act = this.runAction(l, r, clay, proj, dtS, t, allowed, keep);
+    const c = both ? computeContact(l, r, clay, proj.pixelsPerWorldUnit, this.contactValid) : null;
+    this.contactValid = !!c?.contact.valid;
+    const external = this.externalWiden.update(frame, proj, !!(both && shapingPhase && keep('widen') && !clay.collapsed &&
+      c?.contact.valid && isPinch(l, cur === 'widen') && isPinch(r, cur === 'widen')));
+    if (external) this.engagement = null;
+    else if (both && shapingPhase && !pointer) act = this.runAction(l, r, clay, proj, dtS, t, allowed, keep);
 
     let cand: Gesture = 'none';
     if (both && raisePhase && allOpen(l, cur === 'raise') && allOpen(r, cur === 'raise') &&
         l.palmWorld.y > raiseLineWorld && r.palmWorld.y > raiseLineWorld) cand = 'raise';
     else if (pointer) cand = 'point';
+    else if (external) cand = 'widen';
     else if (act) cand = act.kind;
     else if (both && openPalm(l, cur === 'shape') && openPalm(r, cur === 'shape')) cand = 'shape';
     else if (trusted && !l !== !r) cand = 'oneHand'; // exactly one hand; two hands in a bad frame are 'none'
@@ -215,9 +226,6 @@ export class GestureRecognizer {
       this.currentSinceMs = t;
     }
     const g = this.current;
-
-    const c = both ? computeContact(l, r, clay, proj.pixelsPerWorldUnit, this.contactValid) : null;
-    this.contactValid = !!c?.contact.valid;
 
     let deforming = false;
     let motionStrength = 0;
@@ -253,6 +261,11 @@ export class GestureRecognizer {
         deforming = true;
       }
     } else this.resetShapeContact();
+    if (external && allowed('widen') && external.push > 0) {
+      this.delta = { ...NO_DELTA, externalWidenWorld: external.push };
+      deforming = true;
+      motionStrength = Math.min(1, external.push / Math.max(.001, dtS));
+    }
     if (act && g === act.kind && allowed(act.kind) && (!clay.collapsed || act.kind === 'compressRim')) {
       deforming = act.deforming;
       motionStrength = act.motionStrength;
@@ -275,16 +288,16 @@ export class GestureRecognizer {
       inputUsable: both,
       deforming,
       motionStrength: deforming ? motionStrength : 0,
-      activeTrackId: act && g === act.kind ? act.activeId : null,
+      activeTrackId: external ? l!.trackId : act && g === act.kind ? act.activeId : null,
       supportTrackId: act && g === act.kind ? act.supportId : null,
-      activationProgress: act && g === act.kind ? act.progress : 0,
+      activationProgress: external ? external.progress : act && g === act.kind ? act.progress : 0,
       engagedMs: act && g === act.kind ? act.engagedMs : 0,
       targetRadiusWorld: shapeTarget,
       centerOffsetPalm: c?.centerOffsetPalm ?? null,
       speedPalmPerS: speed,
       contact: c?.contact ?? NO_CONTACT,
       cursorPx: pointerNow ? ({ ...pointerNow.indexTipPx } as Vec2) : null,
-      nearMiss: both ? this.nearMiss(ctx, t, g, l, r, clay, c, act, proj) : null,
+      nearMiss: external?.tooFast ? { intended: 'widen', reason: 'widenTooFast', params: {} } : external ? null : both ? this.nearMiss(ctx, t, g, l, r, clay, c, act, proj) : null,
     };
     this.lastFrame = { id: frame.frameId, epoch: frame.epoch, state };
     return state;
