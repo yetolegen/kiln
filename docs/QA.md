@@ -4,6 +4,12 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ## Automated checks
 
+### V5.1 live verification (30 September 13:25)
+
+- Deployed `a0f09fd` to https://kiln-delta-rose.vercel.app; deployment `dpl_Q8gjZQtmcgF71bkyUA9Cz3g6gbkD` READY, remote build/typecheck passed.
+- Public Chromium real-model/simulated-camera test passed, explicitly confirming **V5.1** in the footer, startup, mirroring and phone resize. Production assets exclude mock/debug/synthetic-camera hooks.
+- The clock regression failed before the fix and passes after it through real features/controller/UI with synthetic raw landmarks. All 197 unit tests, the five targeted Chromium checks and six cross-browser lesson/retry checks pass. Physical V5.1 acceptance is still pending.
+
 ### V5.1 continuing physical report and timing fix (30 September 13:23)
 
 - **Human report:** user confirmed the refreshed public URL, Chrome on Acer Nitro 5 AN515-58, and visible cyan targets/“Форма” percentages. Palm dwell and weak/stuck lesson response therefore concern V5, not merely the previous deployment. No numerical landmark recordings were supplied.

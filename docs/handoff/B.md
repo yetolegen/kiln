@@ -1,3 +1,11 @@
+### 2026-09-30 13:25 · B · V5.1 deployed; public version/camera verified
+**Done:** deployed a0f09fd to https://kiln-delta-rose.vercel.app, Vercel dpl_Q8gjZQtmcgF71bkyUA9Cz3g6gbkD READY. Public Chromium real-model/simulated-camera test passes and explicitly checks footer V5.1, mirrored video and resize. Remote build/typecheck passed. Production assets contain no mock/debug/synthetic-camera hooks.
+**Contract changes:** none; A-owned files unchanged.
+**For you (A):** user's current-V5 Acer Nitro 5/Chrome report and the reproduced B callback-clock bug are documented below. The corrected frame clock and visible UI cursor are now live.
+**Blocked / need from you:** none for deployment. Post-fix physical acceptance is pending; no actual hand recording was made by B.
+**Known issues:** the controlled raw-landmark regression passes; this does not certify the user's real-hand gesture thresholds. Previous WebKit landscape screenshot caveat remains.
+**Next:** user Ctrl+Shift+R, confirm V5.1 footer, retest palm dwell and lesson target/release flow. Any remaining physical recognition failure needs its step and real debug readings for A.
+
 ### 2026-09-30 13:23 · B · continuing real-hand report: render-clock and cursor-layer fixes
 **Done:** user confirmed public V5 in Chrome on Acer Nitro 5 AN515-58, with cyan targets and geometry percentages. Reproduced a B render-clock mismatch: a fresh camera sample can be newer than the rAF timestamp, so dwell resets and lesson confirmation repeatedly resets after freezing clay at target. Main now samples performance.now() on callback entry. New raw-landmark browser regression fails at menu dwell before the fix, then passes real feature/core/dwell/first-target confirmation after it. Cursor SVG now renders above buttons; fresh palm centres are marked. Footer identifies V5.1.
 **Contract changes:** none; no A-owned files edited.
