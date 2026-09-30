@@ -291,6 +291,14 @@ describe('open: pinch inside the indentation, then spread slowly', () => {
     expect(s.g.nearMiss?.reason).toBe('pinchFirst');
   });
 
+  it('webcam fingertip jitter (±3 px on each tip) on a slow spread neither cancels it nor loses the opening', () => {
+    const r = rng(5);
+    const s = run((t) => [SUPPORT(), at((t < 400 ? 0.2 : Math.min(0.8, 0.2 + ((t - 400) / 1000) * 0.4)) + ((r() * 2 - 1) * 6) / 100)],
+      2500, { rec: new GestureRecognizer(), clay: indented(), t: 0 });
+    expect(s.seen.some((g) => g.nearMiss?.reason === 'spreadTooFast')).toBe(false);
+    expect(s.clay.cavityRadiusWorld).toBeGreaterThan(0.38);
+  });
+
   it('spreading abruptly cancels and needs a fresh pinch', () => {
     const acquired = run([SUPPORT(), at(0.2)], CONFIG.OPEN_ACQUIRE_MS + 100, { rec: new GestureRecognizer(), clay: indented(), t: 0 });
     const jump = run((t) => [SUPPORT(), at(t - acquired.t < 40 ? 1.2 : 1.3)], 400, cont(acquired));

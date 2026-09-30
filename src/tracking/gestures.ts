@@ -656,14 +656,20 @@ const STEP: Record<Kind, Step> = {
       return idle(1);
     }
     const grow = h.pinchRatio - e.span;
-    if (dtS > 0 && grow / dtS > CONFIG.OPEN_MAX_SPREAD_PER_S) {
+    // the spread RATE is smoothed like the indent's tip speed: the raw 3-D tip distance jitters by ~0.06 palm per
+    // frame, which read as 1.8/s and cancelled nearly every slow spread on a real webcam
+    const prev = e.lastY;
+    e.lastY = h.pinchRatio;
+    const raw = dtS > 0 && Number.isFinite(prev) ? (h.pinchRatio - prev) / dtS : 0;
+    e.speed += (raw - e.speed) * (dtS * 1000 / (TIP_SPEED_TAU_MS + dtS * 1000));
+    if (e.speed > CONFIG.OPEN_MAX_SPREAD_PER_S) {
       rec.latch({ intended: 'open', reason: 'spreadTooFast', handTrackId: h.trackId, params: {} }, t);
       return null;
     }
     if (grow <= 0) return idle(1); // closing again doesn't un-open, and re-spreading to the same span adds nothing
     e.span = h.pinchRatio;
     return {
-      progress: 1, deforming: true, motionStrength: dtS > 0 ? Math.min(1, grow / dtS / CONFIG.OPEN_MAX_SPREAD_PER_S) : 0,
+      progress: 1, deforming: true, motionStrength: Math.max(0, Math.min(1, e.speed / CONFIG.OPEN_MAX_SPREAD_PER_S)),
       delta: { ...NO_DELTA, spreadRatio: grow },
     };
   },
