@@ -293,6 +293,25 @@ describe('raise / point / near-miss', () => {
     expect(on.cursorPx).toEqual({ x: 10, y: 20 });
   });
 
+  it('a pointing hand that wobbles near the thresholds keeps ONE steady cursor (dwell must not restart)', () => {
+    const ui = { ...CTX, phase: 'menu' as const, uiEnabled: true };
+    const clear = { extension: { index: 1, middle: 0, ring: 0, pinky: 0 }, pointing: true, indexTipPx: { x: 10, y: 20 } };
+    // natural point: index a bit bent, other fingers loosely curled — below the strict entry thresholds
+    const loose = { extension: { index: 0.55, middle: 0.42, ring: 0.4, pinky: 0.3 }, pointing: false, indexTipPx: { x: 11, y: 21 } };
+    const s = run([hand(-1, 0.6, clear), null], 300, undefined, ui);
+    expect(s.g.cursorPx).not.toBeNull();
+    const wobble = run((t) => [hand(-1, 0.6, Math.floor(t / DT) % 2 ? loose : clear), null], 1000, cont(s), ui);
+    expect(wobble.seen.every((g) => g.gesture === 'point' && g.cursorPx !== null)).toBe(true);
+    // a single frame where the pose is lost entirely keeps the cursor too
+    const dropped = run((t) => [hand(-1, 0.6, t === wobble.t + DT ? { extension: { index: 0.3, middle: 0.3, ring: 0.3, pinky: 0.3 }, indexTipPx: { x: 12, y: 22 } } : clear), null], 200, cont(wobble), ui);
+    expect(dropped.seen.every((g) => g.cursorPx !== null)).toBe(true);
+  });
+
+  it('a loose, half-curled hand does not START pointing', () => {
+    const loose = { extension: { index: 0.55, middle: 0.42, ring: 0.4, pinky: 0.3 }, pointing: false };
+    expect(run([hand(-1, 0.6, loose), null], 600, undefined, { ...CTX, phase: 'menu', uiEnabled: true }).g.gesture).not.toBe('point');
+  });
+
   it('in studio, a pointing hand next to a second hand is not a cursor (no accidental "start over")', () => {
     const pt = { extension: { index: 1, middle: 0, ring: 0, pinky: 0 }, pointing: true };
     const ui = { ...CTX, uiEnabled: true };

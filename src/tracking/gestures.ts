@@ -29,6 +29,11 @@ const isPinch = (h: HandFeatures, sticky: boolean) => h.pinchRatio < (sticky ? C
 const openPalm = (h: HandFeatures, sticky: boolean) =>
   allOpen(h, sticky) && h.pinchRatio > (sticky ? CONFIG.PINCH_ON : CONFIG.PINCH_OFF) && !h.pointing;
 const side = (h: HandFeatures, l: HandFeatures) => (h === l ? 'left' : 'right');
+/** Index out, the other three curled, not pinching. Sticky (looser) once pointing, so the dwell ring doesn't restart. */
+const isPointing = (h: HandFeatures, sticky: boolean) =>
+  h.extension.index >= (sticky ? CONFIG.FINGER_OPEN_OFF : CONFIG.FINGER_OPEN_ON) &&
+  [h.extension.middle, h.extension.ring, h.extension.pinky].every((v) => v <= (sticky ? CONFIG.FINGER_CURLED_OFF : CONFIG.FINGER_CURLED_ON)) &&
+  h.pinchRatio > (sticky ? CONFIG.PINCH_ON : CONFIG.PINCH_OFF);
 const speedOf = (h: HandFeatures) => (h.velocityValid ? Math.hypot(h.velocityPalmPerS.x, h.velocityPalmPerS.y) : Infinity);
 const vUp = (h: HandFeatures) => (h.velocityValid ? h.velocityPalmPerS.y : 0);
 const hasLandmarks = (h: HandFeatures) => h.landmarksPx.length === 21;
@@ -75,6 +80,7 @@ export class GestureRecognizer {
   private candidate: Gesture = 'none';
   private candidateSinceMs = 0;
   private contactValid = false;
+  private pointerId: number | null = null;
   private engagement: Engagement | null = null;
   private lastT: number | null = null;
   private lastFrame: { id: number; epoch: number; state: GestureState } | null = null;
@@ -116,7 +122,12 @@ export class GestureRecognizer {
     // In shaping phases a stray index finger must not become a cursor (it could dwell on "start over"),
     // so there pointing only counts with ONE hand visible.
     const pointAllowed = trusted && ctx.uiEnabled && (!shapingPhase || !l || !r);
-    const pointer = pointAllowed ? [r, l].find((h) => h?.pointing) ?? null : null;
+    // keep the SAME hand as the pointer while it's still loosely pointing; otherwise take a new clear point
+    const byId = [l, r].find((h) => h !== null && h.trackId === this.pointerId) ?? null;
+    const pointer = !pointAllowed ? null
+      : cur === 'point' && byId && isPointing(byId, true) ? byId
+      : [r, l].find((h) => h !== null && (h.pointing || isPointing(h, false))) ?? null;
+    if (pointer) this.pointerId = pointer.trackId;
 
     if (!both) this.engagement = null; // tracking loss / stale / one hand: every action stops and re-arms
 
@@ -161,7 +172,9 @@ export class GestureRecognizer {
 
     let speed = 0;
     for (const h of [l, r]) if (h?.velocityValid) speed = Math.max(speed, Math.hypot(h.velocityPalmPerS.x, h.velocityPalmPerS.y));
-    const pointerNow = g === 'point' ? pointer : null;
+    // a one-frame dropout of the pose keeps the cursor on that fingertip for the GESTURE_STABLE_MS grace,
+    // instead of vanishing (the dwell ring restarts from zero whenever the cursor is missing)
+    const pointerNow = g !== 'point' ? null : pointer ?? (pointAllowed ? byId : null);
 
     const state: GestureState = {
       gesture: g,
