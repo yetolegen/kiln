@@ -16,6 +16,9 @@ it('produces one begin and one end with a stable episode id, without replaying e
 
 it('freezes result arrays and stats, and finalizes firing only once', () => {
   const core = new MockCore();
+  core.dispatch({ type: 'start', mode: 'free', sessionId: 'result' }, 0);
+  core.dispatch({ type: 'finishShaping' }, 0);
+  core.dispatch({ type: 'selectGlaze', glazeId: 'jade' }, 0);
   core.dispatch({ type: 'confirmGlaze' }, 0);
   const result = core.tick(5000).result!;
   core.key('ArrowRight', 5100);

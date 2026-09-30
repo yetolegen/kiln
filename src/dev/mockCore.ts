@@ -60,9 +60,9 @@ export class MockCore implements CoreController {
         this.phase = command.mode === 'tutorial' ? 'tutorial' : 'studio'; break;
       case 'restart': this.dispatch({ type: 'start', mode: this.stats.mode, sessionId: command.newSessionId }, nowMs); break;
       case 'tutorialStep': this.expected = command.expectedGesture; break;
-      case 'finishShaping': this.phase = 'glaze'; this.clay.touching = false; break;
-      case 'selectGlaze': this.glazeId = command.glazeId; break;
-      case 'confirmGlaze': this.phase = 'firing'; this.firingAt = nowMs; break;
+      case 'finishShaping': if (this.phase === 'studio') { this.phase = 'glaze'; this.clay.touching = false; } break;
+      case 'selectGlaze': if (this.phase === 'glaze') this.glazeId = command.glazeId; break;
+      case 'confirmGlaze': if (this.phase === 'glaze' && this.glazeId) { this.phase = 'firing'; this.firingAt = nowMs; } break;
       case 'openGallery': this.phase = 'gallery'; break;
       case 'backToMenu': this.phase = 'menu'; break;
     }
@@ -86,8 +86,6 @@ export class MockCore implements CoreController {
       case 'escape': this.gestureName = 'none'; break;
       case 'f':
         this.gestureName = 'raise';
-        if (this.phase === 'tutorial' && this.expected === 'raise') this.phase = 'menu';
-        else if (this.phase === 'studio') this.phase = 'glaze';
         break;
       case 'p': this.palmCursor = false; this.gestureName = 'point'; break;
       case 'h': this.palmCursor = true; this.gestureName = 'none'; break;
@@ -180,7 +178,7 @@ export function installMockCore() {
   const core = new MockCore();
   const badge = document.createElement('aside');
   badge.dataset.testid = 'mock-badge';
-  badge.textContent = 'KILN_DEV_MOCK · 0–9 phases · S/U/I/O/D actions · Esc release · F finish · T/W/C issues · X hands · ←/→ shape · H palm / P finger cursor';
+  badge.textContent = 'KILN_DEV_MOCK · 0–9 phases · S/U/I/O/D actions · Esc release · F raised palms · T/W/C issues · X hands · ←/→ shape · H palm / P finger cursor';
   badge.style.cssText = 'position:fixed;bottom:8px;left:8px;right:8px;z-index:9999;padding:8px;background:#191919;color:#9f9;font:11px monospace;pointer-events:none';
   document.body.append(badge);
   const key = (event: KeyboardEvent) => {

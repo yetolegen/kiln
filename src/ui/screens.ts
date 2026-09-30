@@ -104,6 +104,7 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
       addAction('free', 'Свободная форма', () => dispatch({ type: 'start', mode: 'free', sessionId: newSession() }));
       addAction('gallery', 'Моя полка', () => dispatch({ type: 'openGallery' }));
     } else if (snapshot.phase === 'studio' || snapshot.phase === 'tutorial') {
+      if (snapshot.phase === 'studio') addAction('done', 'Готово', () => dispatch({ type: 'finishShaping' }));
       addAction('restart', 'Начать сначала', () => dispatch({ type: 'restart', newSessionId: newSession() }));
       addAction('menu', 'В мастерскую', back);
     } else if (snapshot.phase === 'result') {
@@ -126,6 +127,12 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
     video, viewport, page, details, actions, addAction, refreshTargets,
     get targets(): readonly DwellRegion[] { return targets; },
     get revision(): number { return screenRevision; },
+    setTutorialCompleted(completed: boolean): void {
+      if (lastPhase !== 'tutorial' || lastError) return;
+      if (title.textContent === (completed ? 'Обучение окончено' : phaseText.tutorial[0])) return;
+      title.textContent = completed ? 'Обучение окончено' : phaseText.tutorial[0];
+      description.textContent = completed ? 'Форма готова. Вернитесь в мастерскую, чтобы создать свой сосуд.' : phaseText.tutorial[1];
+    },
     activate(id: string): void { entries.find((entry) => entry.id === id)?.run(); },
     showDwell(id: string | null, progress: number): void {
       const element = entries.find((entry) => entry.id === id)?.element ?? null;

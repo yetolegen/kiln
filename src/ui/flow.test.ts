@@ -76,12 +76,13 @@ it.each([1, 2])('integrates v4 lessons with active track %i, one-hand dwell, com
   action((s) => poseHand('flat', 0, lifted + .1 - s * 50 / 180, moving(0, -.5)), 1800);
   // Leaving the rim zone can release the action before this sample ends.
   expect(tutorial.assessment?.matched).toBe(true); release(); expect(tutorial.step).toBe(5);
-  let top = core.tick(now).clay!.height + .4;
-  expect(feed(hand(-1, top), hand(1, top), 2000).phase).toBe('menu');
+  expect(tutorial.status).toBe('completed');
+  const top = core.tick(now).clay!.height + .4;
+  expect(feed(hand(-1, top), hand(1, top), 2000).phase).toBe('tutorial');
+  expect(select({ type: 'backToMenu' }).phase).toBe('menu');
   expect(select({ type: 'start', mode: 'commission', sessionId: 'commission', targetId: 'vase@1' }).phase).toBe('studio');
   feed(hand(-.9, .5), hand(.9, .5), 800);
-  top = core.tick(now).clay!.height + .4;
-  expect(feed(hand(-1, top), hand(1, top), 2000).phase).toBe('glaze');
+  expect(select({ type: 'finishShaping' }).phase).toBe('glaze');
   expect(select({ type: 'selectGlaze', glazeId: 'jade' }).glazeId).toBe('jade');
   expect(select({ type: 'confirmGlaze' }).phase).toBe('firing');
   const result = core.tick(now + 5000).result!;

@@ -26,13 +26,13 @@ it('explains the missing lesson condition rather than leaving step one silent', 
   expect(lessonFeedback(accepted, 0, 0)).toContain('отслеживания');
 });
 
-it('final review always asks for raised hands, including while the raise is already recognized', () => {
+it('completion replaces all gesture instructions, even when hands are lost or raised', () => {
   const f = fixture(); const snap = f.tick();
   for (const gesture of ['none', 'compressRim', 'raise'] as const) {
     snap.gesture!.gesture = gesture;
     const advice = lessonFeedback(snap, 5, 1);
-    expect(advice).toContain('Поднимите обе');
-    expect(advice).toContain('нажимать больше не нужно');
+    expect(advice).toContain('Обучение окончено');
+    expect(advice).not.toContain('Поднимите');
     expect(advice).not.toContain('опускайте');
   }
 });
@@ -44,8 +44,14 @@ it('completes exactly the five pottery actions and then finishes', () => {
   f.complete('u'); expect(f.script.step).toBe(2);
   f.complete('i'); expect(f.script.step).toBe(3);
   f.complete('o'); expect(f.script.step).toBe(4);
-  f.complete('d'); expect(f.script.step).toBe(5);
-  f.key('f'); expect(f.tick().phase).toBe('menu');
+  f.hold('d'); expect(f.script.step).toBe(5); expect(f.script.status).toBe('completed');
+  const height = f.tick().clay!.height;
+  f.hold('d'); expect(f.tick().clay!.height).toBe(height);
+  f.hold('x'); expect(f.script.status).toBe('completed');
+  f.key('f'); expect(f.tick().phase).toBe('tutorial');
+  f.core.dispatch({ type: 'backToMenu' }, f.now()); expect(f.tick().phase).toBe('menu');
+  f.core.dispatch({ type: 'start', mode: 'tutorial', sessionId: 'again' }, f.now()); f.tick();
+  expect(f.script.status).toBe('working'); expect(f.script.step).toBe(0);
 });
 
 it('does not accept a deforming flag without a matching shape change, replayed input, or lost hands', () => {

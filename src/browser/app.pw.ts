@@ -78,6 +78,11 @@ for (const blockedStorage of [false, true]) test(`B8 finishes a pot, exports PNG
   await page.locator('[data-action="commission"]').hover();
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'studio');
   await page.keyboard.press('u'); await page.keyboard.press('f');
+  await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'studio');
+  await expect(page.locator('[data-action="fire"]')).toHaveCount(0);
+  await expect(page.locator('[data-action="glaze-jade"]')).toHaveCount(0);
+  await page.keyboard.press('h'); await page.locator('[data-action="done"]').hover();
+  await expect(page.locator('[data-action="done"]')).toHaveClass(/is-dwelling/);
   await expect(page.locator('[data-action="fire"]')).toBeDisabled();
   await page.locator('[data-action="glaze-jade"]').hover();
   await expect(page.locator('[data-action="glaze-jade"]')).toHaveAttribute('aria-pressed', 'true');
@@ -96,6 +101,22 @@ for (const blockedStorage of [false, true]) test(`B8 finishes a pot, exports PNG
     await expect(page.locator('.gallery-card')).toHaveCount(1);
   }
   expect(errors).toEqual([]);
+});
+
+test('studio Free Mode unlocks glazing only through the palm-selectable Done button', async ({ page }) => {
+  await page.goto('/?dev=1&mock=1');
+  await page.keyboard.press('h'); await page.locator('[data-action="free"]').hover();
+  await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'studio');
+  await page.mouse.move(0, 0); await page.keyboard.press('f');
+  await expect(page.locator('[data-action="glaze-jade"]')).toHaveCount(0);
+  await expect(page.locator('[data-action="fire"]')).toHaveCount(0);
+  await expect(page.locator('[data-action="done"]')).toHaveText('Готово');
+  await page.keyboard.press('h'); await page.locator('[data-action="done"]').hover();
+  await expect(page.locator('[data-action="done"]')).toHaveClass(/is-dwelling/);
+  await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'glaze');
+  await expect(page.locator('[data-action="fire"]')).toBeDisabled();
+  await page.locator('[data-action="glaze-jade"]').hover();
+  await expect(page.locator('[data-action="fire"]')).toBeEnabled();
 });
 
 test('B7 tutorial validates geometry for all actions and requires release', async ({ page }) => {
@@ -135,12 +156,20 @@ test('B7 tutorial validates geometry for all actions and requires release', asyn
   await expect(page.locator('.hud__hint')).toBeVisible(); await page.keyboard.press('w');
   await complete('o', 3);
   await page.screenshot({ path: 'test-results/v6-wall-section.png' });
-  await complete('d', 4);
-  await expect(page.locator('.hud__hint')).toContainText('Поднимите обе');
-  await expect(page.locator('.hud__hint')).toContainText('нажимать больше не нужно');
+  await page.keyboard.press('d');
+  await expect(lesson).toHaveAttribute('data-state', 'completed');
+  await expect(lesson).toHaveAttribute('data-step', '5');
+  await expect(page.locator('h1')).toHaveText('Обучение окончено');
+  await expect(page.locator('.hud__hint')).toContainText('Обучение окончено');
+  await page.keyboard.press('x');
+  await expect(page.locator('.hud__hint')).toContainText('Обучение окончено');
+  await page.keyboard.press('x');
+  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
   const finalPanel = await lesson.boundingBox(); expect(finalPanel!.y + finalPanel!.height).toBeLessThanOrEqual(390);
   await page.screenshot({ path: 'test-results/final-lesson-advice.png' });
-  await page.keyboard.press('f'); await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'menu');
+  await page.keyboard.press('f'); await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'tutorial');
+  await page.keyboard.press('h'); await page.locator('[data-action="menu"]').hover();
+  await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'menu');
 });
 
 test('B7 palm dwell fills, failures stop the lesson and palm retry resets the attempt', async ({ page }) => {

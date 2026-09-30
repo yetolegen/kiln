@@ -4,6 +4,16 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ## Automated checks
 
+### Completed lesson and explicit Done gate (30 September 15:00, not deployed)
+
+- Final compression still requires deformation and geometry confirmation. It now enters completed 6/6 immediately, with «Обучение окончено» instead of a raised-hands task. Completion survives tracking loss; restart resets it. Advice stays above the heading.
+- «Готово» is available in free/commission through existing palm dwell or click. Mock browser flows hide glazing/firing until it is selected and disable firing until a glaze is selected.
+- Real-core parity: all five pottery actions produce asserted geometry changes in free/commission with either hand assignment (4 passing cases); explicit finish/glaze/fire command guards pass in both modes (2 cases).
+- **New blocker, 2 failing cases:** real core still automatically enters glazing after raised hands, bypassing Done. Reproduce with `npm test -- src/ui/studioFlow.test.ts`. A owns the correction in `controller.checkRaise`.
+- Full suite: **233 passed / 12 failed / 245 total**. Remaining 10 failures are documented V6 thumb-depth, release, slow-compression and cross-action-state regressions. Build/typecheck pass. Seven Chromium checks pass, including both finishing/storage flows, Free Mode Done, geometry lesson completion, retry, dwell and responsive layout. Completion screenshot visually inspected.
+- Found/fixed stale mock test setup: it fired from menu without finishing/selecting glaze. Mock now mirrors the actual command guards.
+- These checks use synthetic hands or mock camera input. No assistant physical-hand verification. Deployment held; production remains V5.2.
+
 ### Screenshot correction and V5.3 frontend verification (30 September 14:46)
 
 - **Physical evidence corrected:** supplied screenshot shows target **6/6** and tracking lost. User confirms compression works. The lesson has passed compression and awaits a raised-hands finish; no further press is intended.

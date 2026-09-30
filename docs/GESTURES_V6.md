@@ -1,5 +1,11 @@
 # V6 interaction corrections (2026-09-30)
 
+## Latest flow requirement (15:00; supersedes earlier finish/release plan below)
+
+B implemented automatic completed 6/6 after the existing compression geometry confirmation, displaying «Обучение окончено». No raised-hands finishing gesture is requested; final tutorialStep omits expectedGesture and keeps the accepted shape frozen.
+
+Free and commission now have an explicit palm/click «Готово» button dispatching finishShaping. **A must remove automatic studio finishing from controller.checkRaise.** Only this command may unlock glaze; selectGlaze and confirmGlaze remain phase-guarded. Reproduce current bypass with `npm test -- src/ui/studioFlow.test.ts` (2 failing raised-hands cases, 6 passing parity/command-gate cases). No contract change is needed. All five actions are verified with nominal synthetic trajectories in both studio modes and either active-hand assignment; pending V6 edge cases below remain unresolved. Deployment is held for the core gate, superseding the earlier frontend-only V5.3 release plan.
+
 User's follow-up after V5.2: vertical compression at lesson 5/6 fails, previous-step hints appear, thumb depth lacks a target/control, withdrawal changes the shape, and wall thinning is hard to see. Exactly the existing five pottery functions remain; UI palm dwell must be preserved. A retains core ownership; B's previous authorization to fix external compression was a specific completed task.
 
 **Later physical correction (14:35 screenshot):** user says compression works. Supplied screenshot visibly says **Цель 6/6** with **tracking lost**, proving compression passed and the tutorial is waiting for the finish gesture, not further pressing. This supersedes the earlier physical claim that step 5 could never arm. B found/fixed the final `lessonFeedback` fallthrough that could advise pressing while raise was recognized, made the finish instruction prominent, and moved advice above the heading. The synthetic V6 core failures below remain valid but must not be presented as the diagnosis of that screenshot. Frontend-only V5.3 can ship these presentation corrections with unchanged core; it is not a completed V6 interaction release.

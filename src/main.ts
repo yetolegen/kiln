@@ -154,9 +154,11 @@ function render(): void {
   screens.update(snapshot, state, nowMs);
   finishing.update(snapshot, state.cameraActive && !state.error);
   const lessonHint = tutorial.update(snapshot, nowMs);
+  screens.setTutorialCompleted(tutorial.status === 'completed');
   const coreHint = lessonHints.update(snapshot, tutorial.goal?.step ?? null, presentationHint.update(snapshot, nowMs));
   if (lessonHints.changed) voice.stop();
-  const activeHint = lessonHint?.severity === 'error' && coreHint?.id !== 'trackingUncertain' ? lessonHint : coreHint ?? lessonHint;
+  const activeHint = snapshot.phase === 'tutorial' && tutorial.status === 'completed' ? lessonHint :
+    lessonHint?.severity === 'error' && coreHint?.id !== 'trackingUncertain' ? lessonHint : coreHint ?? lessonHint;
   hud.update(snapshot, nowMs, activeHint);
   sound.update(snapshot, !document.hidden && state.cameraActive);
   voice.update(document.hidden || !state.cameraActive ? null : activeHint);

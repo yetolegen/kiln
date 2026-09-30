@@ -43,7 +43,7 @@ export const phaseText: Record<AppPhase, readonly [string, string]> = {
   calibrate: [ru.calibrateTitle, ru.calibrateText],
   menu: ['Что создадим?', 'Наведите центр ладони на карточку и задержите, пока круг не заполнится.'],
   tutorial: ['Почувствуйте глину', 'Учимся управлять формой, шаг за шагом.'],
-  studio: ['Ваша форма', 'Поднимите обе открытые ладони выше сосуда и удерживайте, чтобы завершить.'],
+  studio: ['Ваша форма', 'Лепите сосуд руками. Когда форма готова, выберите «Готово» — затем станут доступны глазурь и обжиг.'],
   glaze: ['Последний штрих', 'Выберите глазурь для своего сосуда.'],
   firing: ['В тепле печи', 'Глина обжигается. Ещё немного…'],
   result: ['Ваш сосуд готов', 'У каждой формы — свой характер.'],
@@ -52,7 +52,7 @@ export const phaseText: Record<AppPhase, readonly [string, string]> = {
 
 export const gestureText: Record<Gesture, string> = {
   none: 'Ждём жест', oneHand: 'Нужна вторая рука', shape: 'Формуем', pullUp: 'Тянем вверх',
-  indent: 'Делаем углубление', open: 'Раскрываем', compressRim: 'Уплотняем край', raise: 'Завершаем', point: 'Выбираем',
+  indent: 'Делаем углубление', open: 'Раскрываем', compressRim: 'Уплотняем край', raise: 'Ладони подняты', point: 'Выбираем',
 };
 
 export function hintText(hint: Hint): string {
