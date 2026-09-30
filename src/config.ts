@@ -8,11 +8,11 @@ export const CONFIG = {
   MAX_HEIGHT: 3.2,
   INIT_HEIGHT: 1.2,
   INIT_RADIUS: 1.0,
-  INIT_THICKNESS: 0.35,
-  MAX_THICKNESS: 0.35,
-  MIN_THICKNESS: 0.08,
-  THICKNESS_FLOOR: 0.02,
-  MIN_INNER_RADIUS: 0.02,
+  MAX_THICKNESS: 0.35,         // renderer only (legacy hollow look); the core derives thickness from the cavity
+  MIN_THICKNESS: 0.08,         // wall thinner than this collapses (thinWall)
+  THICKNESS_FLOOR: 0.02,       // geometric minimum wall; the cavity is clamped to keep it
+  MIN_INNER_RADIUS: 0.02,      // renderer only
+  FLOOR_WORLD: 0.15,           // clay kept under the cavity
 
   // contact
   REACH_ON_WORLD: 0.5,
@@ -25,16 +25,47 @@ export const CONFIG = {
   SHAPE_GAIN: 3.0,
   SIGMA_BANDS: 4,
   MAX_DR_PER_S: 0.8,
-  PULL_RATE: 0.6,
-  PRESS_RATE: 0.6,
-  THIN_PER_HEIGHT: 0.15, // plan had 0.1: pulling alone could never thin below MIN_THICKNESS (0.35 − 0.1·2.0 = 0.15)
-  RADIAL_STRAIN_PER_HEIGHT: 0.08,
+  RADIAL_STRAIN_PER_HEIGHT: 0.08,   // lifting narrows, compressing widens (per unit of height change)
   WOBBLE_GROWTH_PER_S: 0.5,
-  WOBBLE_DAMPING_PER_S: 4.0,
+  WOBBLE_DAMPING_PER_S: 4.0,        // while compressing the rim
   DAMAGE_PER_S: 0.25,
-  TEAR_THICKNESS_LOSS_PER_S: 0.03,
-  REPAIR_THICKNESS_PER_S: 0.05,
-  REPAIR_DAMAGE_PER_S: 0.4,
+  REPAIR_DAMAGE_PER_S: 0.4,         // while compressing the rim, upper half only
+
+  // v4 one-hand actions (docs/GESTURES_V4.md); seed values, tune from recordings
+  SUPPORT_REACH_WORLD: 0.45,        // support palm within this of either side wall
+  SUPPORT_Y_MARGIN_WORLD: 0.1,      // ... and within the pot height ± this
+  HORIZONTAL_TOL_DEG: 35,           // wrist → middle knuckle within this of horizontal = "horizontal hand"
+  THUMB_DOWN_TOL_DEG: 40,           // thumb knuckle → tip within this of straight down
+  STILL_PALM_PER_S: 0.35,           // "holding still" for the lift and rim holds
+  LIFT_HOLD_MS: 3000,
+  LIFT_ZONE_BELOW_WORLD: 0.5,       // active palm height at the base: from −this ...
+  LIFT_ZONE_ABOVE_WORLD: 0.3,       // ... to +this
+  LIFT_ZONE_X_MARGIN_WORLD: 0.2,    // ... and within the base radius + this
+  LIFT_MIN_PALM_PER_S: 0.15,        // armed: rising slower than this doesn't lift
+  LIFT_MAX_PALM_PER_S: 1.0,         // armed: rising faster than this cancels (re-hold needed)
+  LIFT_GAIN: 1.0,                   // pot height gained per world unit the hand rises
+  INDENT_TOL_X_WORLD: 0.3,          // thumb tip within this of the axis ...
+  INDENT_TOL_Y_WORLD: 0.3,          // ... and of the top surface
+  INDENT_TRAVEL_WORLD: 0.08,        // downward thumb travel that makes the indentation
+  INDENT_DEPTH_WORLD: 0.12,         // the indentation is exactly this shallow, however often repeated
+  INDENT_RADIUS_WORLD: 0.12,
+  OPEN_ZONE_MARGIN_WORLD: 0.25,     // pinch point within the opening + this
+  OPEN_ACQUIRE_MS: 200,             // pinch held this long before spreading counts
+  OPEN_MAX_SPREAD_PER_S: 1.5,       // pinch ratio growth per second; faster cancels
+  OPEN_RADIUS_PER_SPAN: 0.5,        // cavity radius gained per unit of pinch-ratio spread
+  OPEN_DEPTH_PER_SPAN: 0.9,         // cavity depth gained per unit of pinch-ratio spread
+  OPEN_MIN_WALL_WORLD: 0.12,        // opening alone never thins the wall below this
+  RIM_ABOVE_WORLD: 0.4,             // rim hand: palm between top − RIM_BELOW and top + RIM_ABOVE
+  RIM_BELOW_WORLD: 0.15,
+  RIM_X_MARGIN_WORLD: 0.3,          // ... and within the top radius + this
+  COMPRESS_HOLD_MS: 500,
+  COMPRESS_MIN_PALM_PER_S: 0.1,     // armed: moving down slower than this doesn't compress
+  COMPRESS_MAX_PALM_PER_S: 1.0,     // faster than this stops the action
+  COMPRESS_GAIN: 0.6,               // height removed per world unit the hand moves down
+  COMPRESS_MAX_TOTAL_WORLD: 0.3,    // per engagement
+  COMPRESS_SMOOTH_PER_S: 2.0,       // upper-profile smoothing rate while compressing
+  COMPRESS_CAVITY_SHRINK_PER_WORLD: 0.3, // opening narrows (wall strengthens) per unit compressed
+  NEAR_MISS_LATCH_MS: 1500,         // "too fast" hints stay this long after the cancel
 
   // stability (game values)
   STABILITY_FACTOR: 3.0,
@@ -48,7 +79,7 @@ export const CONFIG = {
   SAG_SMOOTH_PASSES: 3,               // collapse: box-blur passes over the upper half
   OVERHANG_SMOOTH_PER_S: 0.5,         // max radius removed per second at a too-steep band
   TEAR_SIGMA_BANDS: 1.5,              // spread of tear damage around the band
-  WOBBLE_CENTERED_DAMPING_PER_S: 0.4, // slow wobble decay while shaping centred (press is faster)
+  WOBBLE_CENTERED_DAMPING_PER_S: 0.4, // slow wobble decay while shaping centred (rim compression is faster)
 
   // hand features (tune from recordings)
   PINCH_ON: 0.35,
@@ -57,9 +88,6 @@ export const CONFIG = {
   FINGER_CURLED_OFF: 0.45,
   FINGER_OPEN_ON: 0.6,
   FINGER_OPEN_OFF: 0.5,
-  MOTION_ON_PALM_PER_S: 0.4,
-  MOTION_OFF_PALM_PER_S: 0.15,
-  FULL_MOTION_PALM_PER_S: 1.5,
   FINGER_ANGLE_CURLED_DEG: 90, // extension = (min(PIP, DIP angle) − this) / range
   FINGER_ANGLE_RANGE_DEG: 70,
   CALIBRATION_STILL_PALM_PER_S: 0.5,
@@ -71,7 +99,6 @@ export const CONFIG = {
 
   // near-miss: only with evidence of an attempt
   PINCH_LOOSE_MAX: 0.6,            // pinch ratio still counted as "almost pinching"
-  FIST_LOOSE_MAX: 0.55,            // max finger extension still counted as "almost a fist"
   ATTEMPT_ZONE_X_WORLD: 2.5,       // hands farther than this from the axis aren't attempting anything
   ATTEMPT_ZONE_Y_MARGIN_WORLD: 0.5,
   NEAR_MISS_MIN_MS: 400,           // pose held this long before we coach it
