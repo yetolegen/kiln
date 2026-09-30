@@ -1,7 +1,7 @@
 import { CONFIG } from '../config';
 import type { DwellTarget, EngineSnapshot, Vec2 } from '../types';
 
-export type DwellRegion = Pick<DwellTarget, 'id' | 'x' | 'y' | 'width' | 'height'>;
+export type DwellRegion = Pick<DwellTarget, 'id' | 'x' | 'y' | 'width' | 'height'> & { dwellMs?: number };
 
 export class DwellController {
   activeId: string | null = null;
@@ -53,7 +53,7 @@ export class DwellController {
     this.frameId = input.frameId; this.capturedAt = input.tMs;
     if (dt <= 0 || dt > CONFIG.MAX_INPUT_AGE_MS) { this.elapsed = 0; this.progress = 0; return null; }
     this.elapsed += dt;
-    this.progress = Math.min(1, this.elapsed / CONFIG.DWELL_MS);
+    this.progress = Math.min(1, this.elapsed / (target.dwellMs ?? CONFIG.DWELL_MS));
     if (this.progress < 1 || this.fired) return null;
     this.fired = true;
     return target.id;

@@ -5,11 +5,11 @@ test('B10 retains a fading visual briefly while lost tracking pauses the control
   await expect(page.getByTestId('mock-badge')).toBeVisible();
   await page.keyboard.press('5'); await page.keyboard.press('s');
   const pixels = () => page.locator('.overlay-canvas').evaluate((canvas: HTMLCanvasElement) => {
-    const top = Math.floor(canvas.height / 2);
+    const top = Math.floor(canvas.height * .62); // below V6's persistent safe-depth line at the rim
     const data = canvas.getContext('2d')!.getImageData(0, top, canvas.width, canvas.height - top).data;
     let count = 0; for (let i = 3; i < data.length; i += 4) if (data[i]) count++; return count;
   });
-  // Free mode removes the target; sample the lower half to exclude V5's persistent height-limit line.
+  // Free mode removes the target; sample below the rim to exclude the persistent height-limit and safe-depth lines.
   await page.keyboard.press('3'); await page.locator('[data-action="free"]').click(); await page.mouse.move(0, 0); await page.keyboard.press('s');
   await expect.poll(pixels).toBeGreaterThan(0);
   const retained = await page.evaluate(async () => {
@@ -19,7 +19,7 @@ test('B10 retains a fading visual briefly while lost tracking pauses the control
       const sample = () => {
         if (document.querySelector('.hud__hint')?.textContent?.includes('Отслеживание потеряно')) {
           const canvas = document.querySelector<HTMLCanvasElement>('.overlay-canvas')!;
-          const top = Math.floor(canvas.height / 2);
+          const top = Math.floor(canvas.height * .62); // below V6's persistent safe-depth line at the rim
           const data = canvas.getContext('2d')!.getImageData(0, top, canvas.width, canvas.height - top).data;
           let count = 0; for (let i = 3; i < data.length; i += 4) if (data[i]) count++;
           resolve(count);
@@ -112,7 +112,7 @@ for (const mode of ['free', 'commission']) test(`studio sculpting locks Done/res
   await expect(done).toHaveClass(/is-dwelling/);
   await page.keyboard.press('s');
   await expect(done).toBeDisabled(); await expect(restart).toBeDisabled();
-  await expect(page.locator('[data-action="menu"]')).toBeEnabled();
+  await expect(page.locator('[data-action="menu"]')).toBeDisabled(); // leaving the session is locked too
   await done.dispatchEvent('click');
   await page.waitForTimeout(1200); // longer than a full dwell: blocked input must never finish
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'studio');
@@ -337,7 +337,7 @@ test('B2 loads the real model, starts a mirrored camera, and resizes', async ({ 
   await expect(start).toBeEnabled({ timeout: 50_000 });
   await start.click();
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'calibrate', { timeout: 20_000 });
-  await expect(page.locator('footer')).toContainText('V7.0');
+  await expect(page.locator('footer')).toContainText('V7.1');
   const video = page.locator('video');
   await expect(video).toBeVisible();
   expect(await video.evaluate((element: HTMLVideoElement) => ({

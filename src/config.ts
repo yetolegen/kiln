@@ -139,6 +139,7 @@ export const CONFIG = {
   CALIBRATION_STILL_MS: 800,
   HOLD_FIRE_MS: 1500,
   DWELL_MS: 900,
+  DWELL_CONFIRM_MS: 1800,        // Готово / Начать сначала / В мастерскую while shaping: hands pass buttons often
   TEAR_ENTER_MS: 120,
   WOBBLE_ENTER_MS: 500,
   OVERHANG_ENTER_MS: 200,

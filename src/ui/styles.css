@@ -216,3 +216,16 @@ progress { display: block; width: min(240px, 80vw); height: 8px; margin: 20px 0;
   .gallery-card p { margin: 6px; }
   .workshop--camera footer { font-size: 9px; align-self: flex-end; }
 }
+
+/* Shaping screens: instructions on the left, session buttons stacked on the right edge, away from the
+   hands' working area above and around the pot (palm dwell kept firing them mid-sculpt). */
+@media (min-width: 601px) {
+  .workshop[data-phase='studio'] .workshop__content, .workshop[data-phase='tutorial'] .workshop__content {
+    align-items: flex-start; text-align: left; max-width: 320px;
+  }
+  .workshop[data-phase='studio'] .workshop__description, .workshop[data-phase='tutorial'] .workshop__description { max-width: 320px; }
+  .workshop[data-phase='studio'] .phase-actions, .workshop[data-phase='tutorial'] .phase-actions {
+    position: fixed; z-index: 3; right: 24px; top: 0; bottom: 0; margin: auto 0; height: fit-content;
+    width: 200px; max-width: none; flex-direction: column; flex-wrap: nowrap;
+  }
+}

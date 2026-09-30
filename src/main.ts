@@ -4,7 +4,6 @@ import { connectTracking, loadTracker } from './browser/tracking';
 import { HandTracker, HandTrackerError } from './tracking/handTracker';
 import { createController } from './engine/controller';
 import { createSoundPlayer, unlockSound } from './audio/sound';
-import { createVoicePlayer, unlockVoice } from './audio/voice';
 import { createScene } from './render/scene';
 import { createOverlay } from './render/overlay';
 import { DwellController } from './ui/dwell';
@@ -32,10 +31,9 @@ if (import.meta.env.DEV && new URLSearchParams(location.search).get('dev') === '
 }
 const state: StartupState = { busy: false, cameraActive: false, error: null };
 const sound = createSoundPlayer();
-const voice = createVoicePlayer();
 let muted = false;
 const screens = createScreens(root, () => { void start(); }, (command) => core.dispatch(command, performance.now()), () => {
-  muted = !muted; sound.setMuted(muted); voice.setMuted(muted); return muted;
+  muted = !muted; sound.setMuted(muted); return muted;
 });
 const dwell = new DwellController();
 const hud = createHud(screens.page, screens.refreshTargets);
@@ -99,9 +97,8 @@ function project(force = false): void {
 
 async function start(): Promise<void> {
   if (state.busy || disposed) return;
-  // Both unlock calls stay in the actual click, before any asynchronous work.
+  // The unlock call stays in the actual click, before any asynchronous work.
   unlockSound();
-  unlockVoice();
   state.error = null;
   state.busy = true;
   try {
@@ -132,7 +129,7 @@ window.addEventListener('orientationchange', orientation);
 screens.video.addEventListener('resize', resize);
 
 function visibility(): void {
-  if (document.hidden) { sound.silence(); voice.stop(); }
+  if (document.hidden) sound.silence();
   if (document.hidden) tracking?.pause(performance.now());
   else project(true);
 }
@@ -156,12 +153,10 @@ function render(): void {
   const lessonHint = tutorial.update(snapshot, nowMs);
   screens.setTutorialCompleted(tutorial.status === 'completed');
   const coreHint = lessonHints.update(snapshot, tutorial.goal?.step ?? null, presentationHint.update(snapshot, nowMs));
-  if (lessonHints.changed) voice.stop();
   const activeHint = snapshot.phase === 'tutorial' && tutorial.status === 'completed' ? lessonHint :
     lessonHint?.severity === 'error' && coreHint?.id !== 'trackingUncertain' ? lessonHint : coreHint ?? lessonHint;
   hud.update(snapshot, nowMs, activeHint);
   sound.update(snapshot, !document.hidden && state.cameraActive);
-  voice.update(document.hidden || !state.cameraActive ? null : activeHint);
   const selected = dwell.update(snapshot, nowMs, screens.targets, screens.revision);
   screens.showDwell(dwell.activeId, dwell.progress);
   if (selected) screens.activate(selected);
@@ -190,7 +185,6 @@ function dispose(): void {
   hud.destroy();
   tutorial.destroy();
   sound.destroy();
-  voice.destroy();
   destroyMock?.();
   observer.disconnect();
   cancelAnimationFrame(animation);

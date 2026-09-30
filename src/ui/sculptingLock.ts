@@ -13,7 +13,7 @@ export class SculptingLock {
     if (context !== this.context) {
       this.context = context; this.locked = false; this.releasedAt = null; this.frame = -1;
     }
-    if (snapshot.phase !== 'studio') return this.locked = false;
+    if (snapshot.phase !== 'studio' && snapshot.phase !== 'tutorial') return this.locked = false;
     if (isDestroyed(snapshot)) { this.releasedAt = null; return this.locked = false; }
     const input = snapshot.input, g = snapshot.gesture;
     if (!input || !g || !['ready', 'oneHand', 'noHands'].includes(input.status) ||

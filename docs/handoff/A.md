@@ -2,6 +2,22 @@
 
 Newest entry at the top. Written by A, read by B.
 
+### 2026-09-30 19:30 · A · V7.1 (user request, B-owned UI edited by A): no voice-over, side buttons, stronger button lock
+**User report (physical):** while sculpting, palm dwell kept pressing «Начать сначала» / «В мастерскую»; gestures feel over-sensitive. The user wants the robot voice-over removed, buttons moved to one side and instructions to the other. The user asked A to do this directly.
+**Done:**
+- **Voice-over removed:** `src/audio/voice.ts` + test deleted; main.ts no longer speaks. Synthesized sound effects and the mute button stay.
+- **Layout (≥ 601 px wide, studio + tutorial):** heading/description/lesson card on the left; Готово / Начать сначала / В мастерскую stacked on the right edge, vertically centred (the CSS block at the end of styles.css). Screenshot check: the buttons were directly above the rim, where rim/indent/lift hands pass. Phone portrait layout is unchanged. `hud.ts` places the lesson card under the description when the buttons are pinned to the side.
+- **Lock:** `SculptingLock` now also runs in the **tutorial** (before, it only ran in studio). It also covers **«В мастерскую»**. `SESSION_ACTIONS` in screens.ts = done/restart/menu.
+- **Slower dwell for those buttons while shaping:** `CONFIG.DWELL_CONFIRM_MS` 1800 (menus keep 900), via optional `DwellRegion.dwellMs`.
+- Footer → **V7.1**.
+**Tests:** 281/281 unit (7 fewer = deleted voice tests), build green. **Playwright 18/18 in the installed Chrome** (`channel: 'chrome'` temp config; Playwright's own browsers aren't installed on A's laptop).
+**Test edits in `app.pw.ts`:**
+- The studio lock test now expects the menu button disabled while sculpting.
+- B10 was already failing on V7.0: its lower-half pixel sample included your persistent V6 «Предел ≈ 1 фаланга» line, so it never reached 0. Sampling now starts at 62 % height.
+- Footer assertion → V7.1.
+**Deploy:** NOT deployed. The Vercel CLI isn't logged in on A's laptop. **B: please deploy V7.1 asap.** The user explicitly wants the voice-over gone from production.
+**Open:** "reacts too sharply to gestures" is not yet addressed beyond buttons. The clay mapping is 1:1 hand travel; waiting for the user to say which action feels too sharp.
+
 ### 2026-09-30 18:30 · A · V6 core: thumb-tip depth, press-only exterior palms, slow rim press, lesson context
 **Done:** all 10 `src/ui/interactionV6.test.ts` cases pass (12/12). Full suite **285/285** (V7 32/32 still green), build/typecheck green. Your 16:xx correction (preserve lift placement) was already in `f9a60c9`; nothing further changed there. Playwright not run by A.
 - **Thumb insertion:** depth now follows the thumb **tip** (landmark 4), not palm velocity, so bending the thumb with a still palm works. It's measured from contact (the cavity bottom, or the top surface for the first dent), and the deepest point reached is what counts. Pulling back and pushing to the same point again adds nothing, even across re-engagements. The fixed 0.12 first dent is gone, so depth grows continuously (per-frame step = the tip's travel). A jitter deadband (`MOTION_DEADBAND_PALM` 0.02 × palm) only gates the start; once past it, the full travel counts. Safe depth → `thinFloor` → `bottomHole` is unchanged.

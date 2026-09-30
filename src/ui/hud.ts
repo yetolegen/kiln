@@ -17,7 +17,9 @@ export function createHud(parent: HTMLElement, onLayoutChange: () => void = () =
     cancelAnimationFrame(layoutFrame);
     layoutFrame = requestAnimationFrame(() => {
       const actions = parent.querySelector('.phase-actions');
-      if (actions) parent.style.setProperty('--lesson-after-actions', `${actions.getBoundingClientRect().bottom + 12}px`);
+      // buttons pinned to the side (wide shaping screens): the card goes under the instructions instead
+      const above = actions && getComputedStyle(actions).position === 'fixed' ? parent.querySelector('.workshop__description') : actions;
+      if (above) parent.style.setProperty('--lesson-after-actions', `${above.getBoundingClientRect().bottom + 12}px`);
       onLayoutChange();
     });
   };

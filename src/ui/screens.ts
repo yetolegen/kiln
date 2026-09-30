@@ -4,6 +4,9 @@ import type { DwellRegion } from './dwell';
 import { CONFIG } from '../config';
 import { SculptingLock, isDestroyed } from './sculptingLock';
 
+/** Buttons that end or leave the current shaping session: locked while sculpting, slower to dwell. */
+const SESSION_ACTIONS = ['done', 'restart', 'menu'];
+
 export interface StartupState {
   busy: boolean;
   cameraActive: boolean;
@@ -85,7 +88,8 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
     for (const entry of entries) {
       if (entry.element.disabled || !entry.element.isConnected || !entry.element.getClientRects().length) continue;
       const rect = entry.element.getBoundingClientRect();
-      targets.push({ id: entry.id, x: rect.x, y: rect.y, width: rect.width, height: rect.height });
+      const slow = SESSION_ACTIONS.includes(entry.id) && (lastPhase === 'studio' || lastPhase === 'tutorial');
+      targets.push({ id: entry.id, x: rect.x, y: rect.y, width: rect.width, height: rect.height, ...(slow ? { dwellMs: CONFIG.DWELL_CONFIRM_MS } : {}) });
     }
   }
   function addAction(id: string, label: string, run: () => void, parent: HTMLElement = actions): HTMLButtonElement {
@@ -126,7 +130,7 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
   }
   function applySculptingLock(): void {
     for (const entry of entries) {
-      if (entry.id !== 'done' && entry.id !== 'restart') continue;
+      if (!SESSION_ACTIONS.includes(entry.id) || (lastPhase !== 'studio' && lastPhase !== 'tutorial')) continue;
       entry.element.disabled = controlsLocked || (entry.id === 'done' && destroyed);
       entry.element.title = entry.element.disabled ? destroyed ? 'Сосуд повреждён. Начните сначала.' : 'Уберите руки от глины, чтобы выбрать действие.' : '';
     }

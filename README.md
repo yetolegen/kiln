@@ -40,11 +40,11 @@ Rim compression was selected from [Clayground's wheel tutorial](https://www.clay
 
 ## Feedback, privacy and local data
 
-- Text coaching is always visible when needed. Russian system voice and synthesized audio are optional; the sound button also supports dwell.
+- Text coaching is always visible when needed. There is no voice-over; synthesized sound effects are optional and the sound button also supports dwell.
 - Brief interrupted tracking keeps a fading hand drawing for up to 350 ms. Cached drawing coordinates never enter the engine; deformation and confirmations require fresh reliable input.
 - Results separate execution mistakes from tracking interruptions. Gallery and target-version best scores are local to this browser. The shelf keeps 24 pots; best scores survive trimming. Storage failure retains the shelf only until the page closes.
 - Pots start solid. Opening radius/depth, floor thickness and bottom perforation are preserved in schema-3 saves. WebGL leaves an actual hole; the annotated cross-section makes deep perforation visible from the camera angle. Damaged cavity walls show open tears. Legacy schema-2 pots retain their cavity and derive floor thickness; schema-1 pots migrate as solid silhouettes.
-- PNG export, storage, speech and sound may fail without blocking the result.
+- PNG export, storage and sound may fail without blocking the result.
 - Camera frames stay in the browser. The application requests no microphone and has no application backend. The model is served locally; pinned MediaPipe WASM loads from jsDelivr.
 - This is a game model, not a measurement or simulation of real clay pressure or physical thickness.
 
@@ -92,7 +92,7 @@ Windows Playwright WebKit can omit the pot from landscape screenshots after a re
 
 [Plan](docs/PLAN.md) · [Core contract](src/types.ts) · [A's handoff](docs/handoff/A.md) · [B's handoff](docs/handoff/B.md)
 
-Vite + vanilla TypeScript, Three.js, MediaPipe Tasks Vision, Vitest and Playwright. Audio uses Web Audio and speechSynthesis. MediaPipe is pinned in `package.json`; its WASM CDN version must match exactly. `engine/`, `tracking/`, config and shared types belong to A; browser/render/UI/audio and this README top belong to B.
+Vite + vanilla TypeScript, Three.js, MediaPipe Tasks Vision, Vitest and Playwright. Audio uses Web Audio. MediaPipe is pinned in `package.json`; its WASM CDN version must match exactly. `engine/`, `tracking/`, config and shared types belong to A; browser/render/UI/audio and this README top belong to B.
 
 Assets: procedural Three.js/Canvas pots and SVG hand diagrams; locally synthesized sounds; no stock audio, textures or custom-trained hand model. The hand landmarker is the pretrained MediaPipe model. The project builds on the repository's existing core code and the libraries above.
 
