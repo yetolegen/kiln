@@ -173,7 +173,10 @@ export function stepClay(
       compressRim(c, d.compressWorld, g.motionStrength * dtS);
       if (c.collapsed) c.recoveryMs += dtS * 1000;
       // v5: no per-engagement cap; keep pressing and it flattens for good
-      if (c.height <= CONFIG.PANCAKE_HEIGHT_WORLD) fail(c, 'pancake');
+      if (c.height <= CONFIG.PANCAKE_HEIGHT_WORLD) {
+        c.cavityDepthWorld = c.cavityRadiusWorld = 0; // flattened shut
+        fail(c, 'pancake');
+      }
       changed = true;
     }
     if (fx.tearBand !== null) {
@@ -220,10 +223,10 @@ function changeHeight(c: ClayState, requested: number): boolean {
   return true;
 }
 
-// Spreading the pinch widens and deepens the opening, but never past a wall of OPEN_MIN_WALL and a floor.
+// Spreading the pinch widens and deepens the opening, down to a wall of MIN_THICKNESS (where it tears) and a floor.
 function open(c: ClayState, spreadRatio: number): void {
   c.cavityDepthWorld = Math.min(c.cavityDepthWorld + CONFIG.OPEN_DEPTH_PER_SPAN * spreadRatio, c.height - CONFIG.FLOOR_WORLD);
-  const limit = minRadius(c.radii, cavityStartBand(c)) - CONFIG.OPEN_MIN_WALL_WORLD;
+  const limit = minRadius(c.radii, cavityStartBand(c)) - CONFIG.MIN_THICKNESS;
   c.cavityRadiusWorld = Math.max(c.cavityRadiusWorld, Math.min(c.cavityRadiusWorld + CONFIG.OPEN_RADIUS_PER_SPAN * spreadRatio, limit));
 }
 
@@ -273,17 +276,31 @@ function fail(c: ClayModel, cause: CollapseCause): void {
   c.recoveryMs = 0;
 }
 
-// Collapse enters ONCE (one-time sag). It clears only after real rim compression has made the pot sound again.
+// v7: a cavity wall at MIN_THICKNESS tears where it is that thin (no sag, height kept, permanent).
+function rupture(c: ClayModel): void {
+  const from = cavityStartBand(c), s = CONFIG.TEAR_SIGMA_BANDS, n = c.damage.length;
+  for (let i = from; i < n; i++) {
+    if (c.radii[i] - c.cavityRadiusWorld > CONFIG.MIN_THICKNESS + 1e-6) continue;
+    for (let j = Math.max(from, Math.floor(i - 2 * s)); j <= Math.min(n - 1, Math.ceil(i + 2 * s)); j++) {
+      c.damage[j] = Math.max(c.damage[j], 0.8 * Math.exp(-0.5 * ((j - i) / s) ** 2));
+    }
+  }
+  fail(c, 'wallTorn');
+}
+
+// Collapse (tooTall) enters ONCE (one-time sag). It clears only after real rim compression has made the pot sound again.
 // The screen ceiling counts as "too tall": past it the pot becomes unstable instead of silently resisting.
 function updateCollapse(c: ClayModel): boolean {
   const maxH = Math.min(maxStableHeight(c.radii), c.maxHeightWorld);
   if (c.collapsed && c.collapseCause && PERMANENT.includes(c.collapseCause)) return false;
+  if (c.cavityDepthWorld > 0 && c.thickness <= CONFIG.MIN_THICKNESS + 1e-6) {
+    rupture(c); // the first permanent failure wins over a recoverable sag
+    return true;
+  }
   if (!c.collapsed) {
-    const cause: CollapseCause | null =
-      c.cavityDepthWorld > 0 && c.thickness < CONFIG.MIN_THICKNESS ? 'thinWall' : c.height > maxH ? 'tooTall' : null;
-    if (!cause) return false;
+    if (c.height <= maxH) return false;
     c.collapsed = true;
-    c.collapseCause = cause;
+    c.collapseCause = 'tooTall';
     c.recoveryMs = 0;
     sag(c);
     enforceInvariants(c);

@@ -186,13 +186,16 @@ describe('v4 actions on the clay', () => {
     expect(c.maxHeightWorld).toBe(1.5);
   });
 
-  it('opening needs an indentation, and never passes the wall/floor limits', () => {
+  it('opening needs an indentation, keeps the floor, and tears the wall at MIN_THICKNESS without sagging (v7)', () => {
     expect(stepClay(createClay(), actionGesture('open'), 0.05, undefined, spread(1)).cavityDepthWorld).toBe(0);
     let c = indented();
+    const height = c.height;
     for (let k = 0; k < 100; k++) c = stepClay(c, actionGesture('open'), 0.05, undefined, spread(0.2));
-    expect(c.thickness).toBeGreaterThanOrEqual(CONFIG.OPEN_MIN_WALL_WORLD - EPS);
-    expect(c.cavityDepthWorld).toBeCloseTo(c.height - CONFIG.FLOOR_WORLD, 5);
-    expect(c.collapsed).toBe(false); // opening alone never collapses the pot
+    expect(c.thickness).toBeGreaterThanOrEqual(CONFIG.MIN_THICKNESS - EPS);
+    expect(c.thickness).toBeLessThanOrEqual(CONFIG.MIN_THICKNESS + EPS);
+    expect(c.cavityDepthWorld).toBeLessThanOrEqual(c.height - CONFIG.FLOOR_WORLD + EPS);
+    expect(c.collapseCause).toBe('wallTorn');
+    expect(c.height).toBe(height);
   });
 
   it('rim compression lowers, widens, heals the upper half, shrinks the opening', () => {
@@ -207,20 +210,22 @@ describe('v4 actions on the clay', () => {
     expect(c.cavityRadiusWorld).toBeLessThan(before.cr);
   });
 
-  it('lifting an opened pot thins the wall until it collapses (thinWall), once', () => {
+  it('lifting an opened pot thins the wall until it tears (wallTorn), once, without sagging (v7)', () => {
     let c = indented();
-    for (let k = 0; k < 40; k++) c = stepClay(c, actionGesture('open'), 0.05, undefined, spread(0.2));
     c.radii.fill(1.6);
     c = enforceInvariants(c); // wide base so tooTall can't come first
-    for (let k = 0; k < 40; k++) c = stepClay(c, actionGesture('open'), 0.05, undefined, spread(0.2));
+    for (let k = 0; k < 13; k++) c = stepClay(c, actionGesture('open'), 0.05, undefined, spread(0.2));
+    expect(c.collapsed).toBe(false);
     let collapses = 0;
+    let tornAt = 0;
     for (let k = 0; k < 200; k++) {
       const was = c.collapsed;
       c = stepClay(c, actionGesture('pullUp'), 0.05, undefined, lift(0.05));
-      if (!was && c.collapsed) collapses++;
+      if (!was && c.collapsed) { collapses++; tornAt = c.height; }
     }
     expect(collapses).toBe(1);
-    expect(c.collapseCause).toBe('thinWall');
+    expect(c.collapseCause).toBe('wallTorn');
+    expect(c.height).toBe(tornAt); // frozen where it tore, no sag
     expectInvariants(c);
   });
 

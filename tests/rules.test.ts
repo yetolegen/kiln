@@ -67,19 +67,19 @@ describe('rules / episodes', () => {
 });
 
 describe('lifting too thin', () => {
-  it('an opened, wide pot lifted up warns tooThin BEFORE it collapses with thinWall', () => {
+  it('an opened, wide pot lifted up warns tooThin BEFORE the wall tears (wallTorn, v7)', () => {
     const rules = new RuleEngine();
     const lift = actionGesture('pullUp');
     let clay = createClay();
     clay.radii.fill(1.6); // wide base, so tooTall doesn't come first
     clay = stepClay(clay, actionGesture('indent'), 0.05, undefined, { ...NO_DELTA, indentWorld: 0.01 });
-    for (let k = 0; k < 60; k++) clay = stepClay(clay, actionGesture('open'), 0.05, undefined, { ...NO_DELTA, spreadRatio: 0.2 });
+    for (let k = 0; k < 13; k++) clay = stepClay(clay, actionGesture('open'), 0.05, undefined, { ...NO_DELTA, spreadRatio: 0.2 });
     const order: string[] = [];
     for (let t = 0; t < 8000 && !clay.collapsed; t += 50) {
       clay = stepClay(clay, lift, 0.05, undefined, { ...NO_DELTA, liftWorld: 0.01 });
       for (const e of rules.update({ ...input(t, lift), clay }).events) if (e.phase === 'begin') order.push(e.type);
     }
-    expect(clay.collapseCause).toBe('thinWall');
+    expect(clay.collapseCause).toBe('wallTorn');
     expect(order.indexOf('tooThin')).toBeGreaterThanOrEqual(0);
     expect(order.indexOf('tooThin')).toBeLessThan(order.indexOf('collapse'));
   });

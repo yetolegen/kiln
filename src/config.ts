@@ -4,12 +4,12 @@ export const CONFIG = {
   N_BANDS: 48,
   MIN_R: 0.25,
   MAX_R: 1.6,
-  MIN_HEIGHT: 0.6,
+  MIN_HEIGHT: 0.2,             // below PANCAKE_HEIGHT_WORLD so compression can reach the pancake
   MAX_HEIGHT: 3.2,
   INIT_HEIGHT: 1.2,
   INIT_RADIUS: 1.0,
   MAX_THICKNESS: 0.35,         // renderer only (legacy hollow look); the core derives thickness from the cavity
-  MIN_THICKNESS: 0.08,         // wall thinner than this collapses (thinWall)
+  MIN_THICKNESS: 0.1,          // cavity wall this thin tears locally (wallTorn, permanent): 10 % of INIT_RADIUS (v7)
   THICKNESS_FLOOR: 0.02,       // geometric minimum wall; the cavity is clamped to keep it
   MIN_INNER_RADIUS: 0.02,      // renderer only
   FLOOR_WORLD: 0.15,           // clay kept under the cavity
@@ -51,7 +51,8 @@ export const CONFIG = {
   LIFT_ZONE_BELOW_WORLD: 0.5,       // active palm height at the base: from −this ...
   LIFT_ZONE_ABOVE_WORLD: 0.3,       // ... to +this
   LIFT_ZONE_X_MARGIN_WORLD: 0.2,    // ... and within the base radius + this
-  LIFT_MIN_PALM_PER_S: 0.15,        // armed: rising slower than this doesn't lift
+  LIFT_DEADBAND_PALM: 0.02,         // armed: palm must rise this × palm above its arming height before lifting (jitter)
+  LIFT_GRACE_MS: 250,               // one-frame orientation/speed/pose glitches pause the lift this long before cancelling
   LIFT_MAX_PALM_PER_S: 1.0,         // armed: rising faster than this cancels (re-hold needed)
   LIFT_GAIN: 1.0,                   // pot height gained per world unit the hand rises
   INDENT_TOL_X_WORLD: 0.3,          // thumb tip within this of the axis ...
@@ -64,7 +65,6 @@ export const CONFIG = {
   OPEN_MAX_SPREAD_PER_S: 1.5,       // pinch ratio growth per second; faster cancels
   OPEN_RADIUS_PER_SPAN: 0.5,        // cavity radius gained per unit of pinch-ratio spread
   OPEN_DEPTH_PER_SPAN: 0.9,         // cavity depth gained per unit of pinch-ratio spread
-  OPEN_MIN_WALL_WORLD: 0.12,        // opening alone never thins the wall below this
   RIM_ABOVE_WORLD: 0.4,             // rim hand: palm between top − RIM_BELOW and top + RIM_ABOVE
   RIM_BELOW_WORLD: 0.15,
   RIM_X_MARGIN_WORLD: 0.3,          // ... and within the top radius + this
@@ -85,13 +85,13 @@ export const CONFIG = {
   STRETCH_DANGER_MS: 7000,          // engaged opening this long: thin-wall danger, the wall starts thinning
   STRETCH_TEAR_MS: 10000,           // ... this long: the wall tears (wallTorn)
   STRETCH_THIN_PER_S: 0.06,         // opening radius growth per second during the danger phase
-  TOO_FLAT_HEIGHT_WORLD: 0.9,       // compressing below this warns
-  PANCAKE_HEIGHT_WORLD: 0.7,        // ... below this is a pancake (permanent)
+  TOO_FLAT_HEIGHT_WORLD: 0.4,       // compressing below this warns
+  PANCAKE_HEIGHT_WORLD: 0.24,       // ... at/below this is a pancake (permanent): 20 % of INIT_HEIGHT (v7)
 
   // stability (game values)
   STABILITY_FACTOR: 3.0,
   OVERHANG_SLOPE_WORLD: 3.13,
-  TOO_THIN_MARGIN: 0.03,
+  TOO_THIN_MARGIN: 0.05,
   RECOVERY_THICKNESS_MARGIN: 0.03,
   RECOVERY_HEIGHT_MARGIN: 0.1,
   RECOVERY_WOBBLE_MAX: 0.25,

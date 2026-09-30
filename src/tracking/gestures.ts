@@ -67,7 +67,7 @@ function isThumbDown(h: HandFeatures): boolean {
 
 /** Placement zones for this frame, grown with the user's palm size (see config). */
 interface Zones {
-  supportReach: number; supportY: number; liftBelow: number; liftAbove: number; liftX: number;
+  supportReach: number; supportY: number; liftBelow: number; liftAbove: number; liftX: number; liftDeadband: number;
   rimBelow: number; rimAbove: number; rimX: number; indentX: number; indentY: number; openMargin: number;
 }
 function zonesFor(palmW: number): Zones {
@@ -78,6 +78,7 @@ function zonesFor(palmW: number): Zones {
     liftBelow: Math.max(CONFIG.LIFT_ZONE_BELOW_WORLD, z),
     liftAbove: Math.max(CONFIG.LIFT_ZONE_ABOVE_WORLD, 0.6 * z),
     liftX: Math.max(CONFIG.LIFT_ZONE_X_MARGIN_WORLD, 0.5 * z),
+    liftDeadband: CONFIG.LIFT_DEADBAND_PALM * palmW,
     rimBelow: Math.max(CONFIG.RIM_BELOW_WORLD, 0.4 * z),
     rimAbove: Math.max(CONFIG.RIM_ABOVE_WORLD, z),
     rimX: Math.max(CONFIG.RIM_X_MARGIN_WORLD, 0.5 * z),
@@ -102,6 +103,9 @@ interface Engagement {
   armedMs: number;    // time since the action armed (open: stretch duration, v5)
   span: number;       // open: widest pinch ratio so far
   stillSinceMs: number | null;
+  topY: number;       // lift: highest palm height already turned into clay height (or arming height + deadband)
+  pauseSinceMs: number | null; // lift: start of the current run of glitchy frames (v7 grace)
+  lastMs: number;     // lift: time of the last step, to rebase after an observation gap
 }
 
 export class GestureRecognizer {
@@ -288,7 +292,7 @@ export class GestureRecognizer {
         if (kind === 'open' && clay.cavityDepthWorld <= 0) continue; // needs an indentation first
         const fresh: Engagement = {
           kind, activeId: active.trackId, supportId: support.trackId, ms: 0, armed: false,
-          travel: 0, armedMs: 0, span: active.pinchRatio, stillSinceMs: null,
+          travel: 0, armedMs: 0, span: active.pinchRatio, stillSinceMs: null, topY: 0, pauseSinceMs: null, lastMs: t,
         };
         this.engagement = fresh;
         const res = STEP[kind](this, fresh, active, clay, world, 0, t);
@@ -486,30 +490,52 @@ const idle = (progress: number): StepResult => ({ progress, deforming: false, mo
 
 /** Per-action state machines. null = the engagement ends (release / conditions broken). */
 const STEP: Record<Kind, Step> = {
-  // 3 s of still, valid observations at the base arms it; then only a SLOW rise lifts the pot
+  // 3 s of still, valid observations at the base arms it; then a slow rise lifts the pot by the palm's
+  // actual rise (v7: any sustained slow rise counts; jitter inside the deadband adds nothing).
+  // Brief glitches (one tilted/fast/loose frame) pause for up to LIFT_GRACE_MS: nothing accumulates or deforms.
   pullUp: (rec, e, h, clay, _world, dtS, t) => {
-    if (!allOpen(h, true) || h.pinchRatio <= CONFIG.PINCH_ON || !isHorizontal(h)) return null;
+    const y = h.palmWorld.y;
+    const gap = t - e.lastMs > CONFIG.MAX_INPUT_AGE_MS;
+    e.lastMs = t;
+    const pause = (): StepResult | null => {
+      e.pauseSinceMs ??= t;
+      if (t - e.pauseSinceMs > CONFIG.LIFT_GRACE_MS) return null;
+      e.topY = Math.max(e.topY, y); // resuming never jumps
+      return idle(e.armed ? 1 : e.ms / CONFIG.LIFT_HOLD_MS);
+    };
+    if (Math.abs(h.palmWorld.x) > clay.radii[0] + Z.liftX) return null; // left sideways: cancel
+    if (!allOpen(h, true) || h.pinchRatio <= CONFIG.PINCH_ON || !isHorizontal(h)) return pause();
     if (!e.armed) {
-      if (!inLiftZone(h, clay)) return null;
-      // moving (early rise, a pass) resets the hold but keeps the engagement
-      e.ms = speedOf(h) < CONFIG.STILL_PALM_PER_S ? e.ms + dtS * 1000 : 0;
+      if (!inLiftZone(h, clay)) return pause();
+      if (speedOf(h) >= CONFIG.STILL_PALM_PER_S) {
+        // a one-frame speed spike pauses the hold; sustained motion (an early rise, a pass) restarts it
+        e.pauseSinceMs ??= t;
+        if (t - e.pauseSinceMs > CONFIG.LIFT_GRACE_MS) e.ms = 0;
+        return idle(e.ms / CONFIG.LIFT_HOLD_MS);
+      }
+      e.pauseSinceMs = null;
+      e.ms += dtS * 1000;
       if (e.ms < CONFIG.LIFT_HOLD_MS) return idle(e.ms / CONFIG.LIFT_HOLD_MS);
       e.armed = true;
+      e.topY = y + Z.liftDeadband;
     }
-    if (h.palmWorld.y < -Z.liftBelow) return null;
+    if (y < -Z.liftBelow) return null;
     const vy = vUp(h);
     if (vy > CONFIG.LIFT_MAX_PALM_PER_S) {
       rec.latch({ intended: 'pullUp', reason: 'liftTooFast', handTrackId: h.trackId, params: {} }, t);
       return null;
     }
-    if (vy < CONFIG.LIFT_MIN_PALM_PER_S) {
+    e.pauseSinceMs = null;
+    const rise = gap ? 0 : y - e.topY;
+    e.topY = Math.max(e.topY, y);
+    if (rise <= 0 || vy <= 0) {
       e.stillSinceMs ??= t;
       return idle(1);
     }
     e.stillSinceMs = null;
     return {
-      progress: 1, deforming: true, motionStrength: vy / CONFIG.LIFT_MAX_PALM_PER_S,
-      delta: { ...NO_DELTA, liftWorld: h.velocityWorldPerS.y * dtS * CONFIG.LIFT_GAIN },
+      progress: 1, deforming: true, motionStrength: Math.min(1, vy / CONFIG.LIFT_MAX_PALM_PER_S),
+      delta: { ...NO_DELTA, liftWorld: rise * CONFIG.LIFT_GAIN },
     };
   },
 

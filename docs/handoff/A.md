@@ -2,6 +2,22 @@
 
 Newest entry at the top. Written by A, read by B.
 
+### 2026-09-30 17:30 · A · V7 core: stable lift, 20 % pancake, 10 % local wall tear
+**Done:** all 22 failing `src/ui/studioV7.test.ts` cases pass (32/32), following your REVISED lift section. Placement untouched: same zones, the y=.25 near-base pose and foreshortened hands are still accepted, and palm-size scaling is unchanged. Full suite **274 pass / 10 fail / 284**, and all 10 failures are the known `interactionV6.test.ts` cases. Build/typecheck green.
+- **Lift grace:** one-frame glitches (orientation past 50°, loose fingers or pinch, leaving the base zone before arming, a speed spike during the hold) now *pause* the lift for up to `LIFT_GRACE_MS` (250) instead of cancelling it. Paused frames add no hold time and no deformation. Sustained motion restarts the hold; a glitch that persists past the grace cancels.
+- **Slow rise:** once armed, height follows the palm's actual rise above a ratchet (arming height + `LIFT_DEADBAND_PALM` × palm ≈ 1 px on a 100 px palm, ≈ 4 px on a 215 px real palm). Speed floor `LIFT_MIN_PALM_PER_S` removed: 0.05 palm/s now lifts. Stationary jitter can't pump it (new test in `tests/gestures.test.ts`). After a pause or a >200 ms observation gap it rebases, so resuming never jumps.
+- **Cancel:** an armed hand that leaves the base horizontally (|x| > base radius + margin) cancels immediately and must re-arm. The existing cancels still apply: lost support or input, role change, below the zone, and rising too fast.
+- **Pancake:** `PANCAKE_HEIGHT_WORLD` 0.7 → **0.24** (20 % of `INIT_HEIGHT` 1.2; the reference is the fixed initial height). `MIN_HEIGHT` 0.6 → **0.2**. At pancake the cavity closes (depth/radius 0). `TOO_FLAT_HEIGHT_WORLD` warning 0.9 → **0.4**.
+- **Wall tear:** `MIN_THICKNESS` 0.08 → **0.1** (10 % of `INIT_RADIUS` 1.0). `OPEN_MIN_WALL_WORLD` is removed: opening now reaches 0.1 exactly. Any cavity wall ≤ 0.1, whether from opening, lifting, shaping inward or stretch thinning, now ends as permanent **`wallTorn`**. Height is kept (no sag) and damage 0.8 goes on the thin band(s), with a Gaussian falloff inside the cavity only. `tooThin` now warns below 0.15 (`TOO_THIN_MARGIN` 0.05). The time-based 10 s stretch tear is unchanged; the first permanent cause wins.
+**Contract changes:** none in `types.ts`. **The core no longer produces `collapseCause: 'thinWall'`**; the only recoverable collapse left is `tooTall`. The type still has `thinWall`, so your i18n and mock stay valid.
+**For you (B):**
+- `storage.ts` validates `height ≥ CONFIG.MIN_HEIGHT`. It now accepts the 0.24 pancake saves; with the old 0.6 they would have been rejected. Check the schema-2 migration path too.
+- Renderer: a pancake at 0.24 with a closed cavity; `wallTorn` damage covers only the thin bands.
+- Any lesson or target geometry that assumed height ≥ 0.6 or an opening clamp at 0.12.
+**Test changes (mine):** clay/rules/gestures tests updated to the new rules (tear instead of thinWall sag, the grace, a support hand that follows the wall down in the pancake fixture). No B-owned files edited.
+**Known issues:** all values are synthetic; there's no physical retest yet. The 10 V6 cases are still open and are next.
+**Next:** V6 (thumb-tip depth/jump, outward-withdrawal release, very slow press, action/hint reset at lesson boundaries).
+
 ### 2026-09-30 12:30 · A · V5 core: ceiling, hole, over-stretch, pancake
 **Done:** docs/GESTURES_V5.md A-items 2–6. Support hand, either role, 3 s lift arming and fresh-input gates unchanged. All core tests + fuzz pass.
 **Contract changes (`types.ts`) — confirmed as proposed:**

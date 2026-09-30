@@ -131,10 +131,22 @@ describe('lift (pullUp): 3 s armed hold, then a slow rise', () => {
     }
   });
 
-  it('moving during the hold resets it', () => {
+  it('sustained moving during the hold resets it; a one-frame spike only pauses it (v7)', () => {
     const s = run([SUPPORT(), base()], 2000);
-    const jiggle = run([SUPPORT(), base(moving(0.5, 0))], 100, cont(s));
+    const spike = run([SUPPORT(), base(moving(0.5, 0))], 0, cont(s));
+    expect(spike.g.activationProgress).toBeCloseTo(s.g.activationProgress, 5);
+    const jiggle = run([SUPPORT(), base(moving(0.5, 0))], CONFIG.LIFT_GRACE_MS + 100, cont(s));
     expect(jiggle.g.activationProgress).toBe(0);
+  });
+
+  it('armed: stationary jitter inside the deadband never lifts; a real slow rise does (v7)', () => {
+    const hold = run([SUPPORT(), base()], CONFIG.LIFT_HOLD_MS + 100);
+    expect(hold.g.activationProgress).toBe(1);
+    // ±1 px noise with a velocity that keeps flipping sign
+    const jitter = run((t) => [SUPPORT(), base({ palmWorld: { x: 0, y: ((t / DT) % 2 ? 1 : -1) / 180 }, ...moving(0, (t / DT) % 2 ? 0.1 : -0.1) })], 3000, cont(hold));
+    expect(jitter.clay.height).toBe(CONFIG.INIT_HEIGHT);
+    const slow = run((t) => [SUPPORT(), base({ palmWorld: { x: 0, y: ((t - jitter.t) / 1000) * 0.03 }, ...moving(0, 0.05) })], 4000, cont(jitter));
+    expect(slow.clay.height).toBeGreaterThan(CONFIG.INIT_HEIGHT + 0.08);
   });
 
   it('rising too fast cancels the lift, says so, and needs a new 3 s hold', () => {
@@ -232,7 +244,7 @@ describe('open: pinch inside the indentation, then spread slowly', () => {
     const spread = run((t) => [SUPPORT(), at(0.2 + ((t - acquired.t) / 1000) * 1.0)], 1500, cont(acquired));
     expect(spread.clay.cavityRadiusWorld).toBeGreaterThan(CONFIG.INDENT_RADIUS_WORLD + 0.2);
     expect(spread.clay.cavityDepthWorld).toBeGreaterThan(CONFIG.INDENT_DEPTH_WORLD + 0.3);
-    expect(spread.clay.thickness).toBeGreaterThanOrEqual(CONFIG.OPEN_MIN_WALL_WORLD - 1e-6);
+    expect(spread.clay.thickness).toBeGreaterThanOrEqual(CONFIG.MIN_THICKNESS - 1e-6);
     expect(spread.clay.cavityDepthWorld).toBeLessThanOrEqual(spread.clay.height - CONFIG.FLOOR_WORLD + 1e-6);
   });
 
@@ -280,8 +292,13 @@ describe('compressRim: flat hand just above the rim, brief hold, slowly down', (
 
   it('v5: keeping on pressing flattens it into a pancake', () => {
     const hold = run([SUPPORT(), rimHand(1.35)], CONFIG.COMPRESS_HOLD_MS + 100);
-    const down = run((t) => [SUPPORT(), rimHand(1.35 - ((t - hold.t) / 1000) * 0.28, moving(0, -0.5))], 4000, cont(hold));
+    // the support hand follows the shrinking wall down, as a real one would
+    const down = run((t) => {
+      const y = 1.35 - ((t - hold.t) / 1000) * 0.28;
+      return [poseHand('wall', -1.05, Math.min(0.6, (y - 0.15) / 2), { trackId: 1 }), rimHand(y, moving(0, -0.5))];
+    }, 4000, cont(hold));
     expect(down.clay.collapseCause).toBe('pancake');
+    expect(down.clay.height).toBeLessThanOrEqual(CONFIG.PANCAKE_HEIGHT_WORLD); // v7: 20 % of the initial height
   });
 
   it('moving up stops it; a hand too high is coached lower', () => {
