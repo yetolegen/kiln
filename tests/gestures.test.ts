@@ -307,6 +307,14 @@ describe('open: pinch inside the indentation, then spread slowly', () => {
 describe('compressRim: flat hand just above the rim, brief hold, slowly down', () => {
   const rimHand = (y: number, over: Partial<HandFeatures> = {}) => poseHand('flat', 0, y, { trackId: 2, ...over });
 
+  it('armed: a still hand with noisy velocity readings never presses', () => {
+    const hold = run([SUPPORT(), rimHand(1.35)], CONFIG.COMPRESS_HOLD_MS + 100);
+    expect(hold.g.activationProgress).toBe(1);
+    const noise = [-.14, .05, -.12, .08, -.02, -.15, .11, -.03]; // palm/s, mean ~0, spikes past the 0.1 floor
+    const still = run((t) => [SUPPORT(), rimHand(1.35, moving(0, noise[Math.round(t / DT) % noise.length]))], 5000, cont(hold));
+    expect(still.clay.height).toBe(CONFIG.INIT_HEIGHT);
+  });
+
   it('hold then slow descent lowers the top a bounded amount and heals upper damage', () => {
     const damaged = createClay();
     damaged.damage.fill(0.8);

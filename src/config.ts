@@ -71,6 +71,7 @@ export const CONFIG = {
   RIM_X_MARGIN_WORLD: 0.3,          // ... and within the top radius + this
   COMPRESS_HOLD_MS: 500,
   COMPRESS_MIN_PALM_PER_S: 0.1,     // armed: descending at least this fast presses by velocity; slower by displacement
+  COMPRESS_STEADY_MS: 150,          // ... but only after descending that fast this long (velocity noise)
   COMPRESS_MAX_PALM_PER_S: 1.0,     // faster than this stops the action (compressTooFast)
   COMPRESS_GAIN: 1.0,               // height removed per world unit the hand moves down (no cap: v5 → pancake)
   COMPRESS_SMOOTH_PER_S: 2.0,       // upper-profile smoothing rate while compressing

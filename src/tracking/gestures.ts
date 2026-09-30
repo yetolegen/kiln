@@ -651,6 +651,7 @@ const STEP: Record<Kind, Step> = {
       if (e.ms < CONFIG.COMPRESS_HOLD_MS) return idle(e.ms / CONFIG.COMPRESS_HOLD_MS);
       e.armed = true;
       e.topY = y;
+      e.ms = 0;
     }
     if (vy > CONFIG.STILL_PALM_PER_S) return null; // lifting the hand off releases
     if (-vy > CONFIG.COMPRESS_MAX_PALM_PER_S) {
@@ -662,7 +663,10 @@ const STEP: Record<Kind, Step> = {
     const moved = gap || (!e.started && e.topY - y <= Z.deadband) ? 0 : e.topY - y;
     if (moved > 0) e.started = true;
     if (e.started) e.topY = Math.min(e.topY, y);
-    const byVelocity = -vy >= CONFIG.COMPRESS_MIN_PALM_PER_S ? -h.velocityWorldPerS.y * dtS : 0;
+    // the velocity term needs a SUSTAINED descent: one noisy velocity sample from a still hand must not press
+    // (e.ms is the hold clock before arming; after arming it times the current steady descent)
+    e.ms = -vy >= CONFIG.COMPRESS_MIN_PALM_PER_S ? e.ms + dtS * 1000 : 0;
+    const byVelocity = e.ms >= CONFIG.COMPRESS_STEADY_MS ? -h.velocityWorldPerS.y * dtS : 0;
     const push = Math.max(moved, byVelocity);
     if (push <= 0 || vy >= 0) {
       e.stillSinceMs ??= t;
