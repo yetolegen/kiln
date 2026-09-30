@@ -5,7 +5,7 @@
 // may be active; roles are persistent track ids for the whole engagement (switching hands restarts it).
 import { CONFIG } from '../config';
 import { NO_DELTA, type ActionDelta } from '../engine/clay';
-import { computeContact, type ContactResult } from '../engine/contact';
+import { computeContact, palmWorldSize, tol, type ContactResult } from '../engine/contact';
 import type {
   ActionGesture, ClayState, ContactState, FrameInput, Gesture, GestureContext, GestureState, HandFeatures,
   NearMiss, ProjectionParams, Vec2,
@@ -42,18 +42,53 @@ function angleFrom(a: Vec2, b: Vec2, dir: Vec2): number {
   if (len === 0) return 180;
   return (Math.acos(Math.max(-1, Math.min(1, (dx * dir.x + dy * dir.y) / len))) * 180) / Math.PI;
 }
-/** Wrist → middle knuckle roughly horizontal on screen: palm flat, fingers pointing sideways. */
+/**
+ * Flat hand: wrist → middle knuckle roughly horizontal on screen (fingers sideways), OR so short on
+ * screen that the fingers point at the camera (a palm held flat toward the laptop looks like that).
+ */
 function isHorizontal(h: HandFeatures): boolean {
   if (!hasLandmarks(h)) return false;
   const a = h.landmarksPx[WRIST], b = h.landmarksPx[MIDDLE_MCP];
+  if (Math.hypot(b.x - a.x, b.y - a.y) < CONFIG.FORESHORTENED_RATIO * h.palmSizePx) return true;
   const deg = angleFrom(a, b, { x: 1, y: 0 });
   return Math.min(deg, 180 - deg) <= CONFIG.HORIZONTAL_TOL_DEG;
 }
-/** Thumb knuckle → tip pointing down (screen y grows down) with the four fingers curled. */
+/**
+ * Thumb knuckle → tip pointing down with the fingers NOT open. Relative, not "every finger < 0.35":
+ * on a real laptop webcam curled fingers read 0.36–0.66, so an absolute fist test never fired.
+ */
 function isThumbDown(h: HandFeatures): boolean {
   if (!hasLandmarks(h)) return false;
-  return isFist(h, false) && angleFrom(h.landmarksPx[THUMB_MCP], h.landmarksPx[THUMB_TIP], { x: 0, y: 1 }) <= CONFIG.THUMB_DOWN_TOL_DEG;
+  // a pinch also has the thumb pointing down-ish; a thumbs-down keeps the thumb away from the index tip
+  return (h.openness < CONFIG.FINGERS_CURLED_MEAN || isFist(h, false)) && h.pinchRatio > CONFIG.PINCH_OFF &&
+    !isPointingPose(h.extension, h.pinchRatio, false) &&
+    angleFrom(h.landmarksPx[THUMB_MCP], h.landmarksPx[THUMB_TIP], { x: 0, y: 1 }) <= CONFIG.THUMB_DOWN_TOL_DEG;
 }
+
+/** Placement zones for this frame, grown with the user's palm size (see config). */
+interface Zones {
+  supportReach: number; supportY: number; liftBelow: number; liftAbove: number; liftX: number;
+  rimBelow: number; rimAbove: number; rimX: number; indentX: number; indentY: number; openMargin: number;
+}
+function zonesFor(palmW: number): Zones {
+  const z = CONFIG.ZONE_PALM * palmW;
+  return {
+    supportReach: tol(CONFIG.SUPPORT_REACH_WORLD, CONFIG.SUPPORT_REACH_PALM, palmW),
+    supportY: tol(CONFIG.SUPPORT_Y_MARGIN_WORLD, CONFIG.SUPPORT_Y_MARGIN_PALM, palmW),
+    liftBelow: Math.max(CONFIG.LIFT_ZONE_BELOW_WORLD, z),
+    liftAbove: Math.max(CONFIG.LIFT_ZONE_ABOVE_WORLD, 0.6 * z),
+    liftX: Math.max(CONFIG.LIFT_ZONE_X_MARGIN_WORLD, 0.5 * z),
+    rimBelow: Math.max(CONFIG.RIM_BELOW_WORLD, 0.4 * z),
+    rimAbove: Math.max(CONFIG.RIM_ABOVE_WORLD, z),
+    rimX: Math.max(CONFIG.RIM_X_MARGIN_WORLD, 0.5 * z),
+    indentX: Math.max(CONFIG.INDENT_TOL_X_WORLD, 0.5 * z),
+    indentY: Math.max(CONFIG.INDENT_TOL_Y_WORLD, 0.5 * z),
+    openMargin: Math.max(CONFIG.OPEN_ZONE_MARGIN_WORLD, 0.5 * z),
+  };
+}
+// ponytail: module-level zones set at the top of each update(); updates are synchronous, so the helpers
+// below always see this frame's zones. Pass Zones explicitly if recognizers ever run concurrently.
+let Z: Zones = zonesFor(0);
 
 type Kind = 'pullUp' | 'indent' | 'open' | 'compressRim';
 /** One engagement of a one-hand action. `ms` = hold / acquisition time; `armed` = allowed to deform. */
@@ -110,6 +145,7 @@ export class GestureRecognizer {
     this.delta = NO_DELTA;
 
     const l = frame.screenLeft, r = frame.screenRight;
+    Z = zonesFor(palmWorldSize(proj.pixelsPerWorldUnit, ...[l, r].filter((h): h is HandFeatures => h !== null)));
     const trusted = !UNTRUSTED.includes(frame.status);
     const both = frame.status === 'ready' && l !== null && r !== null;
     const cur = this.current;
@@ -292,9 +328,9 @@ export class GestureRecognizer {
           return { intended: atBase ? 'pullUp' : 'compressRim', reason: 'noSupport', handTrackId: o.trackId, params: { side: side(o, l) } };
         }
         const topR = clay.radii[clay.radii.length - 1];
-        const high = h.palmWorld.y > clay.height + CONFIG.RIM_ABOVE_WORLD && h.palmWorld.y < clay.height + 2 * CONFIG.RIM_ABOVE_WORLD;
-        const wide = !atRim && h.palmWorld.y > clay.height - CONFIG.RIM_BELOW_WORLD && h.palmWorld.y < clay.height + CONFIG.RIM_ABOVE_WORLD &&
-          Math.abs(h.palmWorld.x) < topR + 2 * CONFIG.RIM_X_MARGIN_WORLD;
+        const high = h.palmWorld.y > clay.height + Z.rimAbove && h.palmWorld.y < clay.height + 2 * Z.rimAbove;
+        const wide = !atRim && h.palmWorld.y > clay.height - Z.rimBelow && h.palmWorld.y < clay.height + Z.rimAbove &&
+          Math.abs(h.palmWorld.x) < topR + 2 * Z.rimX;
         if (held(`rim${hs}`, (high || wide) && isHorizontal(h) && supported && (expected === 'compressRim' || expected === undefined))) {
           return { intended: 'compressRim', reason: 'rimPlacement', handTrackId: h.trackId, params: { dir: high ? 'lower' : 'closer' } };
         }
@@ -306,8 +342,8 @@ export class GestureRecognizer {
           tip.y < clay.height + 2 * CONFIG.ATTEMPT_ZONE_Y_MARGIN_WORLD;
         const onTop = QUALIFIES.indent(h, clay, world);
         if (held(`thumb${hs}`, nearPot && !onTop)) {
-          const dx = tip.x > CONFIG.INDENT_TOL_X_WORLD ? 'left' : tip.x < -CONFIG.INDENT_TOL_X_WORLD ? 'right' : '';
-          const dy = tip.y > clay.height + CONFIG.INDENT_TOL_Y_WORLD ? 'down' : tip.y < clay.height - CONFIG.INDENT_TOL_Y_WORLD ? 'up' : '';
+          const dx = tip.x > Z.indentX ? 'left' : tip.x < -Z.indentX ? 'right' : '';
+          const dy = tip.y > clay.height + Z.indentY ? 'down' : tip.y < clay.height - Z.indentY ? 'up' : '';
           return { intended: 'indent', reason: 'thumbNotOnTop', handTrackId: h.trackId, params: { dx, dy } };
         }
         if (held(`noSupportThumb${hs}`, onTop && !supported)) {
@@ -376,25 +412,27 @@ const isKind = (g: Gesture): g is Kind => g === 'pullUp' || g === 'indent' || g 
 /** Support: palm near either real side wall, within the pot's current height. */
 function atSideWall(h: HandFeatures, clay: ClayState): boolean {
   const y = h.palmWorld.y;
-  if (y < -CONFIG.SUPPORT_Y_MARGIN_WORLD || y > clay.height + CONFIG.SUPPORT_Y_MARGIN_WORLD) return false;
+  if (y < -Z.supportY || y > clay.height + Z.supportY) return false;
   const band = Math.round(Math.max(0, Math.min(1, y / clay.height)) * (clay.radii.length - 1));
-  return Math.abs(Math.abs(h.palmWorld.x) - clay.radii[band]) < CONFIG.SUPPORT_REACH_WORLD;
+  const r = clay.radii[band];
+  // off to a side (not in front of the pot's centre), and near that wall
+  return Math.abs(h.palmWorld.x) >= 0.5 * r && Math.abs(Math.abs(h.palmWorld.x) - r) < Z.supportReach;
 }
 const inLiftZone = (h: HandFeatures, clay: ClayState) =>
-  h.palmWorld.y >= -CONFIG.LIFT_ZONE_BELOW_WORLD && h.palmWorld.y <= CONFIG.LIFT_ZONE_ABOVE_WORLD &&
-  Math.abs(h.palmWorld.x) <= clay.radii[0] + CONFIG.LIFT_ZONE_X_MARGIN_WORLD;
+  h.palmWorld.y >= -Z.liftBelow && h.palmWorld.y <= Z.liftAbove &&
+  Math.abs(h.palmWorld.x) <= clay.radii[0] + Z.liftX;
 const inRimZone = (h: HandFeatures, clay: ClayState) =>
-  h.palmWorld.y >= clay.height - CONFIG.RIM_BELOW_WORLD && h.palmWorld.y <= clay.height + CONFIG.RIM_ABOVE_WORLD &&
-  Math.abs(h.palmWorld.x) <= clay.radii[clay.radii.length - 1] + CONFIG.RIM_X_MARGIN_WORLD;
+  h.palmWorld.y >= clay.height - Z.rimBelow && h.palmWorld.y <= clay.height + Z.rimAbove &&
+  Math.abs(h.palmWorld.x) <= clay.radii[clay.radii.length - 1] + Z.rimX;
 /** Pinch point (between thumb and index tips) inside the opening, or at the top centre when there's none yet. */
 function atOpening(h: HandFeatures, clay: ClayState, world: World, orTopCentre = false): boolean {
   if (!hasLandmarks(h)) return false;
   const a = world(h.landmarksPx[THUMB_TIP]), b = world(h.landmarksPx[INDEX_TIP]);
   const p = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-  const radius = Math.max(clay.cavityRadiusWorld, orTopCentre ? CONFIG.INDENT_TOL_X_WORLD : 0);
-  const bottom = clay.height - Math.max(clay.cavityDepthWorld, orTopCentre ? CONFIG.INDENT_TOL_Y_WORLD : 0);
-  return Math.abs(p.x) <= radius + CONFIG.OPEN_ZONE_MARGIN_WORLD &&
-    p.y >= bottom - CONFIG.OPEN_ZONE_MARGIN_WORLD && p.y <= clay.height + CONFIG.OPEN_ZONE_MARGIN_WORLD;
+  const radius = Math.max(clay.cavityRadiusWorld, orTopCentre ? Z.indentX : 0);
+  const bottom = clay.height - Math.max(clay.cavityDepthWorld, orTopCentre ? Z.indentY : 0);
+  return Math.abs(p.x) <= radius + Z.openMargin &&
+    p.y >= bottom - Z.openMargin && p.y <= clay.height + Z.openMargin;
 }
 
 /** Can this hand START the action (pose + place)? */
@@ -403,7 +441,7 @@ const QUALIFIES: Record<Kind, (h: HandFeatures, clay: ClayState, world: World) =
   indent: (h, clay, world) => {
     if (!isThumbDown(h)) return false;
     const tip = world(h.landmarksPx[THUMB_TIP]);
-    return Math.abs(tip.x) <= CONFIG.INDENT_TOL_X_WORLD && Math.abs(tip.y - clay.height) <= CONFIG.INDENT_TOL_Y_WORLD;
+    return Math.abs(tip.x) <= Z.indentX && Math.abs(tip.y - clay.height) <= Z.indentY;
   },
   open: (h, clay, world) => isPinch(h, false) && atOpening(h, clay, world),
   compressRim: (h, clay) => allOpen(h, false) && !isPinch(h, false) && isHorizontal(h) && inRimZone(h, clay),
@@ -424,7 +462,7 @@ const STEP: Record<Kind, Step> = {
       if (e.ms < CONFIG.LIFT_HOLD_MS) return idle(e.ms / CONFIG.LIFT_HOLD_MS);
       e.armed = true;
     }
-    if (h.palmWorld.y < -CONFIG.LIFT_ZONE_BELOW_WORLD) return null;
+    if (h.palmWorld.y < -Z.liftBelow) return null;
     const vy = vUp(h);
     if (vy > CONFIG.LIFT_MAX_PALM_PER_S) {
       rec.latch({ intended: 'pullUp', reason: 'liftTooFast', handTrackId: h.trackId, params: {} }, t);

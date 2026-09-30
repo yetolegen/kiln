@@ -14,7 +14,13 @@ export const CONFIG = {
   MIN_INNER_RADIUS: 0.02,      // renderer only
   FLOOR_WORLD: 0.15,           // clay kept under the cavity
 
+  // Every placement tolerance below = max(*_WORLD floor, *_PALM × the user's palm length in world units),
+  // so it works close to or far from the camera. (Test palm: 100 px / 180 px per unit ≈ 0.56 world.)
   // contact
+  REACH_ON_PALM: 0.9,
+  REACH_OFF_PALM: 1.2,
+  HAND_LEVEL_TOL_PALM: 0.7,
+  VERTICAL_CONTACT_MARGIN_PALM: 0.4,
   REACH_ON_WORLD: 0.5,
   REACH_OFF_WORLD: 0.65,
   HAND_LEVEL_TOL_WORLD: 0.3,
@@ -33,9 +39,14 @@ export const CONFIG = {
 
   // v4 one-hand actions (docs/GESTURES_V4.md); seed values, tune from recordings
   SUPPORT_REACH_WORLD: 0.45,        // support palm within this of either side wall
+  SUPPORT_REACH_PALM: 1.1,
   SUPPORT_Y_MARGIN_WORLD: 0.1,      // ... and within the pot height ± this
-  HORIZONTAL_TOL_DEG: 35,           // wrist → middle knuckle within this of horizontal = "horizontal hand"
-  THUMB_DOWN_TOL_DEG: 40,           // thumb knuckle → tip within this of straight down
+  SUPPORT_Y_MARGIN_PALM: 0.5,
+  ZONE_PALM: 0.8,                   // lift / rim / indent / opening zones grow by this many palms
+  HORIZONTAL_TOL_DEG: 50,           // wrist → middle knuckle within this of horizontal = "flat hand"
+  FORESHORTENED_RATIO: 0.55,        // ... or that vector shorter than this × palm: fingers point at the camera, also flat
+  THUMB_DOWN_TOL_DEG: 50,           // thumb knuckle → tip within this of straight down
+  FINGERS_CURLED_MEAN: 0.72,        // thumb-down: mean finger extension below this (curled fingers read 0.36–0.66 on a real webcam)
   STILL_PALM_PER_S: 0.35,           // "holding still" for the lift and rim holds
   LIFT_HOLD_MS: 3000,
   LIFT_ZONE_BELOW_WORLD: 0.5,       // active palm height at the base: from −this ...
