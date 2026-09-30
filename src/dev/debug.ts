@@ -72,6 +72,7 @@ export function createDebugPanel(parent: HTMLElement = document.body) {
             `err L${f(g.contact.leftErrorWorld)} R${f(g.contact.rightErrorWorld)}\n` +
             `targetR ${f(g.targetRadiusWorld)} center ${f(g.centerOffsetPalm)} palm speed ${f(g.speedPalmPerS)} palm/s`
           : 'gesture –',
+        g ? `cursor ${g.cursorPx ? `${f(g.cursorPx.x, 0)},${f(g.cursorPx.y, 0)}px` : '–'}` : '',
         g ? `motion ${f(g.motionStrength)} nearMiss ${g.nearMiss ? `${g.nearMiss.reason} ${JSON.stringify(g.nearMiss.params)}` : '–'}` : '',
         g ? `action active #${g.activeTrackId ?? '–'} support #${g.supportTrackId ?? '–'} progress ${f(g.activationProgress)}` : '',
         c ? `cavity r ${f(c.cavityRadiusWorld)} depth ${f(c.cavityDepthWorld)}` : '',
