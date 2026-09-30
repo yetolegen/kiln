@@ -4,6 +4,12 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ## Automated checks
 
+### V5.2 live verification (30 September 13:53)
+
+- Deployed `b63f4a4`, including core fix `5dfaa50`, to https://kiln-delta-rose.vercel.app. Deployment `dpl_2pF7P8xYe8mkmqB7nKX7Kt9TNXRc` READY; remote build/typecheck passed.
+- Verification rerun: 221/221 unit tests, production build, and four targeted Chromium browser checks pass. Public Chromium smoke passes with the real hand model and simulated camera, confirming footer **V5.2**, startup, mirroring and resize.
+- Working UI interaction implementation unchanged. User's physical-hand compression retest is pending; synthetic input and camera startup checks do not establish that acceptance.
+
 ### External compression core fix (30 September 13:48, not yet deployed)
 
 - Replaced absolute palm-spacing radius targets with signed travel applied to the current outer profile. Inward movement narrows, outward movement widens, stationary contact adds no deformation. New contact and tracking/context changes establish a fresh reference.

@@ -1,3 +1,11 @@
+### 2026-09-30 13:53 · B · V5.2 live; public startup/version verified
+**Done:** deployed `b63f4a4` (includes core fix `5dfaa50`) to https://kiln-delta-rose.vercel.app. Vercel deployment `dpl_2pF7P8xYe8mkmqB7nKX7Kt9TNXRc` is READY; production alias updated. Public Chromium real-model/simulated-camera test passes startup, footer V5.2, video mirroring and resize. Pre-deploy gate: 221 unit tests, build/typecheck and four targeted Chromium dwell/lesson/camera-order checks pass.
+**Contract changes:** none. Working UI interaction preserved.
+**For you (A):** external compression fix is live; awaiting user's physical-hand result.
+**Blocked / need from you:** none for deployment.
+**Known issues:** physical-hand post-fix behavior has not been verified by the assistant. Browser startup used a simulated camera; movement regressions used synthetic hand input. Existing bundle warning/WebKit screenshot limitation remain.
+**Next:** user hard-refreshes, confirms V5.2, tests slow inward external palms, stationary hold, outward movement and release/reacquisition; internal pinch-spread should still widen only the opening.
+
 ### 2026-09-30 13:51 · B · V5.2 verification passed, deploying compression fix
 **Done:** pulled/reviewed `5dfaa50` and its handoff. Re-ran the full suite: 221/221 pass, including all six original external compression/cavity separation regressions and both-hand lesson flows. Typecheck/build pass. Four targeted Chromium browser checks pass: geometry lessons/release, palm retry, dwell/HUD and camera-order real-core first-target confirmation. Production assets exclude mock/debug/synthetic-camera markers. Footer and public smoke assertion now identify V5.2.
 **Contract changes:** none from B. Working UI navigation implementation unchanged.
