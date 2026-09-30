@@ -239,8 +239,8 @@ class Controller implements CoreController {
     }
     if (!this.raiseArmed || !g.inputUsable || g.holdMs < CONFIG.HOLD_FIRE_MS) return;
     this.raiseArmed = false;
-    if (this.phase === 'studio') this.finishShaping(tMs);
-    else if (this.phase === 'tutorial' && this.expectedGesture === 'raise') {
+    // studio → glaze only via the explicit finishShaping command («Готово»); raised hands never finish a pot
+    if (this.phase === 'tutorial' && this.expectedGesture === 'raise') {
       this.leaveShaping(tMs);
       this.toMenu();
     }

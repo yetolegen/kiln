@@ -116,15 +116,16 @@ describe('phases', () => {
     expect(core.tick(T_START).stats?.sessionId).toBe('a');
   });
 
-  it('raise held HOLD_FIRE_MS finishes shaping ONCE', () => {
-    const core = inSession('free');
-    const t = feed(core, hand(-1, 1.6), hand(1, 1.6), T_START, CONFIG.HOLD_FIRE_MS + 500);
-    const s = core.tick(t);
-    expect(s.phase).toBe('glaze');
-    // still holding: nothing else happens (no second finish, no glaze confirm)
-    core.dispatch({ type: 'selectGlaze', glazeId: 'x' }, t);
-    feed(core, hand(-1, 1.6), hand(1, 1.6), t, 3000);
-    expect(core.tick(t + 3000).phase).toBe('glaze');
+  it('raised hands never finish a studio pot; only the explicit finishShaping («Готово») does', () => {
+    for (const mode of ['free', 'commission'] as const) {
+      const core = inSession(mode);
+      const t = feed(core, hand(-1, 1.6), hand(1, 1.6), T_START, CONFIG.HOLD_FIRE_MS + 2000);
+      expect(core.tick(t).phase).toBe('studio');
+      core.dispatch({ type: 'selectGlaze', glazeId: 'x' }, t); // can't skip shaping either
+      expect(core.tick(t).phase).toBe('studio');
+      core.dispatch({ type: 'finishShaping' }, t);
+      expect(core.tick(t).phase).toBe('glaze');
+    }
   });
 
   it('tutorial: raise finishes only on the step that expects it', () => {
