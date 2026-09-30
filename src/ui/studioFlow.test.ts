@@ -82,6 +82,7 @@ for (const mode of modes) it.each([1, 2])('%s supports six pottery actions and s
     const landmarksPx = h.landmarksPx.map((p) => ({ ...p }));
     landmarksPx[8] = tip;
     landmarksPx[4] = { x: tip.x - 40, y: tip.y - 60 };
+    landmarksPx[5] = { x: tip.x, y: tip.y - 60 }; // index knuckle above the tip: the finger points down (A, V8.3)
     return { ...h, landmarksPx, indexTipPx: tip };
   };
   f.action(() => poke(0), 15);

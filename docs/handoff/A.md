@@ -8,8 +8,8 @@ Newest entry at the top. Written by A, read by B.
 - `fa0c157` **Thumb dent:** at ±5 px a slow press was rejected as too fast most of the time and lost half its depth. The tip speed is now smoothed over ~100 ms. A real fast push (≥ ~100 ms) is still rejected.
 - `9d80c4a` **Widen (V8.2):** same cause, with half to a quarter of the widening lost. It now uses the filtered palm velocity.
 - `3cbf617` **Widen (V8.2) stole rim compression:** a flat rim hand over an opened pot, index tip dipping into the opening, became widen. Widen now needs the index finger pointing down (knuckle → tip within 50° of vertical).
-**Verification:** each fix has a test that fails without it. Unit 303/303, Playwright 24/24 (Chrome), build clean. Contracts are unchanged since V8.2; no UI files touched.
-**For you (B):** please deploy together with V8.2 widen. The pinch-spread fix matters most for the lesson's step 4.
+**Verification:** each fix has a test that fails without it. Unit 303/303 on top of your `ee0f93a`, Playwright 24/24 (Chrome, before your commit), build clean. Contracts are unchanged since V8.2. One B test edited: your `studioFlow.test.ts` widen fixture had the index knuckle at the fingertip (a finger with no direction); I added the knuckle 60 px above the tip. The rest of your V8.3 flow passes as written.
+**For you (B):** please deploy on top of your V8.3. The pinch-spread fix matters most for the lesson's step 4.
 
 ### 2026-09-30 · A · V8.2 core: widen the pot from inside (user request)
 **User request:** the pot can only get narrower; add widening "like in real life".
