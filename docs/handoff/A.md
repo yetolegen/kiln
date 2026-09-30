@@ -2,6 +2,24 @@
 
 Newest entry at the top. Written by A, read by B.
 
+### 2026-09-30 10:30 · A · real-hand fixes + B owns physical testing now
+**Done:** first real-hand session (Yerassyl: Acer Aspire A715-76G, Edge + Chrome, built-in webcam, daylight) found 3 core bugs, all fixed and pushed (`cdf15f7`, `8299795`), 169/169 tests incl. your flow tests, build green:
+1. **Pointing never fired:** curled fingers read 0.36–0.66 on a real webcam, the rule wanted ≤ 0.35. Now relative: index − mean(other three) ≥ 0.35 (0.25 to stay). Measured margin was 0.44–0.56.
+2. **Dwell restarted on one-frame dropouts:** pointing is now sticky for the same hand, and the cursor stays on that fingertip during the 120 ms grace.
+3. **Lesson 2 (lift) and all one-hand actions couldn't start:** his palm is ~215 px, bigger than the pot radius (~100 px), but placement tolerances were fixed world distances (support within 0.45 ≈ 60 px of the wall: impossible for a palm centre). **All zones now scale with the measured palm size** (support, base, rim, top centre, opening, shape contact). Flat hand also accepts fingers pointing at the camera; thumbs-down no longer needs every finger < 0.35 (and never matches a pinch).
+**Contract changes:** none.
+**For you (B): the user asked that you do all physical testing from now on. I work from your reports.**
+1. **Redeploy now.** Production has none of the fixes above, so menus can't be clicked there.
+2. **Test locally for numbers:** `npm run dev`, open `http://127.0.0.1:5173/?dev=1` (Chrome), good light. The green panel shows per hand `ext i m r p`, `pinch`, `POINT`, then `gesture`, `cursor`, `contact … err L R`, `action active/support progress`, `nearMiss`, `cavity`, `hint`.
+3. **For each lesson step that fails, send me:** the step, what you did, and a copy of the panel text while holding the pose. Quickest: in DevTools console:
+   `copy([...document.querySelectorAll('pre')].find(p=>p.textContent.includes('tracking')).textContent)`
+   then paste it into your handoff. Two or three captures per failing pose. The numbers let me fix thresholds exactly instead of guessing.
+4. Poses to check, in order: point at a menu card · shape (open palms at both walls) · lift (flat palm under the pot, other hand on a side wall, 3 s still, then slowly up) · indent (thumbs-down at top centre, short push) · open (pinch in the dent, spread slowly) · rim (flat palm just above the rim, hold, slowly down) · raise to finish. Both hand roles if you have time.
+5. Optional, best data: `?dev=1&rec=1`, keys 0–8 pick the label, R starts/stops, commit the JSON to `recordings/`.
+**Blocked / need from you:** redeploy + the reports above.
+**Known issues:** only one person's hands measured so far. Thresholds for pinch and the lift/rim speeds are still unmeasured.
+**Next:** fix whatever your reports show, fast.
+
 ### 2026-09-30 01:30 · A · GESTURES_V4 contract + core pushed
 **Done:** the four v4 actions per docs/GESTURES_V4.md, with your proposed ids: lift (`pullUp`, 3 s armed hold then slow rise), `indent` (thumb down at the top centre, one shallow push), `open` (pinch in the indentation, then slow spread), `compressRim` (flat hand just above the rim, 0.5 s hold, then slowly down). Old two-pinch pull and two-fist press are gone. Either hand can be active; roles are persistent track ids for the whole engagement. Collapse is now recovered by rim compression. 154 core tests pass: both role assignments, short vs 3 s holds, duplicate observations, stale input, lost support, switched hands, pose conflicts, bounded cavity, actionable hints, plus the fuzz now drives the new actions through the real controller. Thresholds are seeds, untuned on real hands.
 **Contract changes (`types.ts`):**
