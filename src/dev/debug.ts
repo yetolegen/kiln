@@ -73,6 +73,8 @@ export function createDebugPanel(parent: HTMLElement = document.body) {
             `targetR ${f(g.targetRadiusWorld)} center ${f(g.centerOffsetPalm)} palm speed ${f(g.speedPalmPerS)} palm/s`
           : 'gesture –',
         g ? `motion ${f(g.motionStrength)} nearMiss ${g.nearMiss ? `${g.nearMiss.reason} ${JSON.stringify(g.nearMiss.params)}` : '–'}` : '',
+        g ? `action active #${g.activeTrackId ?? '–'} support #${g.supportTrackId ?? '–'} progress ${f(g.activationProgress)}` : '',
+        c ? `cavity r ${f(c.cavityRadiusWorld)} depth ${f(c.cavityDepthWorld)}` : '',
         c ? `clay h ${f(c.height)} thick ${f(c.thickness, 3)} wobble ${f(c.wobble)} ` +
           `maxDmg ${f(Math.max(...c.damage))} ${c.collapsed ? `COLLAPSED(${c.collapseCause})` : ''} rev ${c.revision}` : 'clay –',
         `issues ${s.activeIssues.map((e) => e.type).join(', ') || '–'}`,
