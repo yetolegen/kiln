@@ -153,6 +153,11 @@ function drawFallback(ctx: CanvasRenderingContext2D, clay: ClayState, p: Project
     const inner = clay.cavityRadiusWorld * scale;
     ctx.fillStyle = `rgba(49, 28, 18, ${Math.min(.95, .35 + clay.cavityDepthWorld / clay.height)})`;
     ctx.beginPath(); ctx.ellipse(x, bottom - clay.height * scale, inner, inner * .15, 0, 0, Math.PI * 2); ctx.fill();
+    if (clay.bottomHole) {
+      ctx.strokeStyle = '#ffad95'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]);
+      for (const side of [-1, 1]) { ctx.beginPath(); ctx.moveTo(x + side * inner, bottom - clay.height * scale); ctx.lineTo(x + side * inner, bottom + 5); ctx.stroke(); }
+      ctx.setLineDash([]); ctx.fillStyle = '#ffd4c1'; ctx.font = '12px system-ui'; ctx.fillText('Сквозное дно', x - inner, bottom + 25);
+    }
   }
   ctx.lineWidth = 2;
   for (let i = 0; i < clay.damage.length; i++) {

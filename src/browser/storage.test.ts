@@ -12,7 +12,7 @@ function storage(raw: string | null = null) {
 }
 it('validates persisted profiles, finite stats and schema while retaining valid records', () => {
   const valid = result(); expect(isSessionResult(valid)).toBe(true);
-  const invalid = [ { ...valid, schemaVersion: 3 }, { ...valid, height: Infinity }, { ...valid, finalProfile: [1] },
+  const invalid = [ { ...valid, schemaVersion: 4 }, { ...valid, height: Infinity }, { ...valid, finalProfile: [1] },
     { ...valid, damage: Array(48).fill(-1) }, { ...valid, thickness: 3 }, { ...valid, completedAtIso: 'yesterday' },
     { ...valid, stats: { ...valid.stats, durationMs: -1 } }, { ...valid, stats: { ...valid.stats, similarity: { ...valid.stats.similarity, score: 101 } } } ];
   for (const item of invalid) expect(isSessionResult(item)).toBe(false);
@@ -23,9 +23,22 @@ it('migrates schema 1 pots as solid, preserves scores and drops retired gesture 
   const old = { ...result(), schemaVersion: 1, thickness: .25, cavityRadiusWorld: undefined, cavityDepthWorld: undefined };
   Object.assign(old.stats.gestureMs, { pressDown: 4000 });
   const store = createGalleryStore(() => storage(JSON.stringify({ schemaVersion: 1, pots: [old], bestScores: { 'vase@1': 95 } })));
-  expect(store.list()[0]).toMatchObject({ schemaVersion: 2, cavityRadiusWorld: 0, cavityDepthWorld: 0, thickness: 1 });
+  expect(store.list()[0]).toMatchObject({ schemaVersion: 3, cavityRadiusWorld: 0, cavityDepthWorld: 0, floorThicknessWorld: old.height, bottomHole: false, thickness: 1 });
   expect(store.list()[0].stats.gestureMs).not.toHaveProperty('pressDown');
   expect(store.best('vase@1')).toBe(95);
+});
+
+it('migrates schema 2 cavities and preserves a schema 3 through-hole without accepting inconsistent floors', () => {
+  const core = new MockCore(); core.key('i', 0); core.key('o', 0); core.key('8', 0);
+  const old = { ...core.tick(0).result!, schemaVersion: 2, floorThicknessWorld: undefined, bottomHole: undefined };
+  const migrated = createGalleryStore(() => storage(JSON.stringify({ schemaVersion: 2, pots: [old], bestScores: { 'vase@1': 90 } })));
+  expect(migrated.list()[0]).toMatchObject({ schemaVersion: 3, cavityDepthWorld: old.cavityDepthWorld, floorThicknessWorld: old.height - old.cavityDepthWorld, bottomHole: false });
+  expect(migrated.best('vase@1')).toBe(90);
+  core.key('b', 0); core.key('8', 0);
+  const hole = core.tick(0).result!, backend = storage();
+  expect(createGalleryStore(() => backend).save(hole)).toBe(true);
+  expect(createGalleryStore(() => backend).list()[0]).toEqual(hole);
+  for (const patch of [{ bottomHole: false }, { floorThicknessWorld: .2 }, { cavityDepthWorld: hole.height - .1 }, { collapsed: false }]) expect(isSessionResult({ ...hole, ...patch })).toBe(false);
 });
 it('round trips a real cavity and rejects impossible floors, walls and derived thickness', () => {
   const core = new MockCore(); core.key('i', 0); core.key('o', 0); core.key('8', 0);

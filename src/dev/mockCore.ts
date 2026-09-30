@@ -11,6 +11,7 @@ const HAND_POINTS = [[0, 35], [-20, 15], [-35, 0], [-48, -12], [-58, -25], [-25,
 const makeClay = (): ClayState => ({
   revision: 1, radii: Float32Array.from({ length: CONFIG.N_BANDS }, (_, i) => 1 + .12 * Math.sin(i / 47 * Math.PI)),
   height: 1.6, thickness: 1, cavityRadiusWorld: 0, cavityDepthWorld: 0, wobble: 0, damage: new Float32Array(CONFIG.N_BANDS),
+  floorThicknessWorld: 1.6, bottomHole: false, safeIndentDepthWorld: .2, maxHeightWorld: CONFIG.MAX_HEIGHT,
   collapsed: false, collapseCause: null, touching: false, activeBand: null,
 });
 
@@ -47,7 +48,7 @@ export class MockCore implements CoreController {
   observe(frame: FrameInput): void { this.input = frame; }
   resetInput(epoch: number): void { this.epoch = epoch; this.input = null; this.gesture = null; this.lastObservation = -Infinity; }
   setPaused(paused: boolean): void { this.paused = paused; }
-  updateProjection(projection: ProjectionParams): void { this.projection = projection; }
+  updateProjection(projection: ProjectionParams): void { this.projection = projection; this.clay.maxHeightWorld = Math.min(CONFIG.MAX_HEIGHT, .75 * projection.bottomYPx / projection.pixelsPerWorldUnit); }
   setCursor(x: number, y: number): void { this.cursor.x = x; this.cursor.y = y; this.gestureName = this.palmCursor ? 'none' : 'point'; }
 
   dispatch(command: AppCommand, nowMs: number): void {
@@ -75,7 +76,7 @@ export class MockCore implements CoreController {
       return;
     }
     const action = ({ s: 'shape', u: 'pullUp', i: 'indent', o: 'open', d: 'compressRim' } as Record<string, Gesture>)[key.toLowerCase()];
-    if (action && (this.lost || (this.phase === 'tutorial' && this.expected !== action))) { this.gestureName = action; return; }
+    if (action && (this.lost || (this.phase === 'tutorial' && this.expected !== action) || ['bottomHole', 'wallTorn', 'pancake'].includes(this.clay.collapseCause ?? ''))) { this.gestureName = action; return; }
     switch (key.toLowerCase()) {
       case 's': this.gestureName = 'shape'; for (let i = 0; i < this.clay.radii.length; i++) this.clay.radii[i] = Math.max(CONFIG.MIN_R, this.clay.radii[i] - .20 * Math.exp(-.5 * ((i - 24) / CONFIG.SIGMA_BANDS) ** 2)); break;
       case 'u': this.gestureName = 'pullUp'; this.clay.height = Math.min(CONFIG.MAX_HEIGHT, this.clay.height + .30); for (let i = 0; i < this.clay.radii.length; i++) this.clay.radii[i] *= .977; break;
@@ -94,13 +95,17 @@ export class MockCore implements CoreController {
       case 't': this.issue('tear', nowMs); this.clay.damage[24] = this.active.has('tear') ? .8 : .25; break;
       case 'w': this.issue('wobble', nowMs); this.clay.wobble = this.active.has('wobble') ? .8 : 0; break;
       case 'c': this.issue('collapse', nowMs); this.clay.collapsed = this.active.has('collapse'); this.clay.collapseCause = this.clay.collapsed ? 'thinWall' : null; break;
+      case 'b': this.clay.bottomHole = true; this.clay.cavityRadiusWorld = .4; this.clay.cavityDepthWorld = this.clay.height; this.clay.collapsed = true; this.clay.collapseCause = 'bottomHole'; this.issue('collapse', nowMs); break;
+      case 'e': this.issue('overStretch', nowMs); break;
+      case 'n': this.clay.height = .65; this.clay.cavityRadiusWorld = this.clay.cavityDepthWorld = 0; this.clay.collapsed = true; this.clay.collapseCause = 'pancake'; this.issue('collapse', nowMs); break;
       case 'arrowleft': case 'arrowright': {
         const sign = key.toLowerCase() === 'arrowleft' ? -1 : 1;
         for (let i = 0; i < this.clay.radii.length; i++) this.clay.radii[i] = Math.max(CONFIG.MIN_R, Math.min(CONFIG.MAX_R, this.clay.radii[i] + sign * .12 * Math.exp(-(((i - 24) / 8) ** 2))));
         break;
       }
     }
-    this.clay.cavityDepthWorld = Math.min(this.clay.cavityDepthWorld, this.clay.height - CONFIG.FLOOR_WORLD);
+    this.clay.cavityDepthWorld = this.clay.bottomHole ? this.clay.height : Math.min(this.clay.cavityDepthWorld, this.clay.height - CONFIG.FLOOR_WORLD);
+    this.clay.floorThicknessWorld = this.clay.height - this.clay.cavityDepthWorld;
     const first = this.clay.cavityDepthWorld > 0 ? Math.floor((1 - this.clay.cavityDepthWorld / this.clay.height) * (CONFIG.N_BANDS - 1)) : 0;
     this.clay.thickness = Math.min(...this.clay.radii.slice(first)) - this.clay.cavityRadiusWorld;
     this.clay.revision++;
@@ -110,7 +115,7 @@ export class MockCore implements CoreController {
     const previous = this.active.get(type);
     const event: ClayEvent = previous ? { ...previous, phase: 'end', tMs: nowMs } : {
       episodeId: `mock-${++this.episode}`, type, phase: 'begin', category: 'execution', tMs: nowMs, severity: .8, band: 24,
-      ...(type === 'collapse' ? { cause: 'thinWall' as const } : {}), data: type === 'wobble' ? { dir: 'left' } : { speedRatio: 2 },
+      ...(type === 'collapse' ? { cause: this.clay.collapseCause ?? 'thinWall' } : {}), data: type === 'wobble' ? { dir: 'left' } : type === 'overStretch' ? { seconds: 7, tearInS: 3 } : { speedRatio: 2 },
     };
     if (previous) this.active.delete(type);
     else { this.active.set(type, event); this.stats.executionEpisodes[type] = (this.stats.executionEpisodes[type] ?? 0) + 1; }
@@ -127,9 +132,10 @@ export class MockCore implements CoreController {
   }
 
   private finalize(): SessionResult {
-    return { schemaVersion: 2, id: this.stats.sessionId, completedAtIso: new Date().toISOString(), stats: structuredClone(this.stats),
+    return { schemaVersion: 3, id: this.stats.sessionId, completedAtIso: new Date().toISOString(), stats: structuredClone(this.stats),
       finalProfile: Array.from(this.clay.radii), height: this.clay.height, thickness: this.clay.thickness,
       cavityRadiusWorld: this.clay.cavityRadiusWorld, cavityDepthWorld: this.clay.cavityDepthWorld,
+      floorThicknessWorld: this.clay.floorThicknessWorld, bottomHole: this.clay.bottomHole,
       damage: Array.from(this.clay.damage), collapsed: this.clay.collapsed, glazeId: this.glazeId ?? 'amber' };
   }
 
@@ -149,7 +155,7 @@ export class MockCore implements CoreController {
         holdMs: 600, inputUsable: !this.lost && !pointing, deforming: this.clay.touching, motionStrength: .7, targetRadiusWorld: 1.1,
         activeTrackId: this.clay.touching && this.gestureName !== 'shape' ? 1 : null,
         supportTrackId: this.clay.touching && this.gestureName !== 'shape' ? 3 : null,
-        activationProgress: !this.lost && ['pullUp', 'indent', 'open', 'compressRim'].includes(this.gestureName) ? 1 : 0,
+        activationProgress: !this.lost && ['pullUp', 'indent', 'open', 'compressRim'].includes(this.gestureName) ? 1 : 0, engagedMs: this.active.has('overStretch') ? 7000 : 0,
         centerOffsetPalm: this.clay.wobble * .5, speedPalmPerS: this.active.has('tear') ? 12 : 1,
         contact: { valid: !this.lost && this.gestureName === 'shape', activeBand: this.clay.activeBand, bandY: .5, leftErrorWorld: 0, rightErrorWorld: 0, reason: null },
         cursorPx: !this.lost && this.gestureName === 'point' ? this.cursor : null, nearMiss: null,

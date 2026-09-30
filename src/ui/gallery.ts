@@ -28,6 +28,7 @@ export function renderGallery(parent: HTMLElement, pots: readonly SessionResult[
     const title = document.createElement('h2'); title.textContent = pot.stats.mode === 'commission' ? 'Ваза по образцу' : 'Свободная форма';
     const date = document.createElement('p'); date.textContent = new Date(pot.completedAtIso).toLocaleDateString('ru-RU');
     card.append(canvas, title, date);
+    if (pot.bottomHole) { const state = document.createElement('p'); state.textContent = 'Сквозное отверстие в дне'; card.append(state); }
     if (pot.stats.mode === 'commission' && pot.stats.targetId && pot.stats.similarity) {
       const score = document.createElement('p'); score.textContent = `${Math.round(pot.stats.similarity.score)}% · лучший здесь: ${Math.round(best(pot.stats.targetId) ?? 0)}%`;
       card.append(score);

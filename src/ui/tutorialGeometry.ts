@@ -45,7 +45,10 @@ export function assessLessonShape(clay: ClayState, goal: LessonGoal): ShapeAsses
     Math.abs(clay.cavityDepthWorld - t.cavityDepthWorld) / cavityDTol];
   const worst = Math.max(...errors);
   let failure: string | null = null;
-  if (clay.collapsed) failure = 'Сосуд обрушился. Начните заново и двигайте рабочую руку медленнее, сохраняя опору.';
+  if (clay.bottomHole) failure = 'Дно пробито насквозь. Начните заново и вдавливайте большой палец только до отмеченного дна.';
+  else if (clay.collapseCause === 'wallTorn') failure = 'Стенка разорвалась от долгого растягивания. Начните заново и отпускайте щипок у нужной ширины.';
+  else if (clay.collapseCause === 'pancake') failure = 'Сосуд сплющен в лепёшку. Начните заново и останавливайте давление у прозрачного края.';
+  else if (clay.collapsed) failure = 'Сосуд обрушился. Начните заново и двигайте рабочую руку медленнее, сохраняя опору.';
   else if (Math.max(...clay.damage) > .35) failure = 'Стенка повреждена. Начните заново и работайте медленнее, не растягивая её за образец.';
   else if (clay.height > Math.max(s.height, t.height) + (step === 1 ? hTol : .08)) failure = 'Вы подняли сосуд выше образца. Поднимайте только до прозрачного края.';
   else if (clay.height < Math.min(s.height, t.height) - (step === 4 ? hTol : .08)) failure = 'Вы сжали сосуд ниже образца. Остановите ладонь, когда края совпадут.';

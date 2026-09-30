@@ -26,6 +26,26 @@ export function createOverlay(parent: HTMLElement) {
       if (!ctx) return;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, width, height);
+      if (projection && snapshot.clay && ['studio', 'tutorial'].includes(snapshot.phase)) {
+        const p = projection, c = snapshot.clay, scale = p.pixelsPerWorldUnit;
+        if (snapshot.phase === 'studio') {
+          const y = p.bottomYPx - c.maxHeightWorld * scale;
+          ctx.strokeStyle = '#e6aa7480'; ctx.fillStyle = '#e6aa74'; ctx.lineWidth = 1; ctx.setLineDash([3, 7]);
+          ctx.beginPath(); ctx.moveTo(p.axisXPx - 1.6 * scale, y); ctx.lineTo(p.axisXPx + 1.6 * scale, y); ctx.stroke();
+          ctx.font = '11px system-ui'; ctx.fillText('Предел высоты', p.axisXPx - 1.6 * scale, y - 7);
+        }
+        if (c.bottomHole) {
+          const r = c.cavityRadiusWorld * scale, top = p.bottomYPx - c.height * scale;
+          ctx.strokeStyle = '#ff927c'; ctx.fillStyle = '#ffb6a5'; ctx.lineWidth = 2; ctx.setLineDash([4, 4]);
+          for (const side of [-1, 1]) {
+            ctx.beginPath(); ctx.moveTo(p.axisXPx + side * r, top); ctx.lineTo(p.axisXPx + side * r, p.bottomYPx + 8); ctx.stroke();
+          }
+          ctx.setLineDash([]); ctx.beginPath(); ctx.moveTo(p.axisXPx, p.bottomYPx - 18); ctx.lineTo(p.axisXPx, p.bottomYPx + 10);
+          ctx.moveTo(p.axisXPx - 5, p.bottomYPx + 4); ctx.lineTo(p.axisXPx, p.bottomYPx + 10); ctx.lineTo(p.axisXPx + 5, p.bottomYPx + 4); ctx.stroke();
+          if (snapshot.phase === 'studio') { ctx.font = '12px system-ui'; ctx.fillText('Дно пробито · разрез', p.axisXPx - r - 20, top - 16); }
+        }
+        ctx.setLineDash([]);
+      }
       if (snapshot.phase === 'tutorial' && goal && projection) {
         const p = projection, t = goal.target, scale = p.pixelsPerWorldUnit;
         const color = lessonStatus === 'failed' ? '#ff9c85' : lessonStatus === 'matched' ? '#9ee3c4' : '#a5e9ed';
@@ -39,18 +59,20 @@ export function createOverlay(parent: HTMLElement) {
         ctx.closePath(); ctx.fill(); ctx.stroke();
         const top = p.bottomYPx - t.height * scale;
         ctx.beginPath(); ctx.ellipse(p.axisXPx, top, t.radii.at(-1)! * scale, t.radii.at(-1)! * scale * .15, 0, 0, Math.PI * 2); ctx.stroke();
-        const section = (shape: Pick<LessonShape, 'height' | 'cavityRadiusWorld' | 'cavityDepthWorld'>, stroke: string) => {
+        const section = (shape: Pick<LessonShape, 'height' | 'cavityRadiusWorld' | 'cavityDepthWorld'>, stroke: string, openBottom = false) => {
           if (shape.cavityDepthWorld <= 0) return;
           const r = shape.cavityRadiusWorld * scale, y = p.bottomYPx - shape.height * scale;
           ctx.strokeStyle = stroke; ctx.beginPath(); ctx.moveTo(p.axisXPx - r, y);
           ctx.lineTo(p.axisXPx - r, y + shape.cavityDepthWorld * scale);
-          ctx.lineTo(p.axisXPx + r, y + shape.cavityDepthWorld * scale); ctx.lineTo(p.axisXPx + r, y); ctx.stroke();
+          if (openBottom) ctx.moveTo(p.axisXPx + r, y + shape.cavityDepthWorld * scale);
+          else ctx.lineTo(p.axisXPx + r, y + shape.cavityDepthWorld * scale);
+          ctx.lineTo(p.axisXPx + r, y); ctx.stroke();
           ctx.beginPath(); ctx.ellipse(p.axisXPx, y, r, r * .15, 0, 0, Math.PI * 2); ctx.stroke();
         };
         section(t, color);
         if (snapshot.clay?.cavityDepthWorld) {
           ctx.setLineDash([]); ctx.lineWidth = 1;
-          section(snapshot.clay, '#ffd4a0');
+          section(snapshot.clay, snapshot.clay.bottomHole ? '#ff927c' : '#ffd4a0', snapshot.clay.bottomHole);
         }
         ctx.setLineDash([]); ctx.fillStyle = color; ctx.font = '12px system-ui';
         ctx.fillText(`Цель ${goal.step + 1}/6${t.cavityDepthWorld ? ' · глубина в разрезе' : ''}`, p.axisXPx - t.radii.at(-1)! * scale, top - 22);

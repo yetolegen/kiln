@@ -168,6 +168,25 @@ test('B6 continues without sound APIs and toggles mute by dwell', async ({ page 
   expect(errors).toEqual([]);
 });
 
+test('V5 warns about stretching and shows permanent hole/pancake failures with restart', async ({ page }) => {
+  const errors: string[] = []; page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto('/?dev=1&mock=1'); await page.locator('[data-action="free"]').hover();
+  await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'studio');
+  await page.mouse.move(0, 0); await page.keyboard.press('i'); await page.keyboard.press('e');
+  await expect(page.locator('.hud__hint')).toContainText('слишком долго');
+  await page.keyboard.press('e'); await page.keyboard.press('b');
+  await expect(page.locator('.hud__hint')).toContainText('продавили дно насквозь');
+  await page.screenshot({ path: 'test-results/v5-hole.png' });
+  if (await page.getByTestId('pot-canvas').isVisible()) await page.getByTestId('pot-canvas').dispatchEvent('webglcontextlost');
+  await expect(page.getByTestId('pot-fallback')).toBeVisible();
+  await page.screenshot({ path: 'test-results/v5-hole-fallback.png' });
+  await page.locator('[data-action="restart"]').hover(); await expect(page.locator('.hud__hint')).not.toContainText('продавили'); await page.mouse.move(0, 0);
+  await page.keyboard.press('n'); await expect(page.locator('.hud__hint')).toContainText('лепёшку');
+  await expect(page.locator('.hud__hint')).toContainText('Начать сначала');
+  await page.screenshot({ path: 'test-results/v5-pancake.png' });
+  expect(errors).toEqual([]);
+});
+
 test('B5 navigates by dwell and shows a readable phone HUD', async ({ page }) => {
   await page.goto('/?dev=1&mock=1');
   await expect(page.locator('[data-action="free"]')).toBeVisible();

@@ -12,7 +12,7 @@ A virtual pottery wheel controlled by hand gestures through a webcam. A browser 
 
 Wait for the hand model, click «Начать» once and allow the camera. Hold both hands still for calibration, then place the centre of either palm over a menu button for 0.9 seconds. The button highlights and the cursor ring fills. Index-finger pointing also works. After system camera permission, in-app navigation is designed to work with gestures. Tutorial, commission/free shaping, three glazes, firing, results, PNG export and a local gallery are implemented.
 
-**v4 interaction:** A's new recognizer and cavity model are integrated with the frontend. The controls below replace the former two-pinch lift and two-fist press. Automated synthetic tests cover both hand roles; physical-camera recognition and T22 still need human verification. See [GESTURES_V4.md](docs/GESTURES_V4.md).
+**V5 interaction:** A's recognizer, cavity and damage model are integrated with palm navigation and geometry-led lessons. The controls below replace the former two-pinch lift and two-fist press. Automated synthetic tests cover both hand roles; physical-camera recognition and T22 still need human verification. See [GESTURES_V5.md](docs/GESTURES_V5.md).
 
 ## Current controls
 
@@ -20,9 +20,9 @@ Wait for the hand model, click «Начать» once and allow the camera. Hold 
 |---|---|
 | Shape | Open both palms at opposite side walls, at the same height; move them in/out |
 | Lift | One open hand horizontal near the base; other hand supports a wall. Hold still for 3 seconds until the ring fills, then rise very slowly |
-| Initial indentation | Support a wall; point the other thumb downward at the top centre and push slightly to make one shallow dent |
+| Initial indentation | Support a wall; point the other thumb downward at the top centre and push slightly. Continuing too deeply thins and perforates the floor |
 | Widen/deepen | Support a wall; pinch thumb/index inside the dent, hold briefly, then gradually spread the fingers |
-| Compress/smooth rim | Support a wall; hold the other open hand horizontal just above the rim for 0.5 seconds, then lower it slowly. Also repairs damage |
+| Compress/smooth rim | Support a wall; hold the other open hand horizontal just above the rim for 0.5 seconds, then lower it slowly. Repairs recoverable damage; continued pressing can flatten the pot |
 | Finish | Hold both open palms above the pot for 1.5 seconds |
 | Navigate | Hold either palm centre over a button; alternatively point with the index finger and curl the others |
 
@@ -30,7 +30,7 @@ These are basic shaping plus exactly four additional pottery functions. Either h
 
 **Geometry-led lessons:** every phase shows a cyan transparent target, including a dotted cavity cross-section. The amber section shows actual cavity depth. Completion requires the correct action to produce a matching height, full outer profile, cavity radius and depth. Goals lock when each step begins; a gesture alone cannot pass. The shape freezes briefly at the target, then releasing the action advances. Compression is step 5; step 6 reviews the final shape and finishes with raised hands. Overshoot or damage stops progression with corrective feedback and a palm-selectable Try Again button, which restarts the entire attempt.
 
-**Still pending in A's core:** the new all-mode screen-height failure, deep-thumb bottom perforation, ~7-second stretching damage and sustained-pressure pancake rules. The current engine retains v4 bounds until that contract arrives. See [GESTURES_V5.md](docs/GESTURES_V5.md); these mechanics are not claimed as implemented.
+**Damage in every shaping mode:** a ceiling at roughly 75% of the space above the pot base limits height. Thumb penetration beyond a palm-scaled safe depth warns of a thin floor; further pushing makes a through-hole. Holding an engaged opening for 7 seconds starts thinning the walls, and 10 seconds tears them. Continuing downward rim compression warns below height 0.9 and flattens the pot at 0.7 game units. Perforation, torn walls and pancakes require restart. The camera infers movement; it does not measure physical pressure.
 
 Rim compression was selected from [Clayground's wheel tutorial](https://www.clayground.net/post/beginnings-on-the-wheel-part-1-how-to-center-open-your-clay). A horizontal hand above the rim is distinguishable from a base lift, thumb-down indentation and pinch-spread opening. This camera mapping is a game adaptation.
 
@@ -39,7 +39,7 @@ Rim compression was selected from [Clayground's wheel tutorial](https://www.clay
 - Text coaching is always visible when needed. Russian system voice and synthesized audio are optional; the sound button also supports dwell.
 - Brief interrupted tracking keeps a fading hand drawing for up to 350 ms. Cached drawing coordinates never enter the engine; deformation and confirmations require fresh reliable input.
 - Results separate execution mistakes from tracking interruptions. Gallery and target-version best scores are local to this browser. The shelf keeps 24 pots; best scores survive trimming. Storage failure retains the shelf only until the page closes.
-- Pots start solid. Opening radius/depth are shared by rendering, PNG export and schema-2 saves. Legacy schema-1 pots migrate as solid silhouettes because their files contain no cavity geometry.
+- Pots start solid. Opening radius/depth, floor thickness and bottom perforation are preserved in schema-3 saves. WebGL leaves an actual hole; the annotated cross-section makes deep perforation visible from the camera angle. Damaged cavity walls show open tears. Legacy schema-2 pots retain their cavity and derive floor thickness; schema-1 pots migrate as solid silhouettes.
 - PNG export, storage, speech and sound may fail without blocking the result.
 - Camera frames stay in the browser. The application requests no microphone and has no application backend. The model is served locally; pinned MediaPipe WASM loads from jsDelivr.
 - This is a game model, not a measurement or simulation of real clay pressure or physical thickness.

@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
-import { OrthographicCamera, Vector2, Vector3 } from 'three';
+import { OrthographicCamera, Vector2, Vector3, Mesh, LatheGeometry } from 'three';
 import { configureCamera } from './scene';
-import { fillProfile } from './pot';
+import { fillProfile, createPotView } from './pot';
 import { cameraProjection } from '../browser/camera';
 import { MockCore } from '../dev/mockCore';
 
@@ -14,6 +14,27 @@ it.each([[1440, 900], [390, 844], [844, 390]])('matches the core interaction pla
     expect(Math.abs((projected.x + 1) / 2 * width - (p.axisXPx + x * p.pixelsPerWorldUnit))).toBeLessThan(.5);
     expect(Math.abs((1 - projected.y) / 2 * height - (p.bottomYPx - y * p.pixelsPerWorldUnit))).toBeLessThan(.5);
   }
+});
+
+it('leaves a real central void when the clay floor is perforated', () => {
+  const clay = new MockCore().tick(0).clay!;
+  clay.bottomHole = true; clay.cavityRadiusWorld = .4; clay.cavityDepthWorld = clay.height; clay.floorThicknessWorld = 0;
+  const points: Vector2[] = []; fillProfile(clay, points);
+  expect(points[0]).toEqual(points.at(-1));
+  expect(points.every((p) => p.x >= .4)).toBe(true);
+  expect(points.at(-1)!.y).toBe(0);
+});
+
+it('removes faces for a torn cavity wall and restores intact topology for an undamaged pot', () => {
+  const clay = new MockCore().tick(0).clay!, view = createPotView();
+  clay.cavityRadiusWorld = .5; clay.cavityDepthWorld = 1;
+  view.update(clay, null, 0);
+  const mesh = view.group.children.find((child) => child instanceof Mesh && child.geometry instanceof LatheGeometry) as Mesh<LatheGeometry>;
+  const intact = Array.from(mesh.geometry.getIndex()!.array);
+  clay.damage.fill(.8); clay.revision++; view.update(clay, null, 0);
+  expect(Array.from(mesh.geometry.getIndex()!.array).filter((v, i) => v !== intact[i]).length).toBeGreaterThan(20);
+  clay.damage.fill(0); clay.revision++; view.update(clay, null, 0);
+  expect(Array.from(mesh.geometry.getIndex()!.array)).toEqual(intact); view.dispose();
 });
 
 it.each([[0, 0], [.12, .12], [.6, 1]])('renders explicit cavity radius %f / depth %f without changing the clay', (radius, depth) => {

@@ -28,10 +28,15 @@ it('survives unavailable and throwing speech APIs', () => {
 });
 it('speaks the same v4 technique and tracking feedback as the banner, once per hint', () => {
   const f = fixture(); f.load();
-  for (const id of ['noSupport', 'liftTooFast', 'thumbNotOnTop', 'pinchFirst', 'spreadTooFast', 'trackingUncertain'] as const) {
+  for (const id of ['noSupport', 'liftTooFast', 'thumbNotOnTop', 'pinchFirst', 'spreadTooFast', 'trackingUncertain', 'thinFloor', 'overStretch', 'tooFlat'] as const) {
     const message: Hint = { ...hint(), id, params: { side: 'right', interrupted: 'true' } };
     f.voice.update(message); f.voice.update(message);
     expect(f.synth.speak).toHaveBeenLastCalledWith(expect.objectContaining({ text: hintText(message) }));
   }
-  expect(f.synth.speak).toHaveBeenCalledTimes(6);
+  expect(f.synth.speak).toHaveBeenCalledTimes(9);
+});
+
+it.each(['bottomHole', 'wallTorn', 'pancake'])('explains permanent %s failure with restart instead of recovery', (cause) => {
+  const message = hintText({ ...hint(), id: 'collapse', params: { cause } });
+  expect(message).toContain('Начать сначала'); expect(message).not.toContain('восстановления');
 });

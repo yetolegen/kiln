@@ -7,7 +7,7 @@ export function fillProfile(clay: ClayState, points: Vector2[]): void {
   points.length = n * 2 + 2;
   const hollow = clay.cavityRadiusWorld > 0 && clay.cavityDepthWorld > 0;
   const floor = hollow ? clay.height - clay.cavityDepthWorld : clay.height;
-  points[0].set(.001, 0);
+  points[0].set(clay.bottomHole ? clay.cavityRadiusWorld : .001, 0);
   for (let i = 0; i < n; i++) points[i + 1].set(clay.radii[i], clay.height * i / (n - 1));
   for (let i = 0; i < n; i++) {
     const y = clay.height - (clay.height - floor) * i / (n - 1);
@@ -15,7 +15,8 @@ export function fillProfile(clay: ClayState, points: Vector2[]): void {
     const r = hollow ? clay.cavityRadiusWorld : clay.radii[n - 1] * (1 - i / (n - 1));
     points[n + 1 + i].set(Math.max(.001, r), y);
   }
-  points[points.length - 1].set(.001, floor);
+  // A perforation closes only the annular wall, never a disk across the axis.
+  points[points.length - 1].set(clay.bottomHole ? clay.cavityRadiusWorld : .001, floor);
 }
 
 export function createPotView() {
@@ -28,6 +29,7 @@ export function createPotView() {
   group.add(ring);
   const points: Vector2[] = [];
   let mesh: Mesh<LatheGeometry, MeshStandardMaterial> | null = null;
+  let intactIndices = new Uint32Array();
   let revision = -1;
   let radii: Float32Array | null = null;
   const segments = 64;
@@ -42,6 +44,7 @@ export function createPotView() {
           const geometry = new LatheGeometry(points, segments);
           geometry.setAttribute('color', new Float32BufferAttribute(new Float32Array(geometry.getAttribute('position').count * 3), 3));
           mesh = new Mesh(geometry, material);
+          intactIndices = Uint32Array.from(geometry.getIndex()!.array);
           group.add(mesh);
         }
         const geometry = mesh.geometry;
@@ -60,6 +63,18 @@ export function createPotView() {
         }
         positions.needsUpdate = true;
         colors.needsUpdate = true;
+        const indices = geometry.getIndex()!;
+        for (let i = 0; i < intactIndices.length; i += 3) {
+          const vertex = intactIndices[i], point = vertex % points.length;
+          const y = points[point].y, bandAt = Math.round(y / clay.height * (clay.damage.length - 1));
+          const turn = Math.floor(vertex / points.length) / segments;
+          const slit = .07 + Math.sin(bandAt * .8) * .012;
+          // Open a narrow jagged tear in damaged cavity walls; intact faces retain their original indices.
+          const torn = clay.cavityDepthWorld > 0 && y >= clay.height - clay.cavityDepthWorld &&
+            (clay.damage[bandAt] ?? 0) >= .65 && Math.abs(turn - slit) < .025;
+          for (let k = 0; k < 3; k++) indices.setX(i + k, torn ? 0 : intactIndices[i + k]);
+        }
+        indices.needsUpdate = true;
         geometry.computeVertexNormals();
         const normals = geometry.getAttribute('normal');
         for (let j = 0; j < points.length; j++) {
