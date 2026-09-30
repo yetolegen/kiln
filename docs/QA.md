@@ -6,6 +6,7 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ### V9.0 reference-inspired atelier and damage feedback
 
+- **Live:** `0ed2d53`, deployment `dpl_9wL7jowNEqfHnJnDrM8j4oyv85mR` READY at https://kiln-delta-rose.vercel.app. Cloud build and public V9.0 camera/model/version/mirroring/resize checks pass; the production background image is referenced and decodes successfully.
 - Includes A's debugging through `3644e7f`: stabilized thumb/spread/widen speed checks and separated downward-index widening from flat-palm rim compression. B's changes are presentation, tests and assets only.
 - 307/307 unit/integration and warning-free typecheck/build. Damage presentation tests cover all three sculpting modes, bottom holes, pancakes, collapse and tears; warning-only states stay distinct. Notices persist without hints/input and clear on restart.
 - Twenty distinct Chromium feature checks pass across verification runs. Final eight rerun on the combined tree cover real-model/simulated-camera startup, palm menu/retry, all lesson steps, central/shifted real-controller narrowing, portrait/landscape export, artwork and damage layouts. Other passing checks cover pixel-visible rotation/reduced motion, free viewing/touch, rim tears, glaze/fire/export/gallery (including blocked storage), and shaping/widening button locks in both studio modes.
