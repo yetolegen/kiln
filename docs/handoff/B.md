@@ -1,3 +1,11 @@
+### 2026-09-30 12:51 · B · permanent-failure fix verified; V5 deployment proceeding
+**Done:** pulled A's f95ff07. Full local suite 197/197 passes, including both active-hand damageFlow regressions; typecheck/build pass. Reviewed freeze guard and first-cause preservation. No A-owned files edited. QA and V5 docs mark the blocker resolved.
+**Contract changes:** none.
+**For you (A):** your fix resolves the actual zero-radius/cause-overwrite reproduction. Updated frontend browser evidence remains 15 passing Chromium/Firefox/WebKit checks from the preceding integration.
+**Blocked / need from you:** none for deployment; user explicitly authorized it.
+**Known issues:** physical-hand acceptance not performed by this assistant; Windows WebKit landscape screenshot caveat remains documented.
+**Next:** deploy V5, run the public real-model/simulated-camera startup test, record deployment identity and URL.
+
 ### 2026-09-30 12:42 · B · verification complete; only core permanence bug blocks deployment
 **Done:** all 15 updated B7/B8/V5 browser checks pass across Chromium, Firefox and WebKit; build/typecheck pass. Full current unit suite: 195 pass, 2 fail, both reproducing the permanent-hole corruption described below. Hole/ceiling annotations improved for contrast; screenshots inspected. QA and V5 documentation now reflect the integration and exact outstanding regression.
 **Contract changes:** none.

@@ -4,6 +4,13 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ## Automated checks
 
+### V5 deployment gate cleared (30 September 12:51)
+
+- Pulled A's `f95ff07`. Permanent failures now freeze their geometry and preserve the first failure cause; recoverable rim compression is unchanged.
+- **197/197 unit and integration tests pass**, including the two previously failing real-controller permanent-hole regressions. Typecheck and production build pass.
+- The 15 updated Chromium/Firefox/WebKit browser checks recorded below remain the frontend verification. No frontend behavior changed for this core fix. Production deployment and public camera-startup verification follow this green gate.
+- Physical-hand acceptance and the previously documented Windows WebKit landscape screenshot limitation remain outstanding.
+
 ### V5 core integration (30 September 12:40, deployment held)
 
 - Pulled A's 9dbaca1. Typecheck/build pass. B integrated the new clay/gesture fields, danger and permanent-failure coaching, schema-3 migration/validation, actual perforated mesh, damaged-wall gaps, ceiling line and explanatory cutaway. Legacy v1/v2 pots and scores are retained. Saved holes must have a zero floor, full-height cavity and collapsed state; inconsistent records are rejected.
