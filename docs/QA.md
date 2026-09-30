@@ -4,6 +4,12 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ## Automated checks
 
+### V5.3 production verification (30 September 15:05)
+
+- Deployed `0cd501d`, including A's gate fix `2242d15`, to https://kiln-delta-rose.vercel.app; deployment `dpl_DcH3kKdZw4XMxfkSCjHqYip9Qfu2` READY.
+- Public Chromium smoke passes real-model loading, simulated-camera startup, V5.3 footer, mirrored video and phone resize. This is not physical-hand verification.
+- Completed-lesson/Done controls are live. Ten known V6 core acceptance failures remain documented below and with A.
+
 ### A's Done gate integration (30 September 15:03)
 
 - Pulled `2242d15`; real-controller `studioFlow` now **8/8 passing**. Raised hands cannot finish free/commission pots; explicit finishShaping unlocks glazing, and firing requires a glaze.

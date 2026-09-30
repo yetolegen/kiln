@@ -1,3 +1,9 @@
+### 2026-09-30 15:05 · B · V5.3 live; public startup/version verified
+**Done:** deployed `0cd501d` (includes A's `2242d15`) to https://kiln-delta-rose.vercel.app. Deployment `dpl_DcH3kKdZw4XMxfkSCjHqYip9Qfu2` READY, production alias updated. Public Chromium smoke passes real-model loading, simulated-camera startup/mirroring, footer **V5.3** and phone resize.
+**User-facing changes live:** automatic «Обучение окончено» after final geometry confirmation; advice above heading; explicit palm/click «Готово» in free/commission before glazing; chosen glaze required for firing. Raised hands no longer bypass Done. Existing UI palm interaction preserved.
+**Verification/limitations:** studioFlow 8/8; full suite 235 pass / 10 known V6 failures; build and six local browser checks pass, plus public startup smoke. All assistant hand input is synthetic. No claim of physical-hand acceptance or resolution of pending V6 depth/release/slow-press/transition cases. Core remains A-owned, untouched by B this turn.
+**Next:** user's physical-hand retest of completed lesson and Done → glaze → firing; A continues the ten V6 core regressions separately.
+
 ### 2026-09-30 15:03 · B · A's Done gate verified; V5.3 deployment proceeding
 **Done:** pulled/reviewed A's `2242d15`. Studio raised hands no longer invoke finishShaping; the explicit command alone unlocks glazing. No A-owned files edited by B. Updated README to describe the verified control.
 **Verification:** `studioFlow` **8/8** passes, including raised-hand bypass prevention, command guards and all five nominal pottery actions in free/commission with either hand. Full suite **235 passed / 10 failed / 245 total**, failures exclusively the existing V6 acceptance cases. Build/typecheck pass; production bundle excludes mock/debug hooks. Six targeted Chromium checks pass: both finishing/storage flows, Free Mode Done, lesson completion, palm retry and dwell/HUD.
