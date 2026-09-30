@@ -4,6 +4,13 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ## Automated checks
 
+### V8.3 inside-wall widening
+
+- Integrates A's `5a361a7`, including storage compatibility and corrective Russian advice. The new action is available in free/commission; existing six-step lesson unchanged.
+- 298/298 unit/integration, warning-free typecheck/build. Real-controller flows cover six actions with both hand roles in both modes, local outer widening with unchanged cavity/base, and fired-pot saving/reloading with `widen` statistics.
+- Eight Chromium checks pass: shaping and widening both keep Done/restart/menu locked until release in both modes; responsive controls/export, the full lesson and centre/shifted step-1 camera fixtures pass.
+- Fixed test-fixture timestamp injection after its first storage check failed. No production regression found; all hands simulated.
+
 ### V8.2 lesson step 1
 
 - **Live:** release `103a33e`, deployment `dpl_2E5y5FsuowPSNj8hzSnD5GR6V19y` READY at https://kiln-delta-rose.vercel.app. Public real-model/simulated-camera startup, V8.2 footer, mirroring and resize pass; cloud build succeeds.

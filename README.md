@@ -24,17 +24,20 @@ Wheel and pot share one rotation angle. Droplets are visual only and emit from f
 
 ## Current controls
 
+**V8.3:** inside-wall widening is available in Free Mode and commissions. The six-step introductory lesson keeps its existing sequence. Step 1 accepts the narrowing slightly above or below the middle while preserving its depth limits.
+
 | Action | Gesture |
 |---|---|
 | Shape | Open both palms at opposite side walls, at the same height; move inward to narrow. Moving either palm outward releases the stroke. Leave contact before starting another stroke |
 | Lift | One open hand horizontal near the base; other hand supports a wall. Hold still for 3 seconds until the ring fills, then rise very slowly |
 | Initial indentation | Support a wall; point the other thumb downward at the top centre and insert slowly. Depth follows the thumb tip, including thumb bending with a stationary palm. Continuing too deeply thins and perforates the floor |
-| Widen/deepen | Support a wall; pinch thumb/index inside the dent, hold briefly, then gradually spread the fingers |
+| Open/deepen cavity | Support a wall; pinch thumb/index inside the dent, hold briefly, then gradually spread the fingers |
+| Widen outer wall from inside | First create an opening. Point the index finger down into it, with the thumb higher; support a side wall with the other palm. Hold for 0.3 seconds, then push slowly sideways toward a wall. The outer profile widens at the fingertip's height. Pulling back adds nothing; leave the opening to release |
 | Compress/smooth rim | Support a wall; hold the other open hand horizontal just above the rim for 0.5 seconds, then lower it slowly. Repairs recoverable damage; continued pressing can flatten the pot |
 | Finish | Select «Готово» with palm dwell or click, then choose glaze and fire. Raised hands do not finish the pot |
 | Navigate | Hold either palm centre over a button; alternatively point with the index finger and curl the others |
 
-These are basic shaping plus exactly four additional pottery functions. Either hand can act while the other supports; keep those roles throughout one action. The gold ring shows activation and green marks support. Moving too early/fast or losing support cancels activation.
+The original five pottery actions are joined by the requested inside-wall widening action in studio modes. External palms press inward; inside finger movement pushes outward. Pinch-spread still opens/deepens the cavity separately. Either hand can act while the other supports; keep those roles throughout one action. The gold ring shows activation and green marks support. Moving too early/fast or losing support cancels activation.
 
 **Studio controls:** Done/restart/menu/inspection hide and disable during contact or active gesture arming and return after 400 ms of clear disengagement. Session controls use a deliberate 1.8-second dwell; menu selection remains 0.9 seconds. Terminal damage leaves restart and inspection available and Done disabled. Small lift-pose fluctuations pause progress for up to 250 ms instead of erasing it; questionable frames never deform clay. Genuine departure, tracking/support loss and changed hand roles still cancel the action.
 
@@ -65,7 +68,7 @@ npm run dev
 
 Open the local URL printed by Vite. `?dev=1` enables A's tracking debug panel only in the dev server. Add `&rec=1` for landmark recordings (R starts/stops). Keys 0–8 select neutral, shape, lift, indent, open, rim compression, point, finish and too fast. Production excludes debug and recording tools.
 
-Frontend fixtures: `?dev=1&mock=1` skips camera/model loading. Keys 0–9 select loading/permission/calibrate/menu/tutorial/studio/glaze/firing/result/gallery; S/U/I/O/D simulate shape/lift/indent/open/rim compression, Escape releases, F simulates raised palms without finishing, T/W/C toggle tear/wobble/collapse, X toggles hand loss, arrows change the middle radius. Mouse movement simulates the cursor: H selects palm-centre mode, P selects index-pointing mode. Finish by selecting «Готово». Fixture action keys apply immediately; they do not exercise recognition or physical hold timing. These fixtures are never included in production.
+Frontend fixtures: `?dev=1&mock=1` skips camera/model loading. Keys 0–9 select loading/permission/calibrate/menu/tutorial/studio/glaze/firing/result/gallery; S/U/I/O/D/G simulate shape/lift/indent/open/rim compression/inside widening (G requires a cavity), Escape releases, F simulates raised palms without finishing, T/W/C toggle tear/wobble/collapse, X toggles hand loss, arrows change the middle radius. Mouse movement simulates the cursor: H selects palm-centre mode, P selects index-pointing mode. Finish by selecting «Готово». Fixture action keys apply immediately; they do not exercise recognition or physical hold timing. These fixtures are never included in production.
 
 V5 failure fixtures: B perforates the floor, E toggles the over-stretch warning, N creates a pancake. They are display fixtures; real-controller tests separately exercise the actual gesture/damage pipeline.
 

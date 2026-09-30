@@ -1,3 +1,9 @@
+### 2026-09-30 · B · V8.3 inside-wall widening integrated; release verified
+**Done:** pulled `5a361a7`. Preserved A's storage allow-list and Russian corrections. Added a concise studio instruction, G mock fixture (opening required), V8.3 footer, and README controls. The introductory lesson stays six steps; widening is studio/commission only. No core edits.
+**Verification:** 298/298 unit/integration and warning-free typecheck/build. Extended the actual-controller studio flow through all six actions, both modes and both active hands: inside widening changes the local outer profile, preserves cavity dimensions and base, then the fired pot and `widen` statistics survive a storage round trip. Eight Chromium checks pass: four shaping/widening lock/release cases, phone layout/export, full lesson and both real-controller step-1 landmark cases. An initial storage-test failure was its missing browser wall-clock injection; corrected the fixture, no production bug found.
+**Contract / For A / Blocked:** no changes or requests. Your parallel debugging can continue. All hands synthetic; new finger pose requires a physical retest.
+**Next:** deploy and public smoke. User then requested a frontend pass inspired by `арара.avif` and explicit spoiled-clay/restart messaging; B will do that next without editing core.
+
 ### 2026-09-30 · B · V8.2 LIVE; lesson step 1 verified
 **Deployed:** release `103a33e`, including A's `d5ce6a4`, is READY at https://kiln-delta-rose.vercel.app. Deployment `dpl_2E5y5FsuowPSNj8hzSnD5GR6V19y`. Public Chromium real-model/simulated-camera smoke passes V8.2 footer, camera mirroring and resize. Local step 1 passes at centre and shifted hand heights through the actual controller; no physical-hand claim.
 **Next:** user refreshes for V8.2 and retries «Сузьте середину». All 295 unit/integration tests, four local browser checks, production build and public startup check pass. No outstanding code request to A.

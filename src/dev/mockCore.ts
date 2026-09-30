@@ -76,13 +76,21 @@ export class MockCore implements CoreController {
       if (this.phase === 'result') this.result = this.finalize();
       return;
     }
-    const action = ({ s: 'shape', u: 'pullUp', i: 'indent', o: 'open', d: 'compressRim' } as Record<string, Gesture>)[key.toLowerCase()];
+    const action = ({ s: 'shape', u: 'pullUp', i: 'indent', o: 'open', d: 'compressRim', g: 'widen' } as Record<string, Gesture>)[key.toLowerCase()];
     if (action && (this.lost || (this.phase === 'tutorial' && this.expected !== action) || ['bottomHole', 'wallTorn', 'pancake'].includes(this.clay.collapseCause ?? ''))) { this.gestureName = action; return; }
     switch (key.toLowerCase()) {
       case 's': this.gestureName = 'shape'; for (let i = 0; i < this.clay.radii.length; i++) this.clay.radii[i] = Math.max(CONFIG.MIN_R, this.clay.radii[i] - .20 * Math.exp(-.5 * ((i - 24) / CONFIG.SIGMA_BANDS) ** 2)); break;
       case 'u': this.gestureName = 'pullUp'; this.clay.height = Math.min(CONFIG.MAX_HEIGHT, this.clay.height + .30); for (let i = 0; i < this.clay.radii.length; i++) this.clay.radii[i] *= .977; break;
       case 'i': this.gestureName = 'indent'; this.clay.cavityRadiusWorld ||= CONFIG.INDENT_RADIUS_WORLD; this.clay.cavityDepthWorld ||= CONFIG.INDENT_DEPTH_WORLD; break;
       case 'o': this.gestureName = 'open'; if (this.clay.cavityDepthWorld > 0) { this.clay.cavityRadiusWorld = Math.min(.7, this.clay.cavityRadiusWorld + .26); this.clay.cavityDepthWorld = Math.min(this.clay.height - CONFIG.FLOOR_WORLD, this.clay.cavityDepthWorld + .468); } break;
+      case 'g': {
+        if (this.clay.cavityDepthWorld <= 0) { this.gestureName = 'none'; return; }
+        this.gestureName = 'widen';
+        const band = Math.round((1 - this.clay.cavityDepthWorld / this.clay.height / 2) * (CONFIG.N_BANDS - 1));
+        for (let i = 0; i < this.clay.radii.length; i++) this.clay.radii[i] = Math.min(CONFIG.MAX_R, this.clay.radii[i] + .14 * Math.exp(-.5 * ((i - band) / CONFIG.SIGMA_BANDS) ** 2));
+        this.stats.gestureMs.widen = (this.stats.gestureMs.widen ?? 0) + 500;
+        break;
+      }
       case 'd': this.gestureName = 'compressRim'; this.clay.height = Math.max(CONFIG.MIN_HEIGHT, this.clay.height - .22); for (let i = 0; i < this.clay.radii.length; i++) this.clay.radii[i] *= 1.018; this.clay.cavityRadiusWorld = Math.max(0, this.clay.cavityRadiusWorld - .066); this.clay.cavityDepthWorld = Math.max(0, this.clay.cavityDepthWorld - .22); this.clay.damage.fill(0); this.clay.collapsed = false; this.clay.collapseCause = null; this.clay.wobble = 0; break;
       case 'escape': this.gestureName = 'none'; break;
       case 'f':
@@ -147,14 +155,14 @@ export class MockCore implements CoreController {
       const pointing = this.gestureName === 'point';
       this.input = { frameId: ++this.frame, epoch: this.epoch, tMs: nowMs, receivedAtMs: nowMs, dtSampleS,
         status: this.lost ? 'noHands' : pointing ? 'oneHand' : 'ready', screenLeft: this.lost ? null : this.hand(-1), screenRight: this.lost || pointing ? null : this.hand(1) };
-      this.clay.touching = !this.paused && !this.lost && ['studio', 'tutorial'].includes(this.phase) && ['shape', 'pullUp', 'indent', 'open', 'compressRim'].includes(this.gestureName) && (this.phase !== 'tutorial' || this.expected === this.gestureName);
+      this.clay.touching = !this.paused && !this.lost && ['studio', 'tutorial'].includes(this.phase) && ['shape', 'pullUp', 'indent', 'open', 'compressRim', 'widen'].includes(this.gestureName) && (this.phase !== 'tutorial' || this.expected === this.gestureName);
       this.clay.activeBand = this.clay.touching ? 24 : null;
       this.gesture = {
         gesture: this.lost ? 'none' : this.gestureName, sourceFrameId: this.frame, capturedAtMs: nowMs,
         holdMs: 600, inputUsable: !this.lost && !pointing, deforming: this.clay.touching, motionStrength: .7, targetRadiusWorld: 1.1,
         activeTrackId: this.clay.touching && this.gestureName !== 'shape' ? 1 : null,
         supportTrackId: this.clay.touching && this.gestureName !== 'shape' ? 3 : null,
-        activationProgress: !this.lost && ['pullUp', 'indent', 'open', 'compressRim'].includes(this.gestureName) ? 1 : 0, engagedMs: this.active.has('overStretch') ? 7000 : 0,
+        activationProgress: !this.lost && ['pullUp', 'indent', 'open', 'compressRim', 'widen'].includes(this.gestureName) ? 1 : 0, engagedMs: this.active.has('overStretch') ? 7000 : 0,
         centerOffsetPalm: this.clay.wobble * .5, speedPalmPerS: this.active.has('tear') ? 12 : 1,
         contact: { valid: !this.lost && this.gestureName === 'shape', activeBand: this.clay.activeBand, bandY: .5, leftErrorWorld: 0, rightErrorWorld: 0, reason: null },
         cursorPx: !this.lost && this.gestureName === 'point' ? this.cursor : null, nearMiss: null,
@@ -180,7 +188,7 @@ export function installMockCore() {
   const core = new MockCore();
   const badge = document.createElement('aside');
   badge.dataset.testid = 'mock-badge';
-  badge.textContent = 'KILN_DEV_MOCK · 0–9 phases · S/U/I/O/D actions · Esc release · F raised palms · T/W/C issues · X hands · ←/→ shape · H palm / P finger cursor';
+  badge.textContent = 'KILN_DEV_MOCK · 0–9 phases · S/U/I/O/D/G actions · Esc release · F raised palms · T/W/C issues · X hands · ←/→ shape · H palm / P finger cursor';
   badge.style.cssText = 'position:fixed;bottom:8px;left:8px;right:8px;z-index:9999;padding:8px;background:#191919;color:#9f9;font:11px monospace;pointer-events:none';
   document.body.append(badge);
   const key = (event: KeyboardEvent) => {

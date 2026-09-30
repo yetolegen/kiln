@@ -1,6 +1,9 @@
 import { expect, it } from 'vitest';
-import { frame, hand, inSession, moving, poseHand, shapingHands, T_START } from '../../tests/helpers';
+import { frame, hand, inSession, moving, poseHand, PROJ, shapingHands, T_START, toMenu } from '../../tests/helpers';
 import type { HandFeatures, SessionMode } from '../types';
+import { CONFIG } from '../config';
+import { createGalleryStore } from '../browser/storage';
+import { createController } from '../engine/controller';
 
 const modes = ['free', 'commission'] as const;
 
@@ -28,7 +31,9 @@ it.each(modes)('%s gates glaze/firing commands until Done and a selected glaze',
 });
 
 function fixture(mode: SessionMode, id: number) {
-  const core = inSession(mode);
+  const core = createController({ nowIso: () => '2026-09-30T18:00:00.000Z' });
+  toMenu(core);
+  core.dispatch({ type: 'start', mode, sessionId: 'studio-widen' }, T_START);
   let now = T_START;
   const feed = (left: HandFeatures | null, right: HandFeatures | null) => {
     now += 33; core.observe(frame(now, left, right)); return core.tick(now);
@@ -43,10 +48,10 @@ function fixture(mode: SessionMode, id: number) {
     return core.tick(now).clay!;
   };
   const release = () => { for (let i = 0; i < 8; i++) feed(null, null); };
-  return { core, feed, action, release, clay: () => core.tick(now).clay! };
+  return { core, feed, action, release, now: () => now, clay: () => core.tick(now).clay! };
 }
 
-for (const mode of modes) it.each([1, 2])('%s supports all five pottery actions with active hand %i'.replace('%s', mode), (id) => {
+for (const mode of modes) it.each([1, 2])('%s supports six pottery actions and saves inside widening with active hand %i'.replace('%s', mode), (id) => {
   const f = fixture(mode, id);
   const initial = f.clay();
   for (let i = 0; i < 30; i++) {
@@ -70,8 +75,34 @@ for (const mode of modes) it.each([1, 2])('%s supports all five pottery actions 
   expect(opened.cavityDepthWorld).toBeGreaterThan(dent.cavityDepthWorld + .2);
   expect(opened.thickness).toBeLessThan(dent.thickness - .15);
   f.release();
+  const tipY = opened.height - .15, band = Math.round(tipY / opened.height * (CONFIG.N_BANDS - 1));
+  const poke = (x: number) => {
+    const h = poseHand('spread', x, tipY, { ratio: 1 });
+    const tip = { x: PROJ.axisXPx + x * PROJ.pixelsPerWorldUnit, y: PROJ.bottomYPx - tipY * PROJ.pixelsPerWorldUnit };
+    const landmarksPx = h.landmarksPx.map((p) => ({ ...p }));
+    landmarksPx[8] = tip;
+    landmarksPx[4] = { x: tip.x - 40, y: tip.y - 60 };
+    return { ...h, landmarksPx, indexTipPx: tip };
+  };
+  f.action(() => poke(0), 15);
+  const widened = f.action((s) => poke((id === 1 ? -1 : 1) * s * .3), 25);
+  expect(widened.radii[band]).toBeGreaterThan(opened.radii[band] + .1);
+  expect(widened.cavityRadiusWorld).toBeCloseTo(opened.cavityRadiusWorld);
+  expect(widened.cavityDepthWorld).toBeCloseTo(opened.cavityDepthWorld);
+  expect(widened.radii[0]).toBeCloseTo(opened.radii[0], 4);
+  f.release();
   f.action(() => poseHand('flat', 0, opened.height + .1), 25);
   const compressed = f.action((s) => poseHand('flat', 0, opened.height + .1 - s * 50 / 180, moving(0, -.5)), 25);
   expect(compressed.height).toBeLessThan(opened.height - .15);
   expect(compressed.collapsed).toBe(false);
+  f.release();
+  f.core.dispatch({ type: 'finishShaping' }, f.now() + 1);
+  f.core.dispatch({ type: 'selectGlaze', glazeId: 'jade' }, f.now() + 2);
+  f.core.dispatch({ type: 'confirmGlaze' }, f.now() + 3);
+  const result = f.core.tick(f.now() + CONFIG.FIRING_MS + 4).result!;
+  expect(result.stats.gestureMs.widen).toBeGreaterThan(300);
+  const data = new Map<string, string>();
+  const backend = { getItem: (key: string) => data.get(key) ?? null, setItem: (key: string, value: string) => { data.set(key, value); } };
+  expect(createGalleryStore(() => backend).save(result)).toBe(true);
+  expect(createGalleryStore(() => backend).list()[0]).toEqual(result);
 });

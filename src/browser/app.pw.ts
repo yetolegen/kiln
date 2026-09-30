@@ -103,21 +103,22 @@ for (const blockedStorage of [false, true]) test(`B8 finishes a pot, exports PNG
   expect(errors).toEqual([]);
 });
 
-for (const mode of ['free', 'commission']) test(`studio sculpting locks Done/restart and resets palm dwell in ${mode}`, async ({ page }) => {
+for (const action of ['shape', 'widen']) for (const mode of ['free', 'commission']) test(`studio sculpting locks Done/restart and resets palm dwell in ${mode} (${action})`, async ({ page }) => {
   await page.goto('/?dev=1&mock=1');
   await page.keyboard.press('h'); await page.locator(`[data-action="${mode}"]`).hover();
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'studio');
   const done = page.locator('[data-action="done"]'), restart = page.locator('[data-action="restart"]');
   await done.hover();
   await expect(done).toHaveClass(/is-dwelling/);
-  await page.keyboard.press('s');
+  for (const key of action === 'widen' ? ['i', 'o', 'g'] : ['s']) await page.keyboard.press(key);
+  if (action === 'widen') await expect(page.locator('.hud__gesture')).toHaveText('Расширяем стенку');
   await expect(done).toBeDisabled(); await expect(restart).toBeDisabled();
   await expect(page.locator('[data-action="menu"]')).toBeDisabled(); // leaving the session is locked too
   await done.dispatchEvent('click');
   await page.waitForTimeout(1200); // longer than a full dwell: blocked input must never finish
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'studio');
   await expect(done).not.toHaveClass(/is-dwelling/);
-  await page.screenshot({ path: `test-results/sculpting-lock-${mode}.png` });
+  await page.screenshot({ path: `test-results/sculpting-lock-${mode}-${action}.png` });
   const unlocked = await page.evaluate(() => new Promise<{ progress: number; elapsed: number }>((resolve, reject) => {
     const start = performance.now();
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
@@ -343,7 +344,7 @@ test('B2 loads the real model, starts a mirrored camera, and resizes', async ({ 
   await start.click();
   try { await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'calibrate', { timeout: 20_000 }); }
   catch (error) { throw new Error(`Camera startup failed: ${startupErrors.join('\n')}`, { cause: error }); }
-  await expect(page.locator('footer')).toContainText('V8.2');
+  await expect(page.locator('footer')).toContainText('V8.3');
   const video = page.locator('video');
   await expect(video).toBeVisible();
   expect(await video.evaluate((element: HTMLVideoElement) => ({
