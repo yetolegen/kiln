@@ -24,13 +24,14 @@ export function createVoicePlayer(
     try { voice = synth?.getVoices().find((item) => /^ru(?:-|_)/i.test(item.lang) || item.lang === 'ru') ?? null; }
     catch { voice = null; }
   };
-  const stop = () => { try { synth?.cancel(); } catch { /* Optional API. */ } };
+  const stop = () => { lastHint = null; try { synth?.cancel(); } catch { /* Optional API. */ } };
   refresh();
   try { synth?.addEventListener('voiceschanged', refresh); } catch { /* Older browsers can still use initial voices. */ }
   return {
     update(hint: Hint | null): void {
       const changed = hint !== lastHint;
       lastHint = hint;
+      if (changed && !hint) { stop(); return; }
       if (!changed || !hint?.speak || muted || !voice || !synth) return;
       try {
         const utterance = makeUtterance(hintText(hint));

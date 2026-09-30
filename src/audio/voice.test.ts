@@ -26,6 +26,15 @@ it('survives unavailable and throwing speech APIs', () => {
   const f = fixture(); f.load(); f.synth.speak.mockImplementation(() => { throw new Error('blocked'); });
   expect(() => f.voice.update(hint())).not.toThrow();
 });
+
+it('cancels old speech when a hint clears and resets speech identity at a lesson boundary', () => {
+  const f = fixture(); f.load(); const old = hint();
+  f.voice.update(old); f.voice.update(null);
+  expect(f.synth.cancel).toHaveBeenCalledTimes(2);
+  f.voice.update(null); expect(f.synth.cancel).toHaveBeenCalledTimes(2);
+  f.voice.update(old); f.voice.stop(); f.voice.update(old);
+  expect(f.synth.speak).toHaveBeenCalledTimes(3);
+});
 it('speaks the same v4 technique and tracking feedback as the banner, once per hint', () => {
   const f = fixture(); f.load();
   for (const id of ['noSupport', 'liftTooFast', 'thumbNotOnTop', 'pinchFirst', 'spreadTooFast', 'trackingUncertain', 'thinFloor', 'overStretch', 'tooFlat'] as const) {

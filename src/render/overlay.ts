@@ -2,6 +2,7 @@ import { CONFIG } from '../config';
 import type { EngineSnapshot, ProjectionParams, Vec2 } from '../types';
 import type { LessonGoal, LessonShape } from '../ui/tutorialGeometry';
 import { HandVisuals } from './handVisuals';
+import { drawCavitySection } from './cavitySection';
 
 const CHAINS = [[0, 1, 2, 3, 4], [0, 5, 6, 7, 8], [5, 9, 10, 11, 12], [9, 13, 14, 15, 16], [13, 17, 18, 19, 20], [0, 17]];
 
@@ -101,6 +102,10 @@ export function createOverlay(parent: HTMLElement, cursorParent: HTMLElement = p
         }
         ctx.setLineDash([]); ctx.fillStyle = '#cce5df'; ctx.font = '12px system-ui';
         ctx.fillText('Образец', p.axisXPx + target.radii.at(-1)! * p.pixelsPerWorldUnit + 10, p.bottomYPx - target.height * p.pixelsPerWorldUnit);
+      }
+      if (projection && snapshot.clay && ['studio', 'tutorial'].includes(snapshot.phase)) {
+        const thumbLimit = snapshot.phase === 'tutorial' ? goal?.step === 2 : snapshot.gesture?.gesture === 'indent' || snapshot.clay.cavityDepthWorld === 0;
+        drawCavitySection(ctx, snapshot.clay, projection, thumbLimit);
       }
       const input = snapshot.input;
       ctx.strokeStyle = '#ffddaa'; ctx.lineWidth = 2; ctx.lineCap = 'round';

@@ -4,6 +4,14 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ## Automated checks
 
+### V6 follow-up investigation (30 September 14:30, not deployed)
+
+- **Human evidence:** user reports vertical compression, old-step hints, thumb depth and hand-withdrawal problems after V5.2. Clarifies step 5/6 activation circle never fills with rim/support hand placement. Screenshot/landmark evidence requested; not yet received.
+- **Core reproduction:** 10 new failed acceptance cases (both-role thumb-tip-only insertion; .12 first-depth jump; both-role withdrawal expansion; both-role slow compression dead zone; cross-step lift coaching; both-role retained opening blocking rim arming). Two controls pass: cavity expansion decreases core wall/floor thickness and actual mesh wall width.
+- **B fixes:** current-step hint filtering, transition speech cancellation/message reset, explicit one-phalanx depth marker, and actual-geometry cavity/wall cross-section. Working palm UI unchanged. Tests for the frontend fixes pass.
+- Full suite **226 passed / 10 failed**, exclusively pending core cases in `src/ui/interactionV6.test.ts`. Build/typecheck pass. Three targeted Chromium browser checks pass; desktop/phone/landscape screenshots inspected. Screenshot test now waits for resize projection before capture.
+- **Not fixed/deployed yet:** core arming, finger-depth/speed and release behavior. A handoff at top of `docs/handoff/B.md`; specification in `docs/GESTURES_V6.md`. Automated input is synthetic and does not establish physical camera acceptance. Production remains V5.2.
+
 ### V5.2 live verification (30 September 13:53)
 
 - Deployed `b63f4a4`, including core fix `5dfaa50`, to https://kiln-delta-rose.vercel.app. Deployment `dpl_2pF7P8xYe8mkmqB7nKX7Kt9TNXRc` READY; remote build/typecheck passed.

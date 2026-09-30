@@ -10,6 +10,7 @@ import { createOverlay } from './render/overlay';
 import { DwellController } from './ui/dwell';
 import { createHud } from './ui/hud';
 import { PresentationHint } from './ui/presentationHint';
+import { LessonHints } from './ui/lessonHints';
 import { createTutorial } from './ui/tutorial';
 import { createFinishing } from './ui/finishing';
 import { createKiln } from './render/kiln';
@@ -39,6 +40,7 @@ const screens = createScreens(root, () => { void start(); }, (command) => core.d
 const dwell = new DwellController();
 const hud = createHud(screens.page);
 const presentationHint = new PresentationHint();
+const lessonHints = new LessonHints();
 const tutorial = createTutorial(screens.page, (command) => core.dispatch(command, performance.now()),
   (parent) => screens.addAction('lesson-retry', 'Попробовать снова · с первого шага', () => core.dispatch({ type: 'restart', newSessionId: crypto.randomUUID() }, performance.now()), parent), screens.refreshTargets);
 const scene = createScene(screens.viewport);
@@ -152,7 +154,8 @@ function render(): void {
   screens.update(snapshot, state, nowMs);
   finishing.update(snapshot, state.cameraActive && !state.error);
   const lessonHint = tutorial.update(snapshot, nowMs);
-  const coreHint = presentationHint.update(snapshot, nowMs);
+  const coreHint = lessonHints.update(snapshot, tutorial.goal?.step ?? null, presentationHint.update(snapshot, nowMs));
+  if (lessonHints.changed) voice.stop();
   const activeHint = lessonHint?.severity === 'error' && coreHint?.id !== 'trackingUncertain' ? lessonHint : coreHint ?? lessonHint;
   hud.update(snapshot, nowMs, activeHint);
   sound.update(snapshot, !document.hidden && state.cameraActive);

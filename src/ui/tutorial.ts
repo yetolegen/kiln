@@ -5,7 +5,7 @@ import { assessLessonShape, createLessonGoal, type LessonGoal, type ShapeAssessm
 export const TUTORIAL_STEPS = [
   { gesture: 'shape', title: 'Сузьте середину', text: 'Ладони у стенок на средней высоте. Медленно сводите их, пока стенки не совпадут с прозрачным образцом.', demo: 'shape' },
   { gesture: 'pullUp', title: 'Поднимите глину', text: 'Одна раскрытая ладонь горизонтально у основания, другая у стенки. Замрите на 3 секунды, затем очень медленно поднимайте нижнюю руку.', demo: 'lift' },
-  { gesture: 'indent', title: 'Сделайте маленькую ямку', text: 'Поддерживайте стенку одной рукой. Большой палец другой направьте вниз к центру верхней поверхности и слегка надавите. Подойдёт любая рука.', demo: 'indent' },
+  { gesture: 'indent', title: 'Сделайте маленькую ямку', text: 'Поддерживайте стенку. Медленно вводите большой палец вниз до голубой отметки дна. Жёлтая линия — безопасный предел: примерно одна фаланга. Глубже — риск пробить дно. Подойдёт любая рука.', demo: 'indent' },
   { gesture: 'open', title: 'Раскройте углубление', text: 'Поддерживайте стенку. Соедините большой и указательный пальцы другой руки внутри ямки, задержите щипок, затем медленно разведите пальцы.', demo: 'open' },
   { gesture: 'compressRim', title: 'Уплотните край', text: 'Одна рука поддерживает стенку. Другую раскройте горизонтально над краем, задержите на полсекунды и медленно опускайте. Край станет ровнее, сосуд — ниже.', demo: 'rim' },
   { gesture: 'raise', title: 'Готовая форма', text: 'Сравните готовую форму с образцом. Нажимать больше не нужно: поднимите обе открытые ладони выше сосуда и удерживайте полторы секунды.', demo: 'raise' },
@@ -88,7 +88,7 @@ export class TutorialScript {
     if (this.matchedSince === null) {
       this.matchedSince = input.tMs;
       this.confirming = true;
-      // Stop at the target while fresh observations confirm it; holding a shape pose also moves clay.
+      // Freeze at the target while fresh observations confirm it.
       this.dispatch({ type: 'tutorialStep', step: this.step });
     }
     if (input.tMs - this.matchedSince >= 350) {
@@ -116,6 +116,7 @@ export function createTutorial(parent: HTMLElement, dispatch: (command: AppComma
   panel.append(label, title, text, demo, progress, match, feedback); parent.append(panel);
   let retry: HTMLButtonElement | null = null;
   let lastStep = -1;
+  let lastSession: string | undefined;
   let lastMessage = '', coaching: Hint | null = null;
   const spoken = new Map<string, number>();
   return {
@@ -123,12 +124,13 @@ export function createTutorial(parent: HTMLElement, dispatch: (command: AppComma
     get status(): string { return script.status; },
     update(snapshot: EngineSnapshot, nowMs: number): Hint | null {
       script.update(snapshot, nowMs); panel.hidden = snapshot.phase !== 'tutorial';
-      if (panel.hidden) { lastMessage = ''; coaching = null; retry?.remove(); retry = null; return null; }
+      if (panel.hidden) { lastStep = -1; lastSession = undefined; lastMessage = ''; coaching = null; spoken.clear(); retry?.remove(); retry = null; return null; }
       if (!retry) { retry = addRetry(panel); retry.hidden = true; }
       const failed = script.status === 'failed';
       if (retry.hidden === failed) { retry.hidden = !failed; refreshTargets(); }
       panel.dataset.state = script.status;
-      if (lastStep !== script.step) {
+      if (lastStep !== script.step || lastSession !== snapshot.stats?.sessionId) {
+        lastSession = snapshot.stats?.sessionId; lastMessage = ''; coaching = null; spoken.clear();
         lastStep = script.step; const step = TUTORIAL_STEPS[lastStep];
         panel.dataset.step = String(lastStep); panel.dataset.demo = step.demo;
         label.textContent = `УРОК · ${lastStep + 1} / 6`; title.textContent = step.title; text.textContent = step.text;
