@@ -428,11 +428,11 @@ export class GestureRecognizer {
       }
     }
 
-    // finish attempt: open hands above the pot, but not above the raise line
+    // finish attempt (only a lesson that still asks for raised hands; the studio finishes with «Готово»)
     const yMean = (l.palmWorld.y + r.palmWorld.y) / 2;
     const openBoth = allOpen(l, false) && allOpen(r, false);
     const heldShape = t - this.currentSinceMs >= CONFIG.NEAR_MISS_MIN_MS;
-    if (openBoth && (expected === 'raise' || (ctx.phase === 'studio' && g === 'shape' && heldShape && yMean > clay.height && !c?.contact.valid))) {
+    if (openBoth && expected === 'raise') {
       return { intended: 'raise', reason: 'handsTooLow', params: {} };
     }
 

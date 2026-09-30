@@ -414,6 +414,11 @@ describe('raise / point / near-miss', () => {
     expect(g.deforming).toBe(false);
   });
 
+  it('studio never coaches the retired raise-to-finish gesture (finishing is the «Готово» button)', () => {
+    const s = run([hand(-2, 1.26), hand(2, 1.26)], 1500); // open palms above the rim, off the walls, below the raise line
+    expect(s.g.nearMiss?.intended).not.toBe('raise');
+  });
+
   it('raise: open hands above the pot top + margin, held; not in menu', () => {
     const s = run([hand(-1, 1.6), hand(1, 1.6)], 1600);
     expect(s.g.gesture).toBe('raise');
