@@ -2,8 +2,8 @@
 // Pure: the key handling and file download live in dev/debug.ts.
 import type { FrameInput, GestureState } from '../types';
 
-/** What the user is DOING on purpose while recording (keys 1–6, 0 = neutral). */
-export const LABELS = ['neutral', 'shape', 'pullUp', 'pressDown', 'point', 'raise', 'tooFast'] as const;
+/** What the user is DOING on purpose while recording (keys 1–8, 0 = neutral). v4 gestures. */
+export const LABELS = ['neutral', 'shape', 'pullUp', 'indent', 'open', 'compressRim', 'point', 'raise', 'tooFast'] as const;
 export type RecordLabel = (typeof LABELS)[number];
 
 export interface RecordedFrame {

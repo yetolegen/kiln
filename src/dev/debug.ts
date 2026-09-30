@@ -1,5 +1,5 @@
 // Dev-only numbers panel. Load it only behind `import.meta.env.DEV && ?dev=1` so it never ships.
-// With `&rec=1` it also records: keys 0–6 pick the label, R starts/stops, stop downloads the JSON.
+// With `&rec=1` it also records: keys 0–8 pick the label, R starts/stops, stop downloads the JSON.
 import { FrameRecorder, LABELS } from '../tracking/recorder';
 import type { EngineSnapshot, HandFeatures } from '../types';
 
@@ -81,7 +81,7 @@ export function createDebugPanel(parent: HTMLElement = document.body) {
         s.hint ? `hint ${s.hint.id} ${s.hint.severity} p${s.hint.priority} ${JSON.stringify(s.hint.params)}` : 'hint –',
         recorder
           ? `${recording ? '● REC' : '○ rec (R)'} label [${LABELS.indexOf(recorder.label)}] ${recorder.label} · ` +
-            `${recorder.count} frames · 0–6: ${LABELS.join(' ')}`
+            `${recorder.count} frames · 0–8: ${LABELS.join(' ')}`
           : '',
       ].join('\n');
     },
