@@ -176,14 +176,23 @@ function buildFeatures(
     extension,
     openness: (extension.index + extension.middle + extension.ring + extension.pinky) / 4,
     pinchRatio,
-    pointing: extension.index >= CONFIG.FINGER_OPEN_ON && extension.middle <= CONFIG.FINGER_CURLED_ON &&
-      extension.ring <= CONFIG.FINGER_CURLED_ON && extension.pinky <= CONFIG.FINGER_CURLED_ON &&
-      pinchRatio > CONFIG.PINCH_OFF,
+    pointing: isPointingPose(extension, pinchRatio, false),
     // screen y points down, world/palm y points up
     velocityWorldPerS: { x: vPx.x / ppu, y: -vPx.y / ppu },
     velocityPalmPerS: { x: vPx.x / refPx, y: -vPx.y / refPx },
     velocityValid,
   };
+}
+
+/**
+ * Index clearly straighter than the average of the other three fingers, and not pinching.
+ * Relative, not absolute: real curled fingers read 0.4–0.65 on a laptop webcam (see config).
+ */
+export function isPointingPose(e: FingerExtension, pinchRatio: number, sticky: boolean): boolean {
+  const others = (e.middle + e.ring + e.pinky) / 3;
+  return e.index >= (sticky ? CONFIG.FINGER_OPEN_OFF : CONFIG.FINGER_OPEN_ON) &&
+    e.index - others >= (sticky ? CONFIG.POINT_MARGIN_OFF : CONFIG.POINT_MARGIN_ON) &&
+    pinchRatio > (sticky ? CONFIG.PINCH_ON : CONFIG.PINCH_OFF);
 }
 
 /**

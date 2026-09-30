@@ -88,6 +88,11 @@ export const CONFIG = {
   FINGER_CURLED_OFF: 0.45,
   FINGER_OPEN_ON: 0.6,
   FINGER_OPEN_OFF: 0.5,
+  // pointing = index clearly straighter than the AVERAGE of the other three. Measured on a real laptop
+  // webcam (Acer A715, daylight): relaxed curled fingers read 0.36–0.66, index 1.00, so an absolute
+  // "others ≤ 0.35" rule never fired; the margin was 0.44–0.56. An open palm has a margin of ~0.1.
+  POINT_MARGIN_ON: 0.35,
+  POINT_MARGIN_OFF: 0.25,
   FINGER_ANGLE_CURLED_DEG: 90, // extension = (min(PIP, DIP angle) − this) / range
   FINGER_ANGLE_RANGE_DEG: 70,
   CALIBRATION_STILL_PALM_PER_S: 0.5,

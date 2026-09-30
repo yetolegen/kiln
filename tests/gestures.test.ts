@@ -307,6 +307,20 @@ describe('raise / point / near-miss', () => {
     expect(dropped.seen.every((g) => g.cursorPx !== null)).toBe(true);
   });
 
+  it('real laptop-webcam pointing readings (Acer A715, Edge, daylight) point; an open palm does not', () => {
+    const ui = { ...CTX, phase: 'menu' as const, uiEnabled: true };
+    const measured = [
+      { index: 1.0, middle: 0.36, ring: 0.42, pinky: 0.54 },
+      { index: 1.0, middle: 0.47, ring: 0.52, pinky: 0.66 },
+      { index: 1.0, middle: 0.47, ring: 0.5, pinky: 0.62 },
+    ];
+    for (const extension of measured) {
+      expect(run([null, hand(1, 0.6, { extension, pinchRatio: 1.21 })], 400, undefined, ui).g.gesture).toBe('point');
+    }
+    const palm = { index: 1, middle: 1, ring: 0.95, pinky: 0.7 };
+    expect(run([null, hand(1, 0.6, { extension: palm, pinchRatio: 1.2 })], 400, undefined, ui).g.gesture).not.toBe('point');
+  });
+
   it('a loose, half-curled hand does not START pointing', () => {
     const loose = { extension: { index: 0.55, middle: 0.42, ring: 0.4, pinky: 0.3 }, pointing: false };
     expect(run([hand(-1, 0.6, loose), null], 600, undefined, { ...CTX, phase: 'menu', uiEnabled: true }).g.gesture).not.toBe('point');

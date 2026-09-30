@@ -11,6 +11,7 @@ import type {
   NearMiss, ProjectionParams, Vec2,
 } from '../types';
 import { pxToWorld } from './coordinates';
+import { isPointingPose } from './features';
 
 const NO_CONTACT: ContactState = {
   valid: false, activeBand: null, bandY: null, leftErrorWorld: null, rightErrorWorld: null, reason: null,
@@ -29,11 +30,8 @@ const isPinch = (h: HandFeatures, sticky: boolean) => h.pinchRatio < (sticky ? C
 const openPalm = (h: HandFeatures, sticky: boolean) =>
   allOpen(h, sticky) && h.pinchRatio > (sticky ? CONFIG.PINCH_ON : CONFIG.PINCH_OFF) && !h.pointing;
 const side = (h: HandFeatures, l: HandFeatures) => (h === l ? 'left' : 'right');
-/** Index out, the other three curled, not pinching. Sticky (looser) once pointing, so the dwell ring doesn't restart. */
-const isPointing = (h: HandFeatures, sticky: boolean) =>
-  h.extension.index >= (sticky ? CONFIG.FINGER_OPEN_OFF : CONFIG.FINGER_OPEN_ON) &&
-  [h.extension.middle, h.extension.ring, h.extension.pinky].every((v) => v <= (sticky ? CONFIG.FINGER_CURLED_OFF : CONFIG.FINGER_CURLED_ON)) &&
-  h.pinchRatio > (sticky ? CONFIG.PINCH_ON : CONFIG.PINCH_OFF);
+/** Sticky (looser) once pointing, so the dwell ring doesn't restart. Rule lives in features.ts. */
+const isPointing = (h: HandFeatures, sticky: boolean) => isPointingPose(h.extension, h.pinchRatio, sticky);
 const speedOf = (h: HandFeatures) => (h.velocityValid ? Math.hypot(h.velocityPalmPerS.x, h.velocityPalmPerS.y) : Infinity);
 const vUp = (h: HandFeatures) => (h.velocityValid ? h.velocityPalmPerS.y : 0);
 const hasLandmarks = (h: HandFeatures) => h.landmarksPx.length === 21;
@@ -126,7 +124,7 @@ export class GestureRecognizer {
     const byId = [l, r].find((h) => h !== null && h.trackId === this.pointerId) ?? null;
     const pointer = !pointAllowed ? null
       : cur === 'point' && byId && isPointing(byId, true) ? byId
-      : [r, l].find((h) => h !== null && (h.pointing || isPointing(h, false))) ?? null;
+      : [r, l].find((h) => h !== null && isPointing(h, false)) ?? null;
     if (pointer) this.pointerId = pointer.trackId;
 
     if (!both) this.engagement = null; // tracking loss / stale / one hand: every action stops and re-arms
