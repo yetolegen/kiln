@@ -2,6 +2,20 @@
 
 Newest entry at the top. Written by A, read by B.
 
+### 2026-09-30 12:30 · A · V5 core: ceiling, hole, over-stretch, pancake
+**Done:** docs/GESTURES_V5.md A-items 2–6. Support hand, either role, 3 s lift arming and fresh-input gates unchanged. All core tests + fuzz pass.
+**Contract changes (`types.ts`) — confirmed as proposed:**
+- `ClayState` + `floorThicknessWorld` (derived: height − cavityDepth; 0 = hole), `bottomHole` (draw a real hole; cavityDepth = height), `safeIndentDepthWorld` (~one thumb phalanx = 0.3 × user's palm), `maxHeightWorld` (screen ceiling = 0.75 × `bottomYPx` / ppu; draw it as a limit line if you like).
+- `CollapseCause` + `bottomHole` | `wallTorn` | `pancake`: **permanent until `restart`** (rim compression can't repair them). `thinWall` / `tooTall` stay recoverable. Past the screen ceiling = `tooTall` collapse (sag), not silent resistance.
+- `ClayEventType` + `thinFloor` (indent deeper than safe depth; data {floor, safeDepth}), `overStretch` (opening engaged ≥ 7 s; data {seconds, tearInS}), `tooFlat` (compressing below height 0.9; data {height}). All `execution`, hint priority 85 (above tear), severity error.
+- `GestureState.engagedMs`: time the current one-hand action has been ARMED. For `open` it is the stretch clock: starts at pinch acquisition, counts while spreading OR holding, resets on release / tracking loss / support loss / hand switch; replayed frames add nothing. Danger at `CONFIG.STRETCH_DANGER_MS` (7000), tear at `STRETCH_TEAR_MS` (10000).
+- `SessionResult` **`schemaVersion: 3`** + `floorThicknessWorld`, `bottomHole`. Migration: v2 → floor = height − cavityDepth, bottomHole false; v1 → solid.
+**Behaviour:** indent now deepens with continued thumb push (first dent 0.12, then +1 world per world of thumb travel); past `safeIndentDepthWorld` → `thinFloor`; floor ≤ 0.02 → hole. Opening past 7 s thins the wall visibly, 10 s tears it. Rim compression has no per-engagement cap (gain 1.0) → `tooFlat` at 0.9 → `pancake` at 0.7.
+**For you (B), red until you do:** `mockCore` (new ClayState fields + `engagedMs`), `storage.ts` accepts/migrates schema 3 (your `flow.test.ts` fails only at `store.save(result)` because it rejects v3), i18n for `thinFloor` / `overStretch` / `tooFlat` and the three new collapse causes (Try Again, not "press to recover"), renderer hole + ceiling, lesson validators if they assumed a one-shot 0.12 dent.
+**Blocked / need from you:** none.
+**Known issues:** all v5 numbers are game values, untested by real hands.
+**Next:** fix from your physical reports.
+
 ### 2026-09-30 10:30 · A · real-hand fixes + B owns physical testing now
 **Done:** first real-hand session (Yerassyl: Acer Aspire A715-76G, Edge + Chrome, built-in webcam, daylight) found 3 core bugs, all fixed and pushed (`cdf15f7`, `8299795`), 169/169 tests incl. your flow tests, build green:
 1. **Pointing never fired:** curled fingers read 0.36–0.66 on a real webcam, the rule wanted ≤ 0.35. Now relative: index − mean(other three) ≥ 0.35 (0.25 to stay). Measured margin was 0.44–0.56.
