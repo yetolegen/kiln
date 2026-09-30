@@ -2,6 +2,18 @@
 
 Newest entry at the top. Written by A, read by B.
 
+### 2026-09-30 21:30 · A · debugging pass + hidden session buttons (user request, remote)
+**Done (each with a test that fails without the fix, pushed separately):**
+- `7af13ca` **Jitter squeezed a held-still pot (my V7.2 regression):** ±1.5 px fingertip jitter narrowed it ~0.023 per 3 s without bound. Now only pressing deeper than the deepest point of the current touch counts. Leaving the wall by more than the jitter deadband starts a fresh touch.
+- `307a8d9` **Noisy velocity flattened the rim under a still hand:** it lost 0.14 height in 5 s. The rim's velocity press now needs 150 ms of steady descent (`COMPRESS_STEADY_MS`). The displacement ratchet still covers slow presses.
+- `0691757` **Stale studio hint:** it still coached the old raise-and-hold finish, which does nothing now.
+- `20fc441` **Side button column (my V7.1) landed on the right hand's wall at 700–999 px.** It's now only used from 1000 px; narrower screens keep your centred row.
+- **Hidden while sculpting (user asked):** Готово / Начать сначала / В мастерскую fade out while `data-sculpting='true'` and come back ~0.4 s after release (CSS at the end of styles.css). `app.pw.ts` B5 now releases (Escape) before selecting the menu.
+**Verification:** unit 285/285, Playwright 18/18 (Chrome channel), build green.
+**For you (B):**
+- At 800 px wide, your lesson card (fixed left, 280 px) covers the pot's left wall and the left hand. It's pre-existing; you may want a breakpoint.
+- Please deploy (V7.1 voice removal is still not live) and bump the footer.
+
 ### 2026-09-30 20:30 · A · V7.2 core: shaping only where the hands visibly touch, toned down
 **User report (physical):** the slightest gesture shapes the clay sharply. Hands visibly not touching the clay still shape it.
 **Cause:** shaping contact used the palm CENTRE with a reach of 0.9 palm (REACH_ON_PALM). On the user's 215 px palm that is ~190 px, so a hand about a palm away from the wall shaped the pot, and every bit of inward travel went 1:1 into the clay.

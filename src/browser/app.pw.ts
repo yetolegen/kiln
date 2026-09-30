@@ -294,6 +294,8 @@ test('B5 navigates by dwell and shows a readable phone HUD', async ({ page }) =>
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: 'test-results/b5-phone.png' });
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  await page.keyboard.press('Escape'); // hands off the clay: the hidden session buttons come back
+  await expect(page.locator('[data-action="menu"]')).toBeVisible();
   await page.locator('[data-action="menu"]').hover();
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'menu');
 });

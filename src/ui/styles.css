@@ -230,3 +230,8 @@ progress { display: block; width: min(240px, 80vw); height: 8px; margin: 20px 0;
     width: 200px; max-width: none; flex-direction: column; flex-wrap: nowrap;
   }
 }
+
+/* While hands are on the clay the session buttons are locked (screens.ts SculptingLock); hide them entirely so
+   they don't sit next to working fingers. They fade back ~0.4 s after the hands leave. */
+.workshop :is([data-action='done'], [data-action='restart'], [data-action='menu']) { transition: opacity .2s, visibility .2s; }
+.workshop[data-sculpting='true'] :is([data-action='done'], [data-action='restart'], [data-action='menu']) { opacity: 0; visibility: hidden; }
