@@ -15,11 +15,19 @@ export const NO_EFFECTS: ClayEffects = { tearBand: null, wobbling: false };
 /** What the recognizer measured for the one-hand actions on this observation (gestures.ts decides). */
 export interface ActionDelta {
   liftWorld: number;     // hand rise while the lift is armed
-  indent: boolean;       // the one-shot shallow indentation happened now
+  indentWorld: number;   // downward thumb travel this observation (after the jitter guard)
   spreadRatio: number;   // pinch-ratio growth since the widest span so far
-  compressWorld: number; // hand descent while the rim compression is armed (already bounded per engagement)
+  compressWorld: number; // hand descent while the rim compression is armed
+  stretchMs: number;     // how long the opening has been engaged (armed), for the v5 over-stretch
 }
-export const NO_DELTA: ActionDelta = { liftWorld: 0, indent: false, spreadRatio: 0, compressWorld: 0 };
+export const NO_DELTA: ActionDelta = { liftWorld: 0, indentWorld: 0, spreadRatio: 0, compressWorld: 0, stretchMs: 0 };
+
+/** Limits that come from outside the clay (screen, hand size); the controller supplies them each step. */
+export interface ClayLimits { maxHeightWorld: number; safeIndentDepthWorld: number }
+export const DEFAULT_LIMITS: ClayLimits = { maxHeightWorld: CONFIG.MAX_HEIGHT, safeIndentDepthWorld: CONFIG.SAFE_INDENT_MIN_WORLD };
+
+/** Failures the rim compression must NOT repair: they stay until restart. */
+const PERMANENT: readonly CollapseCause[] = ['bottomHole', 'wallTorn', 'pancake'];
 
 /** ClayState plus bookkeeping the renderer doesn't need. */
 export interface ClayModel extends ClayState {
@@ -34,6 +42,10 @@ export function createClay(): ClayModel {
     thickness: 0,
     cavityRadiusWorld: 0,
     cavityDepthWorld: 0,
+    floorThicknessWorld: 0,
+    bottomHole: false,
+    safeIndentDepthWorld: DEFAULT_LIMITS.safeIndentDepthWorld,
+    maxHeightWorld: DEFAULT_LIMITS.maxHeightWorld,
     wobble: 0,
     damage: new Float32Array(CONFIG.N_BANDS),
     collapsed: false,
@@ -70,13 +82,17 @@ export function enforceInvariants<T extends ClayState>(c: T): T {
   c.height = clamp(finiteOr(c.height, CONFIG.INIT_HEIGHT), CONFIG.MIN_HEIGHT, CONFIG.MAX_HEIGHT);
   c.wobble = clamp(finiteOr(c.wobble, 0), 0, 1);
 
-  // the opening keeps a floor under it and at least THICKNESS_FLOOR of wall around it
-  c.cavityDepthWorld = clamp(finiteOr(c.cavityDepthWorld, 0), 0, c.height - CONFIG.FLOOR_WORLD);
+  // the opening keeps at least THICKNESS_FLOOR of wall around it; the floor may only reach 0 as a hole
+  c.bottomHole = c.bottomHole === true;
+  c.cavityDepthWorld = c.bottomHole ? c.height : clamp(finiteOr(c.cavityDepthWorld, 0), 0, c.height);
   const wallR = minRadius(c.radii, cavityStartBand(c));
   c.cavityRadiusWorld = clamp(finiteOr(c.cavityRadiusWorld, 0), 0, wallR - CONFIG.THICKNESS_FLOOR);
-  if (c.cavityDepthWorld <= 0 || c.cavityRadiusWorld <= 0) c.cavityDepthWorld = c.cavityRadiusWorld = 0;
+  if (!c.bottomHole && (c.cavityDepthWorld <= 0 || c.cavityRadiusWorld <= 0)) c.cavityDepthWorld = c.cavityRadiusWorld = 0;
 
+  c.floorThicknessWorld = c.height - c.cavityDepthWorld;
   c.thickness = c.cavityDepthWorld > 0 ? wallR - c.cavityRadiusWorld : minRadius(c.radii);
+  c.maxHeightWorld = clamp(finiteOr(c.maxHeightWorld, CONFIG.MAX_HEIGHT), CONFIG.MIN_HEIGHT, CONFIG.MAX_HEIGHT);
+  c.safeIndentDepthWorld = Math.max(0, finiteOr(c.safeIndentDepthWorld, CONFIG.SAFE_INDENT_MIN_WORLD));
   return c;
 }
 
@@ -102,8 +118,11 @@ export function findOverhang(c: ClayState): { band: number; slope: number } | nu
 /** One engine step per new observation. dtS is already capped by the controller. */
 export function stepClay(
   clay: ClayModel, g: GestureState, dtS: number, fx: ClayEffects = NO_EFFECTS, d: ActionDelta = NO_DELTA,
+  limits: ClayLimits = DEFAULT_LIMITS,
 ): ClayModel {
   const c = cloneClay(clay);
+  c.maxHeightWorld = limits.maxHeightWorld;
+  c.safeIndentDepthWorld = limits.safeIndentDepthWorld;
   c.touching = g.deforming;
   c.activeBand = g.deforming ? g.contact.activeBand : null;
   let changed = false;
@@ -117,19 +136,37 @@ export function stepClay(
     if (acting && g.gesture === 'pullUp' && d.liftWorld > 0) {
       changed = changeHeight(c, d.liftWorld) || changed;
     }
-    if (acting && g.gesture === 'indent' && d.indent) {
-      // exactly this shallow: re-indenting can't deepen it, only opening can
-      c.cavityDepthWorld = Math.max(c.cavityDepthWorld, CONFIG.INDENT_DEPTH_WORLD);
+    if (acting && g.gesture === 'indent' && d.indentWorld > 0) {
+      // v5: the thumb keeps going in. Past the safe depth the floor thins (rules warn); through it = a hole.
+      c.cavityDepthWorld = c.cavityDepthWorld > 0
+        ? c.cavityDepthWorld + CONFIG.INDENT_GAIN * d.indentWorld
+        : CONFIG.INDENT_DEPTH_WORLD;
       c.cavityRadiusWorld = Math.max(c.cavityRadiusWorld, CONFIG.INDENT_RADIUS_WORLD);
+      if (c.height - c.cavityDepthWorld <= CONFIG.HOLE_FLOOR_WORLD) {
+        c.bottomHole = true;
+        fail(c, 'bottomHole');
+      }
       changed = true;
     }
     if (acting && g.gesture === 'open' && d.spreadRatio > 0 && c.cavityDepthWorld > 0) {
       open(c, d.spreadRatio);
       changed = true;
     }
+    // v5 over-stretch: engaged opening (moving or held) thins the wall past 7 s and tears it at 10 s
+    // (not gated on `deforming`: a spread HELD still counts too; stretchMs is only non-zero while armed and allowed)
+    if (!c.collapsed && g.gesture === 'open' && c.cavityDepthWorld > 0 && d.stretchMs >= CONFIG.STRETCH_DANGER_MS) {
+      c.cavityRadiusWorld += CONFIG.STRETCH_THIN_PER_S * dtS; // the invariant keeps THICKNESS_FLOOR of wall
+      if (d.stretchMs >= CONFIG.STRETCH_TEAR_MS) {
+        for (let j = cavityStartBand(c); j < c.damage.length; j++) c.damage[j] = Math.max(c.damage[j], 0.8);
+        fail(c, 'wallTorn');
+      }
+      changed = true;
+    }
     if (g.deforming && g.gesture === 'compressRim' && d.compressWorld > 0) {
       compressRim(c, d.compressWorld, g.motionStrength * dtS);
       if (c.collapsed) c.recoveryMs += dtS * 1000;
+      // v5: no per-engagement cap; keep pressing and it flattens for good
+      if (c.height <= CONFIG.PANCAKE_HEIGHT_WORLD) fail(c, 'pancake');
       changed = true;
     }
     if (fx.tearBand !== null) {
@@ -223,9 +260,18 @@ function smoothOverhang(c: ClayState, dtS: number): boolean {
   return changed;
 }
 
+/** v5 failures: no sag, no recovery by compression; only restart clears them. */
+function fail(c: ClayModel, cause: CollapseCause): void {
+  c.collapsed = true;
+  c.collapseCause = cause;
+  c.recoveryMs = 0;
+}
+
 // Collapse enters ONCE (one-time sag). It clears only after real rim compression has made the pot sound again.
+// The screen ceiling counts as "too tall": past it the pot becomes unstable instead of silently resisting.
 function updateCollapse(c: ClayModel): boolean {
-  const maxH = maxStableHeight(c.radii);
+  const maxH = Math.min(maxStableHeight(c.radii), c.maxHeightWorld);
+  if (c.collapsed && c.collapseCause && PERMANENT.includes(c.collapseCause)) return false;
   if (!c.collapsed) {
     const cause: CollapseCause | null =
       c.cavityDepthWorld > 0 && c.thickness < CONFIG.MIN_THICKNESS ? 'thinWall' : c.height > maxH ? 'tooTall' : null;

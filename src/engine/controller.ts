@@ -9,7 +9,8 @@ import type {
   AppCommand, AppPhase, ClayEvent, CoreController, EngineSnapshot, FrameInput, GestureContext, GestureState, Hint,
   ProjectionParams, SessionMode, SessionResult, TargetProfile,
 } from '../types';
-import { createClay, NO_EFFECTS, stepClay, type ClayEffects, type ClayModel } from './clay';
+import { createClay, NO_EFFECTS, stepClay, type ClayEffects, type ClayLimits, type ClayModel } from './clay';
+import { palmWorldSize } from './contact';
 import { HintManager } from './hints';
 import { RuleEngine } from './rules';
 import { SessionTracker } from './session';
@@ -49,6 +50,21 @@ class Controller implements CoreController {
   private firingStartMs = 0;
   private result: SessionResult | null = null;
   private epochWarned = false;
+  private safeIndentDepthWorld: number = CONFIG.SAFE_INDENT_MIN_WORLD;
+
+  /**
+   * v5 limits from outside the clay: the screen ceiling (75 % of the space above the pot base) and the
+   * safe indentation (~one thumb phalanx of THIS user's measured palm; kept while hands are out of view).
+   */
+  private limits(frame: FrameInput): ClayLimits {
+    const p = this.projection!;
+    const hands = [frame.screenLeft, frame.screenRight].filter((h): h is NonNullable<typeof h> => h !== null);
+    if (hands.length) {
+      this.safeIndentDepthWorld = Math.max(CONFIG.SAFE_INDENT_MIN_WORLD, CONFIG.SAFE_INDENT_PALM * palmWorldSize(p.pixelsPerWorldUnit, ...hands));
+    }
+    const ceiling = (CONFIG.SCREEN_HEIGHT_FRACTION * p.bottomYPx) / p.pixelsPerWorldUnit;
+    return { maxHeightWorld: Math.min(CONFIG.MAX_HEIGHT, ceiling), safeIndentDepthWorld: this.safeIndentDepthWorld };
+  }
   private readonly gestures = new GestureRecognizer();
   private readonly rules = new RuleEngine();
   private readonly hints = new HintManager();
@@ -83,6 +99,7 @@ class Controller implements CoreController {
     // consequences of episodes active since the last observation (one-frame lag is invisible)
     this.clay = stepClay(
       this.clay, this.gesture, Math.min(frame.dtSampleS, CONFIG.MAX_STEP_S), this.effects, this.gestures.delta,
+      this.limits(frame),
     );
     const out = this.rules.update({
       tMs: frame.tMs, phase: this.phase, input: this.input, gesture: this.gesture, clay: this.clay,

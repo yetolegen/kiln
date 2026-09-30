@@ -43,7 +43,7 @@ export function frame(tMs: number, left: HandFeatures | null, right: HandFeature
 export function shapeGesture(bandY: number, targetRadiusWorld: number, deforming = true): GestureState {
   return {
     gesture: 'shape', sourceFrameId: 0, capturedAtMs: 0, holdMs: 500, inputUsable: true, deforming,
-    motionStrength: 0, activeTrackId: null, supportTrackId: null, activationProgress: 0,
+    motionStrength: 0, activeTrackId: null, supportTrackId: null, activationProgress: 0, engagedMs: 0,
     targetRadiusWorld, centerOffsetPalm: 0, speedPalmPerS: 0,
     contact: {
       valid: deforming, activeBand: Math.round(bandY * 47), bandY,

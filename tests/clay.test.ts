@@ -20,9 +20,12 @@ export function expectInvariants(c: ClayState) {
   expect(c.height).toBeLessThanOrEqual(CONFIG.MAX_HEIGHT);
   expect(c.wobble).toBeGreaterThanOrEqual(0);
   expect(c.wobble).toBeLessThanOrEqual(1);
-  // cavity: both zero, or both positive with a floor and a wall
+  // cavity: both zero, or both positive with a wall; the floor only reaches 0 as an explicit hole
   expect(c.cavityDepthWorld === 0).toBe(c.cavityRadiusWorld === 0);
-  expect(c.cavityDepthWorld).toBeLessThanOrEqual(c.height - CONFIG.FLOOR_WORLD + EPS);
+  expect(c.cavityDepthWorld).toBeLessThanOrEqual(c.height + EPS);
+  expect(c.floorThicknessWorld).toBeCloseTo(c.height - c.cavityDepthWorld, 5);
+  if (c.bottomHole) expect(c.floorThicknessWorld).toBe(0);
+  else if (c.cavityDepthWorld > 0) expect(c.floorThicknessWorld).toBeGreaterThan(CONFIG.HOLE_FLOOR_WORLD - EPS);
   expect(c.thickness).toBeGreaterThanOrEqual(CONFIG.THICKNESS_FLOOR - EPS);
   if (c.cavityDepthWorld > 0) {
     const wall = Math.min(...Array.from(c.radii).slice(cavityStartBand(c)));
@@ -33,7 +36,7 @@ export function expectInvariants(c: ClayState) {
 const lift = (world: number) => ({ ...NO_DELTA, liftWorld: world });
 const spread = (ratio: number) => ({ ...NO_DELTA, spreadRatio: ratio });
 const press = (world: number) => ({ ...NO_DELTA, compressWorld: world });
-const INDENT = { ...NO_DELTA, indent: true };
+const INDENT = { ...NO_DELTA, indentWorld: 0.01 }; // first push: the dent appears at INDENT_DEPTH
 const indented = (): ClayModel => stepClay(createClay(), actionGesture('indent'), 0.03, undefined, INDENT);
 
 describe('clay', () => {
@@ -56,7 +59,7 @@ describe('clay', () => {
       if (pick < 0.4) c = stepClay(c, shapeGesture(rand() * 1.4 - 0.2, rand() < 0.05 ? w : rand() * 4 - 1, rand() < 0.8), dt);
       else {
         const kind = kinds[Math.floor(rand() * 4)];
-        const d = { liftWorld: w, indent: rand() < 0.5, spreadRatio: w, compressWorld: Math.abs(w) };
+        const d = { liftWorld: w, indentWorld: rand() < 0.5 ? Math.abs(w) : 0, spreadRatio: w, compressWorld: Math.abs(w), stretchMs: rand() * 12000 };
         c = stepClay(c, actionGesture(kind, rand()), dt, { tearBand: rand() < 0.1 ? Math.floor(rand() * 48) : null, wobbling: rand() < 0.1 }, d);
       }
       expectInvariants(c);
@@ -118,11 +121,61 @@ describe('v4 actions on the clay', () => {
     expect(c.radii[20]).toBe(r);
   });
 
-  it('indentation is exactly INDENT deep however often it repeats', () => {
+  it('v5: the dent deepens with thumb travel, then goes through the floor (permanent hole)', () => {
     let c = indented();
-    for (let k = 0; k < 10; k++) c = stepClay(c, actionGesture('indent'), 0.05, undefined, INDENT);
     expect(c.cavityDepthWorld).toBeCloseTo(CONFIG.INDENT_DEPTH_WORLD);
-    expect(c.cavityRadiusWorld).toBeCloseTo(CONFIG.INDENT_RADIUS_WORLD);
+    c = stepClay(c, actionGesture('indent'), 0.05, undefined, { ...NO_DELTA, indentWorld: 0.2 });
+    expect(c.cavityDepthWorld).toBeCloseTo(CONFIG.INDENT_DEPTH_WORLD + 0.2);
+    expect(c.floorThicknessWorld).toBeCloseTo(c.height - c.cavityDepthWorld);
+    for (let k = 0; k < 20 && !c.bottomHole; k++) c = stepClay(c, actionGesture('indent'), 0.05, undefined, { ...NO_DELTA, indentWorld: 0.1 });
+    expect(c.bottomHole).toBe(true);
+    expect(c.collapsed).toBe(true);
+    expect(c.collapseCause).toBe('bottomHole');
+    expect(c.floorThicknessWorld).toBe(0);
+    expectInvariants(c);
+    // rim compression does NOT repair it
+    for (let k = 0; k < 100; k++) c = stepClay(c, actionGesture('compressRim', 0.5), 0.05, undefined, press(0.001));
+    expect(c.collapseCause).toBe('bottomHole');
+    expect(c.bottomHole).toBe(true);
+  });
+
+  it('v5: stretching the opening past STRETCH_DANGER_MS thins the wall, past STRETCH_TEAR_MS tears it (permanent)', () => {
+    let c = stepClay(indented(), actionGesture('open'), 0.05, undefined, spread(0.3));
+    const r0 = c.cavityRadiusWorld;
+    c = stepClay(c, actionGesture('open'), 0.05, undefined, { ...NO_DELTA, stretchMs: CONFIG.STRETCH_DANGER_MS - 100 });
+    expect(c.cavityRadiusWorld).toBeCloseTo(r0); // before the danger: holding still changes nothing
+    // held still (not deforming) in the danger window still thins
+    const held = { ...actionGesture('open'), deforming: false, motionStrength: 0 };
+    c = stepClay(c, held, 0.05, undefined, { ...NO_DELTA, stretchMs: CONFIG.STRETCH_DANGER_MS + 500 });
+    expect(c.cavityRadiusWorld).toBeGreaterThan(r0);
+    expect(c.collapsed).toBe(false);
+    c = stepClay(c, held, 0.05, undefined, { ...NO_DELTA, stretchMs: CONFIG.STRETCH_TEAR_MS });
+    expect(c.collapseCause).toBe('wallTorn');
+    expect(c.damage[47]).toBeGreaterThanOrEqual(0.8);
+    for (let k = 0; k < 100; k++) c = stepClay(c, actionGesture('compressRim', 0.5), 0.05, undefined, press(0.001));
+    expect(c.collapseCause).toBe('wallTorn');
+  });
+
+  it('v5: sustained rim compression is not capped and ends as a permanent pancake', () => {
+    let c = createClay();
+    for (let k = 0; k < 40 && !c.collapsed; k++) c = stepClay(c, actionGesture('compressRim', 0.5), 0.05, undefined, press(0.05));
+    expect(c.collapseCause).toBe('pancake');
+    expect(c.height).toBeLessThanOrEqual(CONFIG.PANCAKE_HEIGHT_WORLD + 1e-6);
+    const flat = c.height;
+    // pressing on can't "recover" it (compression is the recovery for the recoverable collapses only)
+    for (let k = 0; k < 100; k++) c = stepClay(c, actionGesture('compressRim', 0.5), 0.05, undefined, press(0.001));
+    expect(c.collapseCause).toBe('pancake');
+    expect(c.height).toBeLessThanOrEqual(flat);
+  });
+
+  it('v5: past the screen ceiling the pot collapses (tooTall) instead of resisting', () => {
+    const limits = { maxHeightWorld: 1.5, safeIndentDepthWorld: 0.2 };
+    let c: ClayModel = createClay();
+    c.radii.fill(1.6); // wide base: only the ceiling can stop it
+    c = enforceInvariants(c);
+    for (let k = 0; k < 40 && !c.collapsed; k++) c = stepClay(c, actionGesture('pullUp'), 0.05, undefined, lift(0.05), limits);
+    expect(c.collapseCause).toBe('tooTall');
+    expect(c.maxHeightWorld).toBe(1.5);
   });
 
   it('opening needs an indentation, and never passes the wall/floor limits', () => {
