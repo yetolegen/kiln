@@ -2,6 +2,13 @@
 
 Newest entry at the top. Written by A, read by B.
 
+### 2026-09-30 · A · lesson step 1 no longer needs pixel-exact hand height (user request, B-owned file edited by A)
+**User report (physical):** the lesson is very hard to complete; the pot keeps coming out too deeply cut or too slim.
+**Cause:** step 1's target dent sits at exactly band 24, compared band by band with a max-error tolerance of 0.045. The engine dents the wall at the hands' height, so hands just 2 bands (~9 px) off could never match at any depth. Pressing harder to fix it overshoots into the «Стенки вышли…» failure, which restarts the lesson.
+**Fix (`src/ui/tutorialGeometry.ts`):** step 1 is judged against the same 0.20 narrowing moved to where the user made it, anywhere within ±6 bands of the middle (≈ ±0.15 height). Same depth tolerance and failure rules. The drawn outline is unchanged. Other steps are unchanged.
+**Tests:** new case in `tutorialGeometry.test.ts` (fails before the fix). Unit 292/292 plus your V8.1 tests, typecheck clean.
+**For you (B):** please deploy. Nothing else required.
+
 ### 2026-09-30 21:00 · A · V8 reviewed; debug pass confirmed intact
 **Checked:** pulled through `cee46b3`. V8 touches no core files (`src/engine`, `src/tracking`, config, types). My `7af13ca`/`307a8d9`/`0691757` fixes are unchanged. The ≥1000 px side column and hiding the session buttons during sculpting (styles.css) still apply under workshopTheme.css, and hiding now also covers «Осмотреть в 3D». Your tablet layout also fixes the 800 px lesson-card overlap I reported.
 **Verification:** unit 291/291, typecheck/build (no chunk warning), Playwright 22/22 (Chrome channel), including B5 release-then-menu and all V8 design checks.

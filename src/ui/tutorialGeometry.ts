@@ -18,12 +18,19 @@ export interface ShapeAssessment {
   failure: string | null;
   instruction: string;
 }
+// Lesson step 1: a 0.20 narrowing centred on band 24. The dent lands wherever the hands touch, so any centre
+// within NARROW_SHIFT_BANDS of it counts (±6 bands ≈ ±0.15 of the height, ~±30 px on a laptop webcam).
+const NARROW_DEPTH = .20, NARROW_BAND = 24, NARROW_SHIFT_BANDS = 6;
+const narrowed = (start: readonly number[], centre: number) =>
+  start.map((r, i) => r - NARROW_DEPTH * Math.exp(-.5 * ((i - centre) / CONFIG.SIGMA_BANDS) ** 2));
+const maxError = (radii: ArrayLike<number>, target: readonly number[]) => Math.max(...Array.from(radii, (r, i) => Math.abs(r - target[i])));
+
 export const copyShape = (c: LessonShape | ClayState): LessonShape => ({ radii: Array.from(c.radii), height: c.height, cavityRadiusWorld: c.cavityRadiusWorld, cavityDepthWorld: c.cavityDepthWorld });
 
 /** Curriculum goals; these never change the engine's clay or follow a moving target. */
 export function createLessonGoal(step: number, clay: LessonShape | ClayState): LessonGoal {
   const start = copyShape(clay), target = copyShape(clay);
-  if (step === 0) target.radii = start.radii.map((r, i) => r - .20 * Math.exp(-.5 * ((i - 24) / CONFIG.SIGMA_BANDS) ** 2));
+  if (step === 0) target.radii = narrowed(start.radii, NARROW_BAND);
   if (step === 1) { target.height += .30; target.radii = start.radii.map((r) => r * .977); }
   if (step === 2) { target.cavityRadiusWorld = CONFIG.INDENT_RADIUS_WORLD; target.cavityDepthWorld = CONFIG.INDENT_DEPTH_WORLD; }
   if (step === 3) { target.cavityRadiusWorld += .26; target.cavityDepthWorld += .468; }
@@ -36,10 +43,19 @@ export function createLessonGoal(step: number, clay: LessonShape | ClayState): L
 }
 
 export function assessLessonShape(clay: ClayState, goal: LessonGoal): ShapeAssessment {
-  const { target: t, start: s, step } = goal;
+  const { start: s, step } = goal;
+  let t = goal.target;
+  if (step === 0) {
+    // Compare against the narrowing moved to where the user actually made it, if that is close enough.
+    let best = maxError(clay.radii, t.radii);
+    for (let c = NARROW_BAND - NARROW_SHIFT_BANDS; c <= NARROW_BAND + NARROW_SHIFT_BANDS; c++) {
+      const radii = narrowed(s.radii, c), e = maxError(clay.radii, radii);
+      if (e < best) { best = e; t = { ...t, radii }; }
+    }
+  }
   const dent = step === 2;
   const hTol = .035, rTol = .045, cavityRTol = dent ? .025 : .045, cavityDTol = dent ? .025 : .065;
-  const radiusError = Math.max(...clay.radii.map((r, i) => Math.abs(r - t.radii[i])));
+  const radiusError = maxError(clay.radii, t.radii);
   const errors = [Math.abs(clay.height - t.height) / hTol, radiusError / rTol,
     Math.abs(clay.cavityRadiusWorld - t.cavityRadiusWorld) / cavityRTol,
     Math.abs(clay.cavityDepthWorld - t.cavityDepthWorld) / cavityDTol];

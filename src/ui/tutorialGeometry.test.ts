@@ -41,3 +41,16 @@ it('fails irreversible overshoot just outside tolerance instead of trapping the 
     expect(result.similarity).toBeLessThan(90);
   }
 });
+
+it('accepts the first narrowing wherever the hands made it near the middle, not only at one exact band', () => {
+  const c = new MockCore().tick(0).clay!;
+  const goal = createLessonGoal(0, c);
+  const dent = (centre: number, depth: number) => ({ ...c, radii: Float32Array.from(c.radii, (r, i) => r - depth * Math.exp(-.5 * ((i - centre) / 4) ** 2)) });
+  // Real hands land a few bands (~10–30 px) above or below the drawn outline; before, 2 bands off could never match.
+  for (const centre of [18, 21, 27, 30]) {
+    expect(assessLessonShape(dent(centre, .20), goal)).toMatchObject({ matched: true, failure: null });
+    expect(assessLessonShape(dent(centre, .10), goal).matched).toBe(false);
+  }
+  expect(assessLessonShape(dent(40, .20), goal).matched).toBe(false);
+  expect(assessLessonShape(dent(27, .40), goal).failure).toContain('Стенки');
+});
