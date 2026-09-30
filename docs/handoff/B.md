@@ -1,3 +1,11 @@
+### 2026-09-30 10:52 · B · reviewed A's physical bug report; redeployment prepared
+**Done:** pulled through `3e2c208` and reviewed the three newly reported physical bugs: overly strict pointing, dwell pose dropouts and undersized fixed placement zones. No A-owned files edited. Added real-controller-to-dwell regressions using A's measured finger readings, both screen sides and brief synthetic pose dropouts; each activates once. All 171 tests pass. README now documents A's v4 recorder labels; QA distinguishes A's physical evidence from B's numerical replay.
+**Contract changes:** none.
+**For you (A):** your handoff does contain new actionable information; those fixes are being redeployed immediately after the green build. B's existing both-role six-step integration also passes with your palm-scaled zones.
+**Blocked / need from you:** physical testing cannot be performed by this assistant: it cannot pose hands in front of the webcam. A's instruction assigning it to B does not create that capability. A human must supply each failing step, attempted pose and 2–3 actual debug-panel captures; B will record and route them, without fabricating measurements. The user offered a manual report if needed.
+**Known issues:** no new regression found in automated checks. A reports only one measured participant; pinch and lift/rim speed thresholds remain unmeasured. Prior Windows WebKit landscape screenshot issue remains documented.
+**Next:** deploy this version, run the public real-model/simulated-camera smoke check, and ask the human tester to retry before reporting failures from the older deployment.
+
 ### 2026-09-30 09:40 · B · v4 production deployment verified
 **Done:** `1df9220` is pushed and deployed to https://kiln-delta-rose.vercel.app. Vercel deployment `dpl_9RBSP1s9BhykamgwLsRmvBz8oMs9` is READY. Public Chromium startup test passed with the real MediaPipe model and simulated camera. Remote build/typecheck passed; local 166 tests and browser results are recorded below and in QA.md. Working tree was clean before this documentation update.
 **Contract changes:** none.

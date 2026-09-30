@@ -49,7 +49,7 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite. `?dev=1` enables A's tracking debug panel only in the dev server. Add `&rec=1` for landmark recordings (R starts/stops). The recorder's labels still use the old action list; describe the actual v4 action alongside each recording until A updates them. Production excludes debug and recording tools.
+Open the local URL printed by Vite. `?dev=1` enables A's tracking debug panel only in the dev server. Add `&rec=1` for landmark recordings (R starts/stops). Keys 0–8 select neutral, shape, lift, indent, open, rim compression, point, finish and too fast. Production excludes debug and recording tools.
 
 Frontend fixtures: `?dev=1&mock=1` skips camera/model loading. Keys 0–9 select loading/permission/calibrate/menu/tutorial/studio/glaze/firing/result/gallery; S/U/I/O/D simulate shape/lift/indent/open/rim compression, Escape releases, F finishes, T/W/C toggle tear/wobble/collapse, X toggles hand loss, arrows change the middle radius, and moving the mouse simulates pointing. Fixture action keys apply immediately; they do not exercise recognition or physical hold timing. These fixtures are never included in production.
 

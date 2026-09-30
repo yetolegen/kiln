@@ -6,6 +6,26 @@ import { DwellController } from './dwell';
 import { createGalleryStore } from '../browser/storage';
 import type { AppCommand, HandFeatures } from '../types';
 
+it.each([-1, 1])('dwells once using reported webcam finger readings on side %i despite brief pose dropouts', (side) => {
+  const core = createController();
+  const start = toMenu(core), dwell = new DwellController();
+  const targets = [{ id: 'tutorial', x: 0, y: 0, width: 100, height: 100 }];
+  const selected: string[] = [];
+  for (let i = 0; i < 80; i++) {
+    const now = start + i * 33;
+    // A's real-hand finger readings; isolated synthetic frame for the pose dropout.
+    const extension = i > 10 && i % 9 === 0 ? { index: .3, middle: .3, ring: .3, pinky: .3 } :
+      i % 2 ? { index: 1, middle: .36, ring: .42, pinky: .54 } : { index: 1, middle: .47, ring: .52, pinky: .66 };
+    const pointer = hand(side, .6, { extension, pinchRatio: 1.21, indexTipPx: { x: 50, y: 50 } });
+    core.observe(frame(now, side < 0 ? pointer : null, side > 0 ? pointer : null));
+    const hit = dwell.update(core.tick(now), now, targets);
+    if (hit) selected.push(hit);
+  }
+  expect(selected).toEqual(['tutorial']);
+  core.dispatch({ type: 'start', mode: 'tutorial', sessionId: 'measured-point' }, start + 80 * 33);
+  expect(core.tick(start + 80 * 33).phase).toBe('tutorial');
+});
+
 it.each([1, 2])('integrates v4 lessons with active track %i, one-hand dwell, commission, firing and storage', (activeId) => {
   const core = createController({ nowIso: () => '2026-09-29T18:00:00.000Z' });
   let now = toMenu(core);
