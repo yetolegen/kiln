@@ -1,3 +1,8 @@
+### 2026-09-30 · B · V8.0 LIVE; public verification passed
+**Done:** deployed code `3e1fb16` (frontend `ac56066`) to https://kiln-delta-rose.vercel.app. Deployment `dpl_FJcpgxbjC4EFRvGNdsNTKvvoAMYU` READY and production alias updated. Cloud typecheck/build pass without the large-chunk or unbounded-Node-major warning. Public Chromium smoke passes split asset/model loading, V8.0 footer, mirrored simulated camera and phone resize. Final Word proposal is uploaded in the GitHub repository and delivered to the user.
+**Contract changes / For A / Blocked:** none; no A-owned source edits. 291 unit/integration + 22 Chromium + 3 applicable WebKit checks passed locally. Firefox harness failure is recorded below. This is not a physical-hand certification.
+**Next physical retest:** refresh for V8.0; verify palm menu selection, all shaping actions and release, then «Осмотреть в 3D» → freely drag/zoom, look underneath, return to the calibrated view, Done → glaze → fire. Confirm wall tearing opens from the rim and the old interaction/damage behavior stays intact. No permission requested again; awaiting the user's observations.
+
 ### 2026-09-30 · B · deployment warning and CLI scope corrected
 **Done:** V8 code `ac56066` uploaded and built on Vercel. Its cloud log exposed a separate unbounded Node major-range warning; package/lock now pin the already-used Node 24.x. No dependency or frontend runtime change. Unscoped CLI deploy returned Not authorized despite valid access; explicit `--scope mansurertaj5-4014` succeeds. README deploy command corrected.
 **Contract changes / For A / Blocked:** none. Preparing the final pinned-runtime deployment and public smoke. Previous local gates remain green.

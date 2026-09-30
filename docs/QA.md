@@ -6,6 +6,7 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ### V8.0 design and inspection release
 
+- **Live:** code `3e1fb16`, deployment `dpl_FJcpgxbjC4EFRvGNdsNTKvvoAMYU`, production alias https://kiln-delta-rose.vercel.app. Public Chromium real-model/simulated-camera startup, V8.0 version, mirrored video and resize pass. Cloud build has neither the bundle-size nor Node major-upgrade warning; Node is pinned to the tested 24.x runtime.
 - Final proposal: 13-page Word document, all pages rendered and visually reviewed. Adds free rotation/zoom including the underside, paused shaping during inspection, rim-origin rupture, shared wheel spin and bounded splatter. Document is committed in `docs/`.
 - 291/291 unit/integration tests and typecheck/build pass. Tests cover continuous rim-to-weak-band mesh openings, unchanged height, particle freshness/limits and pauses, core projection, lessons and existing interaction/damage gates.
 - 22/22 Chromium browser checks pass. New cases verify mouse drag, real dispatched touch drag/pinch, below-base view, reset and exit, UI lock, reduced motion, duplicate-control cleanup, preserved glaze selection and responsive tablet layout. Existing palm navigation, tutorials, finishing, export and storage checks remain green.
