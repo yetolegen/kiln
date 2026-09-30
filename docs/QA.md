@@ -4,6 +4,13 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ## Automated checks
 
+### A's Done gate integration (30 September 15:03)
+
+- Pulled `2242d15`; real-controller `studioFlow` now **8/8 passing**. Raised hands cannot finish free/commission pots; explicit finishShaping unlocks glazing, and firing requires a glaze.
+- Full suite **235 passed / 10 failed / 245 total**. Only the ten previously documented V6 core acceptance cases fail; no new regression. Build/typecheck pass, production assets exclude mock/debug markers.
+- Six Chromium checks pass: both B8 finishing/storage variants, Free Mode Done, tutorial geometry/completion, palm retry and dwell/HUD. These use synthetic input; real-hand retest remains necessary.
+- V5.3 release includes the completed lesson screen, advice above heading, actual cavity section and explicit Done gate. V6 thumb depth, withdrawal, slow pressing and cross-action core fixes remain pending A.
+
 ### Completed lesson and explicit Done gate (30 September 15:00, not deployed)
 
 - Final compression still requires deformation and geometry confirmation. It now enters completed 6/6 immediately, with «Обучение окончено» instead of a raised-hands task. Completion survives tracking loss; restart resets it. Advice stays above the heading.

@@ -25,7 +25,7 @@ V5.1 fixes camera/render timestamp ordering that could reset dwell and lesson co
 | Initial indentation | Support a wall; point the other thumb downward at the top centre and push slightly. Continuing too deeply thins and perforates the floor |
 | Widen/deepen | Support a wall; pinch thumb/index inside the dent, hold briefly, then gradually spread the fingers |
 | Compress/smooth rim | Support a wall; hold the other open hand horizontal just above the rim for 0.5 seconds, then lower it slowly. Repairs recoverable damage; continued pressing can flatten the pot |
-| Finish | Select «Готово» with palm dwell or click, then choose glaze and fire (new button-only gate pending A's core fix; see handoff) |
+| Finish | Select «Готово» with palm dwell or click, then choose glaze and fire. Raised hands do not finish the pot |
 | Navigate | Hold either palm centre over a button; alternatively point with the index finger and curl the others |
 
 These are basic shaping plus exactly four additional pottery functions. Either hand can act while the other supports; keep those roles throughout one action. The gold ring shows activation and green marks support. Moving too early/fast or losing support cancels activation.
