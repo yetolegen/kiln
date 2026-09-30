@@ -5,10 +5,11 @@ test('B10 retains a fading visual briefly while lost tracking pauses the control
   await expect(page.getByTestId('mock-badge')).toBeVisible();
   await page.keyboard.press('5'); await page.keyboard.press('s');
   const pixels = () => page.locator('.overlay-canvas').evaluate((canvas: HTMLCanvasElement) => {
-    const data = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data;
+    const top = Math.floor(canvas.height / 2);
+    const data = canvas.getContext('2d')!.getImageData(0, top, canvas.width, canvas.height - top).data;
     let count = 0; for (let i = 3; i < data.length; i += 4) if (data[i]) count++; return count;
   });
-  // Free mode prevents a commission outline from contributing pixels to this check.
+  // Free mode removes the target; sample the lower half to exclude V5's persistent height-limit line.
   await page.keyboard.press('3'); await page.locator('[data-action="free"]').click(); await page.mouse.move(0, 0); await page.keyboard.press('s');
   await expect.poll(pixels).toBeGreaterThan(0);
   const retained = await page.evaluate(async () => {
@@ -18,7 +19,8 @@ test('B10 retains a fading visual briefly while lost tracking pauses the control
       const sample = () => {
         if (document.querySelector('.hud__hint')?.textContent?.includes('Отслеживание потеряно')) {
           const canvas = document.querySelector<HTMLCanvasElement>('.overlay-canvas')!;
-          const data = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data;
+          const top = Math.floor(canvas.height / 2);
+          const data = canvas.getContext('2d')!.getImageData(0, top, canvas.width, canvas.height - top).data;
           let count = 0; for (let i = 3; i < data.length; i += 4) if (data[i]) count++;
           resolve(count);
         } else if (performance.now() >= deadline) resolve(-1);
@@ -29,6 +31,7 @@ test('B10 retains a fading visual briefly while lost tracking pauses the control
   });
   expect(retained).toBeGreaterThan(0);
   await expect(page.locator('.hud__hint')).toContainText('Отслеживание потеряно');
+  await expect(page.locator('.hand-cursor')).toBeHidden();
   await expect.poll(pixels).toBe(0);
   await page.keyboard.press('x'); await expect.poll(pixels).toBeGreaterThan(0);
 });
@@ -129,6 +132,7 @@ test('B7 palm dwell fills, failures stop the lesson and palm retry resets the at
   const button = page.locator('[data-action="tutorial"]');
   await button.hover();
   await expect(button).toHaveClass(/is-dwelling/);
+  await expect(page.locator('.workshop > .hand-cursor')).toBeVisible();
   await expect.poll(() => button.evaluate((el) => parseFloat((el as HTMLElement).style.getPropertyValue('--dwell')))).toBeGreaterThan(0);
   const lesson = page.locator('.tutorial-card');
   await expect(lesson).toHaveAttribute('data-step', '0');
@@ -242,6 +246,7 @@ test('B2 loads the real model, starts a mirrored camera, and resizes', async ({ 
   await expect(start).toBeEnabled({ timeout: 50_000 });
   await start.click();
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'calibrate', { timeout: 20_000 });
+  await expect(page.locator('footer')).toContainText('V5.1');
   const video = page.locator('video');
   await expect(video).toBeVisible();
   expect(await video.evaluate((element: HTMLVideoElement) => ({

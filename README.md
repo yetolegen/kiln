@@ -12,6 +12,8 @@ A virtual pottery wheel controlled by hand gestures through a webcam. A browser 
 
 Wait for the hand model, click «Начать» once and allow the camera. Hold both hands still for calibration, then place the centre of either palm over a menu button for 0.9 seconds. The button highlights and the cursor ring fills. Index-finger pointing also works. After system camera permission, in-app navigation is designed to work with gestures. Tutorial, commission/free shaping, three glazes, firing, results, PNG export and a local gallery are implemented.
 
+V5.1 fixes camera/render timestamp ordering that could reset dwell and lesson confirmation, and puts the cursor ring above the buttons. The camera footer shows the version; small cyan dots mark tracked palm centres.
+
 **V5 interaction:** A's recognizer, cavity and damage model are integrated with palm navigation and geometry-led lessons. The controls below replace the former two-pinch lift and two-fist press. Automated synthetic tests cover both hand roles; physical-camera recognition and T22 still need human verification. See [GESTURES_V5.md](docs/GESTURES_V5.md).
 
 ## Current controls

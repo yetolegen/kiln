@@ -1,3 +1,11 @@
+### 2026-09-30 13:23 · B · continuing real-hand report: render-clock and cursor-layer fixes
+**Done:** user confirmed public V5 in Chrome on Acer Nitro 5 AN515-58, with cyan targets and geometry percentages. Reproduced a B render-clock mismatch: a fresh camera sample can be newer than the rAF timestamp, so dwell resets and lesson confirmation repeatedly resets after freezing clay at target. Main now samples performance.now() on callback entry. New raw-landmark browser regression fails at menu dwell before the fix, then passes real feature/core/dwell/first-target confirmation after it. Cursor SVG now renders above buttons; fresh palm centres are marked. Footer identifies V5.1.
+**Contract changes:** none; no A-owned files edited.
+**For you (A):** this report is on current V5 and has no numerical landmark capture yet. The confirmed timing/UI faults are B's, fixed here; no core recognition thresholds were loosened. Existing 197 unit tests, both-hand action/damage flows, and build/typecheck pass.
+**Blocked / need from you:** none for this deployment. If a physical action still fails after V5.1, actual panel values are needed for your recognition work; do not substitute the synthetic regression for physical recordings.
+**Known issues:** 5 targeted Chromium checks and all 6 cross-browser B7 lesson/retry checks pass. New camera-order test replaces the landmark provider and callback ordering only; real feature/controller/UI run. V5 retained-hand test now excludes the persistent ceiling line. Physical V5.1 acceptance and Windows WebKit screenshot caveat remain pending.
+**Next:** deploy V5.1 and verify public startup/version; user retest with the visible footer version.
+
 ### 2026-09-30 12:53 · B · V5 deployed and public startup verified
 **Done:** deployed code 5e502a7 (includes A's f95ff07) to https://kiln-delta-rose.vercel.app. Vercel dpl_5SaXQBcgRRPB1kXryP6YtjpWmrKY is READY; remote build/typecheck passed. Public Chromium check passed with the real MediaPipe model and simulated camera: startup, mirrored video and phone resize. Local gate: 197/197 tests, build/typecheck pass. Production bundle contains no mock/debug/recorder markers.
 **Contract changes:** none.

@@ -5,11 +5,16 @@ import { HandVisuals } from './handVisuals';
 
 const CHAINS = [[0, 1, 2, 3, 4], [0, 5, 6, 7, 8], [5, 9, 10, 11, 12], [9, 13, 14, 15, 16], [13, 17, 18, 19, 20], [0, 17]];
 
-export function createOverlay(parent: HTMLElement) {
+export function createOverlay(parent: HTMLElement, cursorParent: HTMLElement = parent) {
   const canvas = document.createElement('canvas');
   canvas.className = 'overlay-canvas';
   canvas.setAttribute('aria-hidden', 'true');
   parent.append(canvas);
+  const pointer = document.createElement('div');
+  pointer.className = 'hand-cursor'; pointer.hidden = true; pointer.setAttribute('aria-hidden', 'true');
+  pointer.innerHTML = '<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="none" stroke="#211d19" stroke-width="7"/><circle cx="24" cy="24" r="20" fill="none" stroke="#fff5db" stroke-width="2"/><circle class="hand-cursor__progress" cx="24" cy="24" r="20" fill="none" stroke="#ffe0a2" stroke-width="4" stroke-dasharray="126" stroke-dashoffset="126" transform="rotate(-90 24 24)"/><circle cx="24" cy="24" r="5" fill="#fff5db" stroke="#211d19" stroke-width="2"/></svg>';
+  const pointerProgress = pointer.querySelector('.hand-cursor__progress')!;
+  cursorParent.append(pointer);
   const ctx = canvas.getContext('2d');
   let width = 0, height = 0, dpr = 1;
   let projection: ProjectionParams | null = null;
@@ -23,6 +28,7 @@ export function createOverlay(parent: HTMLElement) {
       canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr);
     },
     render(snapshot: EngineSnapshot, nowMs: number, dwellProgress = 0, uiCursor: Vec2 | null = null, goal: LessonGoal | null = null, lessonStatus = 'working'): void {
+      pointer.hidden = true;
       if (!ctx) return;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, width, height);
@@ -113,6 +119,13 @@ export function createOverlay(parent: HTMLElement) {
       }
       ctx.shadowBlur = 0; ctx.globalAlpha = 1;
       if (!input || nowMs < input.tMs || nowMs - input.tMs > CONFIG.MAX_INPUT_AGE_MS) return;
+      if (['ready', 'oneHand'].includes(input.status)) {
+        for (const hand of [input.screenLeft, input.screenRight]) {
+          if (!hand) continue;
+          ctx.fillStyle = '#a5e9ed'; ctx.strokeStyle = '#211d19'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(hand.palmPx.x, hand.palmPx.y, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        }
+      }
       const action = snapshot.gesture;
       if (input.status === 'ready' && action?.inputUsable && action.sourceFrameId === input.frameId && ['studio', 'tutorial'].includes(snapshot.phase)) {
         for (const hand of [input.screenLeft, input.screenRight]) {
@@ -132,11 +145,11 @@ export function createOverlay(parent: HTMLElement) {
       }
       const cursor = uiCursor ?? (['ready', 'oneHand'].includes(input.status) && snapshot.gesture?.sourceFrameId === input.frameId ? snapshot.gesture.cursorPx : null);
       if (cursor) {
-        ctx.fillStyle = '#fff5db'; ctx.beginPath(); ctx.arc(cursor.x, cursor.y, 6, 0, Math.PI * 2); ctx.fill();
-        ctx.lineWidth = 2; ctx.strokeStyle = '#ffffff66'; ctx.beginPath(); ctx.arc(cursor.x, cursor.y, 21, 0, Math.PI * 2); ctx.stroke();
-        ctx.strokeStyle = '#ffe0a2'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(cursor.x, cursor.y, 21, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * dwellProgress); ctx.stroke();
+        pointer.hidden = false;
+        pointer.style.transform = `translate(${cursor.x - 24}px, ${cursor.y - 24}px)`;
+        pointerProgress.setAttribute('stroke-dashoffset', String(126 * (1 - dwellProgress)));
       }
     },
-    dispose(): void { canvas.remove(); },
+    dispose(): void { canvas.remove(); pointer.remove(); },
   };
 }

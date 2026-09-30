@@ -4,6 +4,15 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ## Automated checks
 
+### V5.1 continuing physical report and timing fix (30 September 13:23)
+
+- **Human report:** user confirmed the refreshed public URL, Chrome on Acer Nitro 5 AN515-58, and visible cyan targets/“Форма” percentages. Palm dwell and weak/stuck lesson response therefore concern V5, not merely the previous deployment. No numerical landmark recordings were supplied.
+- **Reproduced B clock bug:** main passed requestAnimationFrame's timestamp to UI freshness checks, while camera observations use performance.now(). A camera callback earlier in the same rendering cycle can have a newer capture time than that animation timestamp. Dwell resets on the apparent future frame; lesson matching also repeatedly resets its confirmation timer after freezing clay at the target. The fix samples performance.now() at render callback entry. Freshness checks remain strict.
+- New `src/browser/timing.pw.ts` supplies synthetic raw camera landmarks before the render callback, using the real feature extractor/controller/dwell/tutorial. Before the fix it calibrated and stayed in the menu despite a palm over the button. After the fix it selects the lesson without mouse input after Start and reaches/holds the first real geometry target. The test explicitly verifies newer camera timestamps. This is a controlled callback-order regression, not a physical-hand or MediaPipe-recognition test.
+- **Cursor visibility:** the old cursor canvas lived behind opaque UI buttons. Its progress ring now uses a separate fixed SVG layer above the buttons, with pointer events disabled. Fresh palm-centre dots aid alignment. Lost/stale input hides the cursor. Screenshot inspected: ring and button progress both visible. Footer shows V5.1 for version identification.
+- Checks: 197/197 unit tests; build/typecheck pass; 5 targeted Chromium checks pass (timing, dwell, geometry lessons, retry and retained hand display); all 6 lesson/retry checks pass across Chromium/Firefox/WebKit. The display-retention test was corrected to exclude V5's persistent height-ceiling line from its hand-pixel region.
+- No A-owned files changed. New physical acceptance remains pending after deployment; previous device evidence is not a claim that V5.1 works with real hands.
+
 ### V5 production verified (30 September 12:53)
 
 - **Live:** https://kiln-delta-rose.vercel.app, deployed code `5e502a7` including A's `f95ff07`; deployment `dpl_5SaXQBcgRRPB1kXryP6YtjpWmrKY` READY. Remote build/typecheck passed.

@@ -44,7 +44,7 @@ const tutorial = createTutorial(screens.page, (command) => core.dispatch(command
 const scene = createScene(screens.viewport);
 const kiln = createKiln(screens.viewport, scene.setSurface);
 const finishing = createFinishing(screens, (command) => core.dispatch(command, performance.now()), scene.exportPng);
-const overlay = createOverlay(screens.viewport);
+const overlay = createOverlay(screens.viewport, screens.page);
 const camera = new CameraSession(screens.video, () => failCamera('interrupted'));
 let tracker: HandTracker | null = null;
 let tracking: ReturnType<typeof connectTracking> | null = null;
@@ -143,8 +143,10 @@ function pageHide(): void {
 }
 window.addEventListener('pagehide', pageHide);
 
-function render(nowMs: number): void {
+function render(): void {
   if (disposed) return;
+  // Camera callbacks may run after the frame timestamp but before this callback.
+  const nowMs = performance.now();
   const snapshot = core.tick(nowMs);
   if (snapshot.phase !== layoutPhase) { layoutPhase = snapshot.phase; project(); }
   screens.update(snapshot, state, nowMs);
