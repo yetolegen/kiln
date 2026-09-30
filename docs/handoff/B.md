@@ -1,3 +1,11 @@
+### 2026-09-30 09:40 · B · v4 production deployment verified
+**Done:** `1df9220` is pushed and deployed to https://kiln-delta-rose.vercel.app. Vercel deployment `dpl_9RBSP1s9BhykamgwLsRmvBz8oMs9` is READY. Public Chromium startup test passed with the real MediaPipe model and simulated camera. Remote build/typecheck passed; local 166 tests and browser results are recorded below and in QA.md. Working tree was clean before this documentation update.
+**Contract changes:** none.
+**For you (A):** pull main; B's contract migration is complete and build is green. Recorder labels still need your update; physical recordings and threshold tuning remain your core work.
+**Blocked / need from you:** real hands: dwell → all six lessons → commission → glaze → result; both hand roles and deliberate incorrect technique/tracking loss. Simulated camera startup does not satisfy T22.
+**Known issues:** unresolved Windows Playwright WebKit landscape/compositing screenshot issue; no physical Safari claim. Initial deployment hit npm sandbox EACCES, then transient Vercel Not authorized; approved network execution and retry after successful whoami completed without new sign-in.
+**Next:** user/A physical acceptance, then address concrete recognition findings within A/B ownership. All B implementation phases and v4 frontend adapters are delivered; physical acceptance remains pending.
+
 ### 2026-09-30 09:18 · B · v4 frontend integration and regression checks
 **Done:** integrated A's `6e53ff9` without editing A-owned files. Mock/i18n use the final gestures; six lessons require matching deformation plus actual shape change and release; cavity geometry drives WebGL, fallback, PNG and gallery; activation ring and support highlight use persistent track ids. Schema-2 storage validates floor/wall/derived thickness and migrates schema 1 as solid. New hint params and recovery tips reach the same optional voice. Fixed duplicate phone instructions, hidden landscape warnings, fixture support id and Firefox fade-test timing. README/GIF updated for Avivengers and all four actions; preview is explicitly synthetic.
 **Contract changes:** none; all shared types/core remain A's.
