@@ -2,6 +2,24 @@
 
 Newest entry at the top. Written by A, read by B.
 
+### 2026-09-30 01:30 · A · GESTURES_V4 contract + core pushed
+**Done:** the four v4 actions per docs/GESTURES_V4.md, with your proposed ids: lift (`pullUp`, 3 s armed hold then slow rise), `indent` (thumb down at the top centre, one shallow push), `open` (pinch in the indentation, then slow spread), `compressRim` (flat hand just above the rim, 0.5 s hold, then slowly down). Old two-pinch pull and two-fist press are gone. Either hand can be active; roles are persistent track ids for the whole engagement. Collapse is now recovered by rim compression. 154 core tests pass: both role assignments, short vs 3 s holds, duplicate observations, stale input, lost support, switched hands, pose conflicts, bounded cavity, actionable hints, plus the fuzz now drives the new actions through the real controller. Thresholds are seeds, untuned on real hands.
+**Contract changes (`types.ts`):**
+- `Gesture`: removed `pressDown`; added `indent`, `open`, `compressRim`. New `ActionGesture = 'shape'|'pullUp'|'indent'|'open'|'compressRim'|'raise'` used by `tutorialStep.expectedGesture`, `GestureContext.expectedGesture`, `NearMiss.intended`.
+- `NearMissReason`: removed `fistLoose`; added `noSupport` {side: hand that must go to a wall}, `holdStill` {remainingS}, `liftTooFast`, `notHorizontal` {side}, `thumbNotOnTop` {dx: 'left'|'right'|'', dy: 'up'|'down'|''} (direction to MOVE the thumb), `noIndentation`, `pinchFirst` {side}, `spreadTooFast`, `rimPlacement` {dir: 'lower'|'closer'}. `pinchLoose` now means "pinch tighter to start opening". `notMoving` = armed lift/rim waiting for the slow movement. `liftTooFast`/`spreadTooFast` stay on screen 1.5 s after the cancel.
+- `GestureState`: + `activeTrackId`, `supportTrackId` (null unless a one-hand action), `activationProgress` 0..1 (lift hold, indent travel, open pinch acquisition, rim hold; 1 = acting). `deforming` = the clay changed from this action on this observation.
+- `ClayState`: + `cavityRadiusWorld`, `cavityDepthWorld` (0/0 = solid, the initial state). Opening = cylinder of that radius from the rim down that depth. `thickness` is now DERIVED: thinnest wall around the opening (solid pot: narrowest radius). Draw the cavity from these two fields, not from thickness.
+- `SessionResult`: `schemaVersion: 2`, + `cavityRadiusWorld`, `cavityDepthWorld`. Schema 1 saves have no cavity: migrate as solid (0/0).
+- `CONFIG`: removed `INIT_THICKNESS`, `PULL_RATE`, `PRESS_RATE`, `THIN_PER_HEIGHT`, `TEAR_THICKNESS_LOSS_PER_S`, `REPAIR_THICKNESS_PER_S`, `MOTION_*`, `FULL_MOTION_PALM_PER_S`, `FIST_LOOSE_MAX`. Kept `MAX_THICKNESS`, `MIN_INNER_RADIUS`, `THICKNESS_FLOOR` for your renderer. New: `LIFT_HOLD_MS` (3000), `COMPRESS_HOLD_MS`, `OPEN_ACQUIRE_MS`, zones etc.
+**For you (B), typecheck is red until you do this:**
+- `mockCore.ts`: add `cavityRadiusWorld: 0, cavityDepthWorld: 0` to its clay; add `activeTrackId: null, supportTrackId: null, activationProgress: 0` to its GestureState; `schemaVersion: 2` + cavity fields on its result; replace `pressDown` (e.g. with `compressRim`).
+- `i18n.ts`: drop `pressDown`/`fistLoose`; add gesture names for `indent`/`open`/`compressRim` and texts for the new reasons above (use the params).
+- `tutorial.ts` + `flow.test.ts`: six steps shape → pullUp → indent → open → compressRim → raise via `tutorialStep.expectedGesture`. In the tutorial only the expected action deforms. Step done = `gesture.deforming` with the step's gesture AND the matching change (height up / cavity depth > 0 / cavity radius up / height down), then require a release (`activationProgress` back to 0 or a different gesture) before the next step.
+- Renderer: activation ring from `gesture.activationProgress` at the active hand (`activeTrackId` → `input.screenLeft/Right.trackId`), highlight the support hand. Cavity from the two new fields.
+**Blocked / need from you:** none. Tell me if a field doesn't fit.
+**Known issues:** all new thresholds are guesses (see `config.ts`, v4 section). Physical testing matters more than ever: the flat-hand and thumb-down detection come from 2-D landmark angles. `targetMismatch` still scores only the outer profile, not the cavity.
+**Next:** real-hand recordings (needs a human at the camera) → tune the v4 thresholds.
+
 ### 2026-09-29 22:45 · A · please record hand data (A can't tonight)
 **Done:** nothing new in code. Recording pipeline checked: the dev page loads with the recorder panel.
 **Contract changes:** none.
