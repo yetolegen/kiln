@@ -4,6 +4,12 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ## Automated checks
 
+### V7.0 production verification (30 September)
+
+- `b0f7ca4` deployed to https://kiln-delta-rose.vercel.app; deployment `dpl_8eoEkAJCUJwn2dBayNLxA2r7dErx` READY.
+- Public Chromium real-model/simulated-camera smoke passes startup, V7.0 footer, mirrored video and phone resize. Together with 12 local browser checks and 288 unit/integration tests, all release checks pass.
+- Physical-hand acceptance is still pending the user. No synthetic test is reported as a real-hand result.
+
 ### V7.0 release integration (30 September 17:21)
 
 - Integrated A's V7 `f9a60c9` and V6 `967c248`; **288/288 unit/integration tests pass**, including all previously failing V6/V7 cases. Typecheck/build pass; existing bundle-size warning only. Production excludes mock/debug hooks.

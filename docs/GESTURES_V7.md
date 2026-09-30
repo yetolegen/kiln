@@ -1,5 +1,7 @@
 # V7 studio follow-up — Free Mode and reference/commission mode
 
+**Current status:** implemented by A in `f9a60c9` with V6 follow-up `967c248`, integrated/deployed by B as **V7.0** (`b0f7ca4`). All 32 tests in `studioV7.test.ts` now pass. The failure counts below describe the original reproductions before those fixes. Physical-hand retest remains pending.
+
 User confirmed V5.3, then reported inconsistent under-base lift, insufficient flattening, sagging instead of a wall rupture, and accidental confirmation controls. Core stays with A. B implements UI gating and tests; no core source edits.
 
 ## A: stable supported lift — revised after user's clarification

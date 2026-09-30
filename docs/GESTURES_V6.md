@@ -1,5 +1,7 @@
 # V6 interaction corrections (2026-09-30)
 
+**Current status:** A implemented the core corrections in `967c248`; all 12 cases in `interactionV6.test.ts` pass. B integrated and deployed them together with V7 as **V7.0** (`b0f7ca4`). The pending/failure notes below are historical investigation records. Physical-hand retest remains pending.
+
 ## Latest flow requirement (15:00; supersedes earlier finish/release plan below)
 
 B implemented automatic completed 6/6 after the existing compression geometry confirmation, displaying «Обучение окончено». No raised-hands finishing gesture is requested; final tutorialStep omits expectedGesture and keeps the accepted shape frozen.
