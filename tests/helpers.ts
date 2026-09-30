@@ -79,7 +79,7 @@ const toWorld = (p: { x: number; y: number }) => ({ x: (p.x - PROJ.axisXPx) / 18
 
 /**
  * A hand with real landmark geometry (screen px, 100 px palm), for the v4 one-hand actions.
- *  wall:  open palm, fingers up (a support hand or a shaping hand); (x, y) = palm
+ *  wall:  open palm, fingers up (a support hand or a shaping hand); (x, y) = palm; inner edge 0.25 world closer to the axis
  *  flat:  open palm, fingers sideways (lift at the base, rim compression); (x, y) = palm
  *  thumbDown: fist with the thumb pointing down; (x, y) = THUMB TIP
  *  pinch: thumb and index tips together (ratio 0.2); (x, y) = pinch point
@@ -97,6 +97,8 @@ export function poseHand(
   if (pose === 'wall') {
     lm[0] = { x: p.x, y: p.y + 50 };
     lm[9] = { x: p.x, y: p.y - 50 };
+    // a real open hand has width: its inner edge (thumb side, facing the pot) is 0.45 palm from the centre
+    lm[4] = { x: p.x - Math.sign(x) * 45, y: p.y };
   } else if (pose === 'flat') {
     lm[0] = { x: p.x - 50, y: p.y };
     lm[9] = { x: p.x + 50, y: p.y };

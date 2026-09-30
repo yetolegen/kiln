@@ -47,12 +47,24 @@ describe('shape gesture', () => {
   });
 
   it('open hands at the walls narrow the pot near the hands only', () => {
-    const { clay } = run((t) => {
+    const { clay } = run((t) => shapingHands(t));
+    expect(clay.radii[24]).toBeLessThan(0.95);
+    expect(clay.radii[0]).toBeGreaterThan(0.99);
+  });
+
+  it('v7.2: palms whose hands never reach the wall do not shape, however they move', () => {
+    // no landmarks: the hand is just its palm centre, 0.12-0.3 outside the wall the whole time
+    const { clay, seen } = run((t) => {
       const [left, right] = shapingHands(t);
       return [{ ...left, landmarksPx: [] }, { ...right, landmarksPx: [] }];
     });
-    expect(clay.radii[24]).toBeLessThan(0.95);
-    expect(clay.radii[0]).toBeGreaterThan(0.99);
+    expect(seen.some((g) => g.gesture === 'shape' && g.contact.valid)).toBe(true);
+    expect(Array.from(clay.radii)).toEqual(Array(48).fill(1));
+    // held near the walls without touching: coached to bring the hands in
+    const near = (x: number) => ({ ...poseHand('wall', x, .6), trackId: x < 0 ? 1 : 2, landmarksPx: [] });
+    const held = run([near(-1.15), near(1.2)], 1200);
+    expect(Array.from(held.clay.radii)).toEqual(Array(48).fill(1));
+    expect(held.g.nearMiss).toMatchObject({ intended: 'shape', reason: 'handsTooFar', params: { side: 'right', dir: 'in' } });
   });
 
   it('also works with real "wall" landmarks (not mistaken for a one-hand action)', () => {

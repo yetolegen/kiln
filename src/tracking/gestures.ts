@@ -120,7 +120,7 @@ export class GestureRecognizer {
   private candidateSinceMs = 0;
   private contactValid = false;
   private shapeContact: {
-    leftId: number; rightId: number; band: number; minGap: number; released: boolean; tMs: number;
+    leftId: number; rightId: number; band: number; edge: number; tMs: number;
     epoch: number; projection: number; phase: GestureContext['phase'];
   } | null = null;
   private pointerId: number | null = null;
@@ -225,23 +225,21 @@ export class GestureRecognizer {
         l.velocityValid && r.velocityValid) {
       const previous = this.shapeContact;
       const band = c.contact.activeBand;
-      const gap = c.halfGapWorld;
-      // Rebase on acquisition or discontinuity. Never apply movement across missing samples.
-      const sameHands = previous !== null && previous.leftId === l.trackId && previous.rightId === r.trackId;
-      const continuous = sameHands && previous.band === band && previous.epoch === frame.epoch &&
+      // Rebase on acquisition or discontinuity: the first frame of a contact never deforms.
+      const continuous = previous !== null && previous.leftId === l.trackId && previous.rightId === r.trackId &&
+        previous.band === band && previous.epoch === frame.epoch &&
         previous.projection === proj.revision && previous.phase === ctx.phase &&
         t > previous.tMs && t - previous.tMs <= CONFIG.MAX_INPUT_AGE_MS;
-      // v6: outside palms only PRESS (inward past the stroke's closest point). Moving out past the jitter
-      // deadband releases the stroke; it stays released until contact actually breaks (hovering can't resume).
-      let minGap = continuous ? previous.minGap : gap;
-      const released = (sameHands && previous.released) || gap - minGap > Z.deadband;
-      let travel = 0;
-      if (continuous && !released && gap < minGap) {
-        travel = gap - minGap;
-        minGap = gap;
-      }
+      // v7.2: the clay only moves where the hands visibly are. The wall follows the hands' INNER EDGES
+      // (their landmarks closest to the pot) inward, easing toward them; hands outside the wall, or
+      // withdrawing, never change it. Palm-centre contact alone used to shape from a palm away.
+      const edge = (innerEdgeX(r, proj, -1) - innerEdgeX(l, proj, 1)) / 2;
+      const radius = clay.radii[band];
+      const withdrawing = continuous && edge > previous.edge;
+      const travel = continuous && !withdrawing && edge < radius
+        ? (edge - radius) * Math.min(1, CONFIG.SHAPE_FOLLOW_PER_S * dtS) : 0;
       this.shapeContact = {
-        leftId: l.trackId, rightId: r.trackId, band, minGap, released, tMs: t,
+        leftId: l.trackId, rightId: r.trackId, band, edge, tMs: t,
         epoch: frame.epoch, projection: proj.revision, phase: ctx.phase,
       };
       if (Number.isFinite(travel) && travel < -1e-6) {
@@ -435,6 +433,15 @@ export class GestureRecognizer {
       return { intended: 'raise', reason: 'handsTooLow', params: {} };
     }
 
+    // v7.2: palms at the walls but the hands' edges not touching the clay: say which hand to bring in
+    if (g === 'shape' && c?.contact.valid && c.contact.activeBand !== null && (heldShape || expected === 'shape')) {
+      const wall = clay.radii[c.contact.activeBand];
+      const outL = -wall - innerEdgeX(l, proj, 1), outR = innerEdgeX(r, proj, -1) - wall; // > 0: outside the wall
+      const far = outL >= outR ? l : r;
+      if (held('notTouching', (outL + outR) / 2 >= 0 && Math.max(outL, outR) > Z.deadband)) {
+        return { intended: 'shape', reason: 'handsTooFar', handTrackId: far.trackId, params: { side: side(far, l), dir: 'in' } };
+      }
+    }
     // shaping attempt that doesn't touch both walls
     const inZone =
       Math.abs(l.palmWorld.x) < CONFIG.ATTEMPT_ZONE_X_WORLD && Math.abs(r.palmWorld.x) < CONFIG.ATTEMPT_ZONE_X_WORLD &&
@@ -470,6 +477,16 @@ type StepResult = Omit<ActionResult, 'kind' | 'activeId' | 'supportId' | 'engage
 type World = (p: Vec2) => Vec2;
 
 const isKind = (g: Gesture): g is Kind => g === 'pullUp' || g === 'indent' || g === 'open' || g === 'compressRim';
+
+/** Screen-x (world) of the hand's point closest to the axis: dir 1 = left hand (largest x), -1 = right hand. */
+function innerEdgeX(h: HandFeatures, proj: ProjectionParams, dir: 1 | -1): number {
+  let x = h.palmWorld.x;
+  for (const p of h.landmarksPx) {
+    const wx = pxToWorld(p, proj).x;
+    if (Number.isFinite(wx) && wx * dir > x * dir) x = wx;
+  }
+  return x;
+}
 
 /** Support: palm near either real side wall, within the pot's current height. */
 function atSideWall(h: HandFeatures, clay: ClayState): boolean {
