@@ -133,10 +133,14 @@ describe('v4 actions on the clay', () => {
     expect(c.collapseCause).toBe('bottomHole');
     expect(c.floorThicknessWorld).toBe(0);
     expectInvariants(c);
-    // rim compression does NOT repair it
-    for (let k = 0; k < 100; k++) c = stepClay(c, actionGesture('compressRim', 0.5), 0.05, undefined, press(0.001));
+    // rim compression neither repairs NOR changes it: the failure is frozen with its cause (B's damageFlow regression)
+    const frozen = { h: c.height, d: c.cavityDepthWorld, r: c.cavityRadiusWorld, radii: Array.from(c.radii), rev: c.revision };
+    for (let k = 0; k < 100; k++) c = stepClay(c, actionGesture('compressRim', 0.5), 0.05, undefined, press(0.05));
+    c = stepClay(c, shapeGesture(0.5, 0.3), 0.05, { tearBand: 20, wobbling: true });
     expect(c.collapseCause).toBe('bottomHole');
     expect(c.bottomHole).toBe(true);
+    expect({ h: c.height, d: c.cavityDepthWorld, r: c.cavityRadiusWorld, radii: Array.from(c.radii), rev: c.revision }).toEqual(frozen);
+    expectInvariants(c);
   });
 
   it('v5: stretching the opening past STRETCH_DANGER_MS thins the wall, past STRETCH_TEAR_MS tears it (permanent)', () => {

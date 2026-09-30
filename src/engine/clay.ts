@@ -121,6 +121,12 @@ export function stepClay(
   limits: ClayLimits = DEFAULT_LIMITS,
 ): ClayModel {
   const c = cloneClay(clay);
+  // a permanent failure is frozen exactly as it happened: nothing deforms it, nothing overwrites its cause
+  if (c.collapsed && c.collapseCause && PERMANENT.includes(c.collapseCause)) {
+    c.touching = false;
+    c.activeBand = null;
+    return c;
+  }
   c.maxHeightWorld = limits.maxHeightWorld;
   c.safeIndentDepthWorld = limits.safeIndentDepthWorld;
   c.touching = g.deforming;
@@ -262,6 +268,7 @@ function smoothOverhang(c: ClayState, dtS: number): boolean {
 
 /** v5 failures: no sag, no recovery by compression; only restart clears them. */
 function fail(c: ClayModel, cause: CollapseCause): void {
+  if (c.collapsed && c.collapseCause && PERMANENT.includes(c.collapseCause)) return; // the first failure wins
   c.collapsed = true;
   c.collapseCause = cause;
   c.recoveryMs = 0;
