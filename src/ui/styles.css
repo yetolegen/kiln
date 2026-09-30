@@ -136,7 +136,7 @@ progress { display: block; width: min(240px, 80vw); height: 8px; margin: 20px 0;
   .gallery-card p { padding: 0 8px; }
 }
 .sound-toggle { position: fixed; top: 92px; right: 24px; min-height: 44px; padding: 10px 14px; font-size: 12px; }
-.tutorial-card { position: fixed; left: 24px; top: 320px; width: 280px; padding: 20px; border: 1px solid #856b50; border-radius: 20px; background: #211d19ee; }
+.tutorial-card { position: fixed; left: 24px; top: max(320px, var(--lesson-after-actions, 0px)); width: 280px; padding: 20px; border: 1px solid #856b50; border-radius: 20px; background: #211d19ee; }
 .tutorial-card > span { color: #d5b897; font-size: 11px; letter-spacing: .14em; }
 .tutorial-card h2 { margin: 10px 0; font: 400 26px/1.1 Georgia, serif; }
 .tutorial-card p { font-size: 14px; line-height: 1.5; margin: 0; }
@@ -161,16 +161,15 @@ progress { display: block; width: min(240px, 80vw); height: 8px; margin: 20px 0;
 @keyframes ghost-down { from { translate: 0 -6px; } to { translate: 0 6px; } }
 @media (prefers-reduced-motion: reduce) { .ghost-hands svg { animation: none; } }
 @media (max-width: 600px) {
-  .tutorial-card { left: 16px; top: 255px; width: calc(100% - 32px); padding: 12px; }
+  .tutorial-card { left: 16px; top: max(255px, var(--lesson-after-actions, 0px)); width: calc(100% - 32px); padding: 12px; }
   .tutorial-card h2 { font-size: 20px; margin: 8px 0; }
   .tutorial-card p { font-size: 12px; line-height: 1.4; }
   .ghost-hands { height: 34px; }
-  .workshop[data-phase='tutorial'] .hud__hint { top: auto; bottom: 125px; }
 }
 @media (max-width: 600px) { .sound-toggle { top: auto; bottom: 8px; right: 12px; z-index: 4; } }
 .hud { position: fixed; inset: auto 24px 76px; display: flex; align-items: center; justify-content: space-between; gap: 16px; pointer-events: none; }
 .hud__gesture, .hud__tracking { border-radius: 30px; background: #211d19dd; border: 1px solid #70513c; padding: 10px 16px; font-size: 13px; }
-.hud__hint { position: fixed; top: 290px; left: 50%; transform: translateX(-50%); width: min(600px, calc(100% - 32px)); padding: 14px 20px; margin: 0; border-radius: 16px; border: 1px solid #ad9270; background: #211d19ed; text-align: center; line-height: 1.5; }
+.hud__hint { width: min(600px, 100%); padding: 12px 18px; margin: 0 0 12px; border-radius: 16px; border: 1px solid #ad9270; background: #211d19ed; text-align: center; line-height: 1.4; }
 .hud__hint[data-severity='warn'] { border-color: #d9a751; color: #ffe3a8; }
 .hud__hint[data-severity='error'] { border-color: #e17c60; color: #ffd4c1; }
 .workshop[data-phase='studio'] h1, .workshop[data-phase='tutorial'] h1 { font-size: 30px; }
@@ -181,7 +180,7 @@ progress { display: block; width: min(240px, 80vw); height: 8px; margin: 20px 0;
   .workshop[data-phase='menu'] .phase-actions { display: grid; grid-template-columns: 1fr 1fr; }
   .hud { inset: auto 12px 52px; gap: 8px; }
   .hud__gesture, .hud__tracking { font-size: 11px; padding: 8px 10px; }
-  .hud__hint { top: 290px; font-size: 13px; padding: 10px 12px; }
+  .hud__hint { font-size: 13px; padding: 10px 12px; }
 }
 
 @media (max-width: 420px) {
@@ -198,15 +197,14 @@ progress { display: block; width: min(240px, 80vw); height: 8px; margin: 20px 0;
   .dwell-button { min-height: 44px; padding: 10px 12px; font-size: 12px; }
   .sound-toggle { top: 60px; right: 16px; bottom: auto; }
   .hud { left: 24px; right: auto; bottom: 28px; }
-  .hud__hint { top: auto; bottom: 76px; left: 24px; transform: none; width: 41%; padding: 8px; font-size: 11px; }
-  .tutorial-card { top: 162px; left: 24px; width: 43%; padding: 8px; }
+  .hud__hint { padding: 6px; font-size: 10px; line-height: 1.25; margin-bottom: 8px; }
+  .tutorial-card { top: max(162px, var(--lesson-after-actions, 0px)); left: 24px; width: 43%; padding: 8px; }
   .tutorial-card h2 { font-size: 18px; margin: 4px 0; }
   .tutorial-card p { font-size: 10px; line-height: 1.25; }
   .tutorial-card .tutorial-feedback { margin-top: 6px; padding-top: 6px; font-size: 10px; }
   .tutorial-card progress { margin-top: 6px; }
   .ghost-hands { height: 22px; padding: 4px 0; }
   .workshop[data-phase='tutorial'] .hud__gesture, .workshop[data-phase='tutorial'] .hud__tracking { display: none; }
-  .workshop[data-phase='tutorial'] .hud__hint { top: 110px; bottom: auto; left: 52%; width: 45%; }
   .result-summary { top: 190px; left: 24px; width: 41%; padding: 10px; }
   .result-summary p { font-size: 10px; margin: 4px 0; }
   .result-score { display: inline; font-size: 26px; margin-right: 8px; }

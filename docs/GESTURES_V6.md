@@ -2,6 +2,8 @@
 
 User's follow-up after V5.2: vertical compression at lesson 5/6 fails, previous-step hints appear, thumb depth lacks a target/control, withdrawal changes the shape, and wall thinning is hard to see. Exactly the existing five pottery functions remain; UI palm dwell must be preserved. A retains core ownership; B's previous authorization to fix external compression was a specific completed task.
 
+**Later physical correction (14:35 screenshot):** user says compression works. Supplied screenshot visibly says **Цель 6/6** with **tracking lost**, proving compression passed and the tutorial is waiting for the finish gesture, not further pressing. This supersedes the earlier physical claim that step 5 could never arm. B found/fixed the final `lessonFeedback` fallthrough that could advise pressing while raise was recognized, made the finish instruction prominent, and moved advice above the heading. The synthetic V6 core failures below remain valid but must not be presented as the diagnosis of that screenshot. Frontend-only V5.3 can ship these presentation corrections with unchanged core; it is not a completed V6 interaction release.
+
 ## Evidence and acceptance regressions
 
 Run `npm test -- src/ui/interactionV6.test.ts`.

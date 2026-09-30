@@ -38,7 +38,7 @@ const screens = createScreens(root, () => { void start(); }, (command) => core.d
   muted = !muted; sound.setMuted(muted); voice.setMuted(muted); return muted;
 });
 const dwell = new DwellController();
-const hud = createHud(screens.page);
+const hud = createHud(screens.page, screens.refreshTargets);
 const presentationHint = new PresentationHint();
 const lessonHints = new LessonHints();
 const tutorial = createTutorial(screens.page, (command) => core.dispatch(command, performance.now()),

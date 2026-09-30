@@ -86,7 +86,8 @@ export function createOverlay(parent: HTMLElement, cursorParent: HTMLElement = p
           section(snapshot.clay, snapshot.clay.bottomHole ? '#ff927c' : '#ffd4a0', snapshot.clay.bottomHole);
         }
         ctx.setLineDash([]); ctx.fillStyle = color; ctx.font = '12px system-ui';
-        ctx.fillText(`Цель ${goal.step + 1}/6${t.cavityDepthWorld ? ' · глубина в разрезе' : ''}`, p.axisXPx - t.radii.at(-1)! * scale, top - 22);
+        const label = goal.step === 5 ? '6/6 · Поднимите обе ладони на 1,5 с' : `Цель ${goal.step + 1}/6${t.cavityDepthWorld ? ' · глубина в разрезе' : ''}`;
+        ctx.fillText(label, p.axisXPx - t.radii.at(-1)! * scale, top - 22);
       }
       if (snapshot.phase === 'studio' && snapshot.target && projection) {
         const target = snapshot.target, p = projection;

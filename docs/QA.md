@@ -4,6 +4,13 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ## Automated checks
 
+### Screenshot correction and V5.3 frontend verification (30 September 14:46)
+
+- **Physical evidence corrected:** supplied screenshot shows target **6/6** and tracking lost. User confirms compression works. The lesson has passed compression and awaits a raised-hands finish; no further press is intended.
+- Fixed final-step feedback that could incorrectly request downward motion after raise recognition. Advice now appears above the heading, finish guidance also appears above the pot, and dwell rectangles refresh after banner layout changes.
+- Browser test caught a landscape card extending to 405 px in a 390 px viewport. Removed duplicate tracking/final feedback; retest verifies both cards fit and advice is above the title. Four Chromium lesson/retry/dwell/camera-order tests pass; screenshots reviewed.
+- Unit run: **227 passed / 10 failed**, exclusively the known V6 core acceptance cases introduced before this task. Build/typecheck pass. V5.3 is a frontend release with unchanged V5.2 core; V6 interaction improvements remain pending A.
+
 ### V6 follow-up investigation (30 September 14:30, not deployed)
 
 - **Human evidence:** user reports vertical compression, old-step hints, thumb depth and hand-withdrawal problems after V5.2. Clarifies step 5/6 activation circle never fills with rim/support hand placement. Screenshot/landmark evidence requested; not yet received.

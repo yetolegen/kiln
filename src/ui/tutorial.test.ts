@@ -26,6 +26,17 @@ it('explains the missing lesson condition rather than leaving step one silent', 
   expect(lessonFeedback(accepted, 0, 0)).toContain('отслеживания');
 });
 
+it('final review always asks for raised hands, including while the raise is already recognized', () => {
+  const f = fixture(); const snap = f.tick();
+  for (const gesture of ['none', 'compressRim', 'raise'] as const) {
+    snap.gesture!.gesture = gesture;
+    const advice = lessonFeedback(snap, 5, 1);
+    expect(advice).toContain('Поднимите обе');
+    expect(advice).toContain('нажимать больше не нужно');
+    expect(advice).not.toContain('опускайте');
+  }
+});
+
 it('completes exactly the five pottery actions and then finishes', () => {
   const f = fixture();
   f.complete('s'); expect(f.script.step).toBe(1);

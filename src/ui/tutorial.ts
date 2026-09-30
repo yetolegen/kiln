@@ -13,6 +13,7 @@ export const TUTORIAL_STEPS = [
 
 export function lessonFeedback(snapshot: EngineSnapshot, step: number, progress: number, waitingRelease = false): string {
   const gesture = snapshot.gesture;
+  if (step === 5) return 'Форма готова — нажимать больше не нужно. Поднимите обе открытые ладони выше сосуда и удерживайте полторы секунды.';
   if (!snapshot.input || snapshot.input.status !== 'ready') return 'Покажите обе руки камере. Глина и урок ждут надёжного отслеживания.';
   if (waitingRelease) return 'Предыдущий шаг выполнен. Отпустите жест и переместите руки для следующего действия.';
   if (step === 5) return 'Раскройте обе ладони выше верхнего края и удерживайте их полторы секунды.';
@@ -143,12 +144,12 @@ export function createTutorial(parent: HTMLElement, dispatch: (command: AppComma
       const technique = lessonFeedback(snapshot, script.step, snapshot.gesture?.activationProgress ?? 0);
       const message = failed ? `Этап не выполнен. ${script.assessment!.failure} Повтор начинается с первого шага.` : script.status === 'matched' ? 'Форма совпала! Уберите рабочую руку от глины, чтобы перейти дальше.' : script.step < 5 && script.assessment?.matched ? 'Форма в допуске. Остановите движение и ненадолго удержите форму.' :
         snapshot.gesture?.gesture === TUTORIAL_STEPS[script.step].gesture && script.assessment && !script.assessment.matched && (snapshot.gesture.activationProgress >= 1 || script.step === 0) ? script.assessment.instruction : technique;
-      feedback.hidden = message === TUTORIAL_STEPS[script.step].text;
+      feedback.hidden = script.step === 5 || message === TUTORIAL_STEPS[script.step].text || (!failed && snapshot.input?.status !== 'ready');
       if (message !== lastMessage) {
         lastMessage = message; feedback.textContent = message;
         const speak = nowMs - (spoken.get(message) ?? -Infinity) >= 10_000;
         if (speak) spoken.set(message, nowMs);
-        coaching = { id: 'notMoving', params: { instruction: message }, severity: failed ? 'error' : 'info', priority: failed ? 95 : 5, expiresAtMs: nowMs + 4000, speak };
+        coaching = { id: 'notMoving', params: { instruction: message, banner: script.step === 5 ? 'true' : 'false' }, severity: failed ? 'error' : 'info', priority: failed ? 95 : 5, expiresAtMs: nowMs + 4000, speak };
       }
       return coaching;
     },

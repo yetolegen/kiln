@@ -31,6 +31,8 @@ test('B10 retains a fading visual briefly while lost tracking pauses the control
   });
   expect(retained).toBeGreaterThan(0);
   await expect(page.locator('.hud__hint')).toContainText('Отслеживание потеряно');
+  const advice = await page.locator('.hud__hint').boundingBox(), heading = await page.locator('h1').boundingBox();
+  expect(advice!.y + advice!.height).toBeLessThanOrEqual(heading!.y);
   await expect(page.locator('.hand-cursor')).toBeHidden();
   await expect.poll(pixels).toBe(0);
   await page.keyboard.press('x'); await expect.poll(pixels).toBeGreaterThan(0);
@@ -124,6 +126,8 @@ test('B7 tutorial validates geometry for all actions and requires release', asyn
   await page.keyboard.press('x');
   await expect(page.locator('.hud__hint')).toBeVisible();
   await expect(page.locator('.hud__hint')).toContainText('Отслеживание потеряно');
+  const warning = await page.locator('.hud__hint').boundingBox(), title = await page.locator('h1').boundingBox();
+  expect(warning!.y + warning!.height).toBeLessThanOrEqual(title!.y);
   const panel = await lesson.boundingBox(); expect(panel!.y + panel!.height).toBeLessThanOrEqual(390);
   await page.screenshot({ path: 'test-results/b7-tutorial-landscape.png' });
   await page.keyboard.press('x');
@@ -132,6 +136,10 @@ test('B7 tutorial validates geometry for all actions and requires release', asyn
   await complete('o', 3);
   await page.screenshot({ path: 'test-results/v6-wall-section.png' });
   await complete('d', 4);
+  await expect(page.locator('.hud__hint')).toContainText('Поднимите обе');
+  await expect(page.locator('.hud__hint')).toContainText('нажимать больше не нужно');
+  const finalPanel = await lesson.boundingBox(); expect(finalPanel!.y + finalPanel!.height).toBeLessThanOrEqual(390);
+  await page.screenshot({ path: 'test-results/final-lesson-advice.png' });
   await page.keyboard.press('f'); await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'menu');
 });
 
@@ -256,7 +264,7 @@ test('B2 loads the real model, starts a mirrored camera, and resizes', async ({ 
   await expect(start).toBeEnabled({ timeout: 50_000 });
   await start.click();
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'calibrate', { timeout: 20_000 });
-  await expect(page.locator('footer')).toContainText('V5.2');
+  await expect(page.locator('footer')).toContainText('V5.3');
   const video = page.locator('video');
   await expect(video).toBeVisible();
   expect(await video.evaluate((element: HTMLVideoElement) => ({
