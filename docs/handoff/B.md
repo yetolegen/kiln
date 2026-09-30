@@ -1,3 +1,8 @@
+### 2026-09-30 · B · V8.2 step-1 tolerance verified; preparing deployment
+**Done:** pulled A's `d5ce6a4` and reviewed the top of A's handoff. Step 1 accepts the same 0.20 narrowing within ±6 bands of the middle; depth/overshoot limits and the drawn target remain unchanged. Footer and public smoke now identify V8.2. No core or palm-UI edits.
+**Verification:** 295/295 unit/integration, warning-free typecheck/build, four Chromium checks pass. Browser camera fixture now checks both band 24 and band 27 through the real feature extractor, controller, deformation and tutorial validator; both reach the matched state. Existing full tutorial/release and failure/palm-retry checks pass. No new bugs found.
+**For A / Blocked:** no requests. Synthetic hands only; physical retest remains with the user. Preparing production deployment, followed by public real-model/simulated-camera startup verification.
+
 ### 2026-09-30 · B · V8.1 LIVE; realistic clay pass verified
 **Done:** integrated visual commit `b57755b` on top of A's `f1292dc`, then compatibility correction `e9b04ae`. Final deployment `dpl_AZ3EV8MFdqHuMaPmXDxpdBoLVXSj` READY at https://kiln-delta-rose.vercel.app. Public real-model/simulated-camera startup, V8.1 footer, mirrored video and resize pass. No A-owned files edited; remote rewritten history was preserved via a single-commit rebase, no force push.
 **Verification:** 294/294 unit/integration; six final browser feature checks, plus the corrected motion test with Three warnings treated as failures. Typecheck/build and public smoke green. Fixed reflected-light washout, exact texture seam rounding and deprecated shadow-filter selection. The renderer's actual surface pixels move during spin and freeze under reduced motion; the core dimensions stay fixed.

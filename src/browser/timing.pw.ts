@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 // Only the camera landmark provider is substituted. Features, controller, UI and clock are real.
-const trackerModule = `
+const trackerModule = (narrowBand: number) => `
 import { cameraProjection } from '/src/browser/camera.ts';
 export class HandTrackerError extends Error {}
 export class HandTracker {
@@ -28,7 +28,7 @@ export class HandTracker {
       }
       if (phase === 'tutorial') {
         const projection = cameraProjection(video, { width: w, height: h }, 0, phase);
-        const ppu = projection.pixelsPerWorldUnit, y = projection.bottomYPx - 1.2*24/47*ppu;
+        const ppu = projection.pixelsPerWorldUnit, y = projection.bottomYPx - 1.2*${narrowBand}/47*ppu;
         this.shapeStart ??= now;
         const halfGap = 1.3 - Math.min(.4, Math.max(0, now - this.shapeStart - 500) * .0002);
         hands = [hand(projection.axisXPx-halfGap*ppu,y), hand(projection.axisXPx+halfGap*ppu,y)];
@@ -42,14 +42,14 @@ export class HandTracker {
 }
 `;
 
-test('camera observations newer than the animation timestamp can dwell and confirm real clay geometry', async ({ page, browserName }) => {
+for (const narrowBand of [24, 27]) test(`camera observations newer than the animation timestamp can dwell and confirm real clay geometry (band ${narrowBand})`, async ({ page, browserName }) => {
   test.skip(browserName !== 'chromium', 'Synthetic camera permission is configured for Chromium.');
   await page.addInitScript(() => {
     const w = window as typeof window & { __cameraSample?: (t: number) => void };
     const raf = window.requestAnimationFrame.bind(window);
     window.requestAnimationFrame = (callback) => raf((t) => { w.__cameraSample?.(t); callback(t); });
   });
-  await page.route('**/src/tracking/handTracker.ts*', (route) => route.fulfill({ contentType: 'text/javascript', body: trackerModule }));
+  await page.route('**/src/tracking/handTracker.ts*', (route) => route.fulfill({ contentType: 'text/javascript', body: trackerModule(narrowBand) }));
   await page.goto('/');
   await page.getByRole('button', { name: 'Начать', exact: true }).click();
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'menu', { timeout: 12_000 });
@@ -58,7 +58,7 @@ test('camera observations newer than the animation timestamp can dwell and confi
   const pointer = page.locator('.workshop > .hand-cursor');
   await expect(pointer).toBeVisible(); await expect(pointer).toHaveCSS('z-index', '6');
   await expect.poll(() => pointer.locator('.hand-cursor__progress').getAttribute('stroke-dashoffset')).not.toBe('126');
-  await page.screenshot({ path: 'test-results/v51-palm-cursor.png' });
+  await page.screenshot({ path: `test-results/v82-palm-cursor-${narrowBand}.png` });
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'tutorial', { timeout: 8000 });
   const lesson = page.locator('.tutorial-card');
   await expect(lesson).toHaveAttribute('data-state', 'matched', { timeout: 8000 });

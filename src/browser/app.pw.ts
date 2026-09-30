@@ -343,7 +343,7 @@ test('B2 loads the real model, starts a mirrored camera, and resizes', async ({ 
   await start.click();
   try { await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'calibrate', { timeout: 20_000 }); }
   catch (error) { throw new Error(`Camera startup failed: ${startupErrors.join('\n')}`, { cause: error }); }
-  await expect(page.locator('footer')).toContainText('V8.1');
+  await expect(page.locator('footer')).toContainText('V8.2');
   const video = page.locator('video');
   await expect(video).toBeVisible();
   expect(await video.evaluate((element: HTMLVideoElement) => ({
