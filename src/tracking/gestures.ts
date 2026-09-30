@@ -230,14 +230,13 @@ export class GestureRecognizer {
         previous.band === band && previous.epoch === frame.epoch &&
         previous.projection === proj.revision && previous.phase === ctx.phase &&
         t > previous.tMs && t - previous.tMs <= CONFIG.MAX_INPUT_AGE_MS;
-      // v7.2: the clay only moves where the hands visibly are. The wall follows the hands' INNER EDGES
-      // (their landmarks closest to the pot) inward, easing toward them; hands outside the wall, or
-      // withdrawing, never change it. Palm-centre contact alone used to shape from a palm away.
+      // v7.2: the clay only moves where the hands visibly are. Only the part of the hands' INNER-EDGE travel
+      // (their landmarks closest to the pot) that happens inside the wall presses, scaled by SHAPE_GAIN.
+      // Hands outside the wall, arriving already inside it, holding still or withdrawing never change it.
+      // (Palm-centre contact used to shape from about a palm away.)
       const edge = (innerEdgeX(r, proj, -1) - innerEdgeX(l, proj, 1)) / 2;
       const radius = clay.radii[band];
-      const withdrawing = continuous && edge > previous.edge;
-      const travel = continuous && !withdrawing && edge < radius
-        ? (edge - radius) * Math.min(1, CONFIG.SHAPE_FOLLOW_PER_S * dtS) : 0;
+      const travel = continuous ? Math.min(0, Math.min(edge, radius) - Math.min(previous.edge, radius)) * CONFIG.SHAPE_GAIN : 0;
       this.shapeContact = {
         leftId: l.trackId, rightId: r.trackId, band, edge, tMs: t,
         epoch: frame.epoch, projection: proj.revision, phase: ctx.phase,

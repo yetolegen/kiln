@@ -30,7 +30,7 @@ export const CONFIG = {
   // rates (per second, or per unit of actual height change)
   SIGMA_BANDS: 4,
   MAX_DR_PER_S: 0.5,              // fastest a wall can move while shaping (v7.2: was 0.8, felt sharp)
-  SHAPE_FOLLOW_PER_S: 4,         // how quickly the pressed band eases toward the hands' inner edges (1/s)
+  SHAPE_GAIN: 0.7,               // wall travel per unit of hand-edge travel inside the wall (v7.2: toned down from 1)
   RADIAL_STRAIN_PER_HEIGHT: 0.08,   // lifting narrows, compressing widens (per unit of height change)
   WOBBLE_GROWTH_PER_S: 0.5,
   WOBBLE_DAMPING_PER_S: 4.0,        // while compressing the rim

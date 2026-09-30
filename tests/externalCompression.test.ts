@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { CONFIG } from '../src/config';
 import { createClay, NO_DELTA, stepClay } from '../src/engine/clay';
 import type { FrameInput, HandFeatures } from '../src/types';
 import { frame, inSession, poseHand, PROJ, shapeGesture, T_START } from './helpers';
@@ -30,19 +31,24 @@ describe('external shaping: the clay moves only where the hands visibly are (v7.
     }
   });
 
-  it('pressing in eases the wall toward the hand edge and stops there; holding does not keep squeezing', () => {
+  it('only edge travel inside the wall presses, at SHAPE_GAIN; holding still stops at once', () => {
     const f = fixture();
-    f.sample(1.25);
-    let s = f.sample(1.1); // edge 0.85
-    const first = 1 - s.clay!.radii[24];
-    expect(first).toBeGreaterThan(0);
-    expect(first).toBeLessThan(.15 * .5); // eased and rate-capped, not a jump to the hand
-    for (let i = 0; i < 90; i++) s = f.sample(1.1);
-    expect(s.clay!.radii[24]).toBeGreaterThan(.85 - 1e-3); // never past the hand
-    expect(s.clay!.radii[24]).toBeLessThan(.87);
-    const settled = Array.from(s.clay!.radii);
-    expect(Array.from(f.sample(1.1).clay!.radii)).toEqual(settled.map((r) => expect.closeTo(r, 5)));
+    let s = f.sample(1.3);
+    for (let i = 1; i <= 20; i++) s = f.sample(1.3 - .005 * i); // edge 1.05 -> 0.95: inside for the last 0.05
+    const r = s.clay!.radii[24];
+    expect(r).toBeLessThan(1);
+    expect(1 - r).toBeCloseTo(.05 * CONFIG.SHAPE_GAIN, 2);
+    for (let i = 0; i < 30; i++) s = f.sample(1.2);
+    expect(s.clay!.radii[24]).toBe(r);
     expect(s.clay!.radii[0]).toBeGreaterThan(.99); // only near the hands
+  });
+
+  it('hands that arrive already overlapping the clay do not yank it', () => {
+    const f = fixture();
+    f.sample(1.3);
+    const s = f.sample(1.05); // one frame: edge jumps from outside to 0.2 inside
+    expect(1 - s.clay!.radii[24]).toBeLessThan(.2 * CONFIG.SHAPE_GAIN);
+    expect(s.clay!.radii[24]).toBeGreaterThan(1 - CONFIG.MAX_DR_PER_S * .034);
   });
 
   it('withdrawal never widens and stops pressing at once, even while the wall is still behind the hand', () => {
@@ -68,7 +74,7 @@ describe('external shaping: the clay moves only where the hands visibly are (v7.
       const s = f.sample(1.1, undefined, {}, {}, {}, kind === 'gap' ? 300 : 33);
       expect(Array.from(s.clay!.radii)).toEqual(Array.from(before));
       let later = s;
-      for (let i = 0; i < 8; i++) later = f.sample(1.1); // shape re-stabilizes (GESTURE_STABLE_MS), then presses
+      for (let i = 1; i <= 8; i++) later = f.sample(1.1 - .01 * i); // shape re-stabilizes (GESTURE_STABLE_MS); moving in presses
       expect(later.clay!.radii[24]).toBeLessThan(before[24]);
     },
   );
@@ -88,7 +94,7 @@ describe('external shaping: the clay moves only where the hands visibly are (v7.
       expect(Array.from(s.clay!.radii)).toEqual(Array.from(before));
       const band = kind === 'band' ? 32 : 24;
       let later = s;
-      for (let i = 0; i < 8; i++) later = f.sample(1.1, y, input, left, right);
+      for (let i = 1; i <= 8; i++) later = f.sample(1.1 - .01 * i, y, input, left, right);
       expect(later.clay!.radii[band]).toBeLessThan(before[band]);
     },
   );
@@ -113,7 +119,7 @@ describe('external shaping: the clay moves only where the hands visibly are (v7.
     core.dispatch({ type: 'tutorialStep', step: 0 }, T_START + 8 * 33);
     core.dispatch({ type: 'tutorialStep', step: 0, expectedGesture: 'shape' }, T_START + 8 * 33);
     expect(Array.from(sample(9, 1.1).clay!.radii)).toEqual(Array.from(before));
-    expect(sample(10, 1.1).clay!.radii[24]).toBeLessThan(before[24]);
+    expect(sample(10, 1.05).clay!.radii[24]).toBeLessThan(before[24]);
   });
 
   it('pressing narrows every affected band of a nonuniform profile without opening a cavity', () => {

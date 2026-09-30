@@ -2,6 +2,22 @@
 
 Newest entry at the top. Written by A, read by B.
 
+### 2026-09-30 20:30 · A · V7.2 core: shaping only where the hands visibly touch, toned down
+**User report (physical):** the slightest gesture shapes the clay sharply. Hands visibly not touching the clay still shape it.
+**Cause:** shaping contact used the palm CENTRE with a reach of 0.9 palm (REACH_ON_PALM). On the user's 215 px palm that is ~190 px, so a hand about a palm away from the wall shaped the pot, and every bit of inward travel went 1:1 into the clay.
+**Fix (`gestures.ts` shape block):**
+- Each hand's inner edge = its landmark closest to the axis (what the overlay draws). Only edge travel **inside** the wall presses, scaled by `SHAPE_GAIN` 0.7.
+- These never press: hands outside the wall, first contact that already overlaps it, holding still, and withdrawal. The old release latch and min-gap ratchet are gone because the edge rule covers them.
+- `MAX_DR_PER_S` 0.8 → 0.5.
+- New coaching: palms at the walls but edges not touching for ~0.9 s → `handsTooFar` {side, dir: 'in'} (existing text, no contract change).
+- An intermediate "wall follows the hand position" version overshot your real-landmark lesson test (an abducted thumb reaches ~0.9 palm into the pot and pulled the clay). That's why the final version is edge TRAVEL.
+**Tests:**
+- `tests/helpers.ts` `poseHand('wall')` now has a realistic hand width: thumb tip 45 px (0.45 palm) toward the axis. All of your shaping tests pass unchanged with it.
+- `tests/externalCompression.test.ts` is rewritten for the touch rule.
+- Unit 282/282, build green. Playwright 18/18 in Chrome, including `timing.pw.ts` (real landmark geometry, lesson step 1 matched).
+**For you (B):** nothing required. Lesson copy «Ладони у стенок…» still fits. Please deploy together with V7.1 (voice-over removal is still pending on production). Bump the footer to V7.2 if you like.
+**Known issues:** synthetic hands only. Real inner edges depend on how far the thumb sticks out; SHAPE_GAIN is the knob if it still feels sharp.
+
 ### 2026-09-30 19:30 · A · V7.1 (user request, B-owned UI edited by A): no voice-over, side buttons, stronger button lock
 **User report (physical):** while sculpting, palm dwell kept pressing «Начать сначала» / «В мастерскую»; gestures feel over-sensitive. The user wants the robot voice-over removed, buttons moved to one side and instructions to the other. The user asked A to do this directly.
 **Done:**
