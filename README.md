@@ -1,114 +1,225 @@
-# KILN
+# KILN — гончарная мастерская, управляемая руками
 
-**Team: Avivengers**
+**Команда: Avivengers**
 
-A virtual pottery wheel controlled by hand gestures through a webcam. A browser game model with Russian UI.
+**ADMIT HACKATHON · MOTION: «Камера вместо джойстика» · свободное направление**
 
-[Live HTTPS site](https://kiln-delta-rose.vercel.app)
+KILN превращает обычную веб-камеру в инструмент для лепки. Пользователь формует виртуальную глину двумя руками, создаёт полость, подбирает глазурь и обжигает сосуд. Приложение распознаёт шесть гончарных действий, показывает положение рук и объясняет, как исправить неверное движение.
 
-![KILN development preview using synthetic input](public/kiln-demo.gif)
+**[Открыть мастерскую](https://kiln-delta-rose.vercel.app/)** · **[Публичный репозиторий](https://github.com/yetolegen/kiln)**
 
-*The GIF is a labelled development preview using keyboard/mouse fixtures, not a recording of real hand recognition.*
+Устанавливать приложение не нужно. Для первого запуска нажмите «Начать» и разрешите камеру в браузере. Затем меню, лепка, завершение, глазурь, обжиг и галерея доступны через жесты.
 
-Wait for the hand model, click «Начать» once and allow the camera. Hold both hands still for calibration, then place the centre of either palm over a menu button for 0.9 seconds. The button highlights and the cursor ring fills. Index-finger pointing also works. After system camera permission, in-app navigation is designed to work with gestures. Tutorial, commission/free shaping, three glazes, firing, results, PNG export and a local gallery are implemented.
+## Быстрый старт
 
-V5.1 fixes camera/render timestamp ordering that could reset dwell and lesson confirmation, and puts the cursor ring above the buttons. The camera footer shows the version; small cyan dots mark tracked palm centres.
+1. Откройте мастерскую на устройстве с камерой. Для первого знакомства удобнее компьютер с Chrome и достаточно большой экран.
+2. Расположитесь так, чтобы камера видела **обе кисти целиком**, включая кончики пальцев. Осветите руки спереди; не перекрывайте одну кисть другой.
+3. Дождитесь загрузки распознавания, нажмите **«Начать»**, разрешите камеру и покажите обе раскрытые ладони. Ненадолго замрите для калибровки, пока не появится меню.
+4. Для знакомства с действиями выберите **«Научиться · урок»**. Чтобы сразу создать сосуд, выберите **«Свободная форма»** или **«Создать вазу · по образцу»**. Проходить урок перед этими режимами необязательно.
 
-**V9.0 atelier:** an original dusk workshop backdrop inspired by the user's reference, warm wood and brass controls, parchment lesson cards, pottery icons and a wheel pedestal. The clay, cyan targets, hands, spinning and free inspection remain live layers above the scenery. [Artwork, saved asset and generation prompt](docs/WORKSHOP_ART.md).
+Изображение зеркальное. Ориентируйтесь на **контуры рук и сосуд на экране**: контакт означает их совмещение в изображении. Кнопка «Показать камеру» делает видео ярче и помогает выставить руки. Кнопка «Звук включён» / «Звук выключен» переключает звуковые эффекты; она тоже доступна удержанием ладони.
 
-**Damage notice:** actual tears, collapsed forms, perforated bottoms and pancakes display **«Глина испортилась, начните заново»**, a cause and the restart instruction. The banner stays visible through tracking loss and expired hints and clears with a fresh or repaired form. Existing recoverable/terminal physics are unchanged; warnings alone do not mark a pot as spoiled.
+### Как выбирать кнопки без мыши
 
-**V8.1 clay:** uneven slip marks, fine throwing grooves, damp highlights, cavity/contact shadows and visible wheel smears make rotation readable. The material stays attached to the mesh as it spins; core shape and gesture behavior stay the same. Reduced motion and inspection freeze decorative rotation. The tested update preserves A's debug pass.
+- Подведите **центр ладони** — голубую точку на её контуре — к нужной кнопке.
+- Задержите ладонь, пока круг указателя не заполнится. Обычный выбор занимает примерно **0,9 секунды**; «Готово», перезапуск, выход и осмотр во время лепки — **1,8 секунды**.
+- После выбора отведите ладонь от кнопки. Выход из её области сбрасывает незавершённый выбор.
+- Можно также направить указательный палец на кнопку, согнув остальные пальцы. Основной способ навигации — центр ладони.
+- Во время лепки кнопки завершения и выхода скрываются, чтобы не срабатывать случайно. **Отпустите глину и уберите руки от неё**; примерно через полсекунды кнопки вернутся.
 
-**V8.0 workshop:** mineral green studio, clear lesson and action panels, warm clay, a visibly spinning wheel, bounded clay splatter during valid shaping, and free 3D vessel inspection. The [final Word design proposal](docs/KILN%20Frontend%20Design%20Final.docx) includes the approved rim-origin tearing, wheel effects and unrestricted viewing direction. Includes A's latest V7.2 visible-edge contact and jitter fixes through `67516c6`; working palm dwell is preserved. Automated synthetic tests cover both hand roles; physical-camera recognition and T22 still need human verification. See [GESTURES_V7.md](docs/GESTURES_V7.md) and [GESTURES_V6.md](docs/GESTURES_V6.md).
+## Как лепить: шесть действий
 
-**View the vessel freely:** select «Осмотреть в 3D» after releasing the clay. Drag with the mouse or one finger to rotate through any side, above or underneath; use the wheel or pinch to zoom. Arrow buttons/keys rotate, +/− zoom, and 0 resets the view. «Вернуться к сосуду» or Escape restores the calibrated shaping camera. Clay manipulation and tutorial progression pause during inspection. The same inspection is available in glazing and results. WebGL is required for 3D inspection; shaping keeps its 2D fallback.
+Во всех действиях с опорой **любая рука может быть рабочей**. Вторая ладонь остаётся сбоку у стенки, в пределах высоты сосуда. Не меняйте роли рук посреди движения.
 
-Wheel and pot share one rotation angle. Droplets are visual only and emit from fresh, valid deformation frames. Inspection and reduced-motion preferences stop these effects. Wall rupture opens from the rim down to the weak band through the outer wall, lip and inner wall; height is preserved. Bottom perforation and terminal pancakes retain their different geometry.
+**Обратная связь:** зелёное кольцо и надпись «Опора» отмечают поддерживающую руку. Золотой круг у рабочей руки показывает подготовку действия. Если для жеста нужна выдержка, начинайте движение после заполнения круга и появления «Медленно».
 
-## Current controls
+![Схемы шести действий: сузить, поднять, сделать ямку, раскрыть полость, понизить и расширить стенку изнутри](docs/gestures-guide.svg)
 
-**V8.3:** inside-wall widening is available in Free Mode and commissions. The six-step introductory lesson keeps its existing sequence. Step 1 accepts the narrowing slightly above or below the middle while preserving its depth limits.
+### 1. Сузить сосуд снаружи
 
-| Action | Gesture |
+1. Раскройте обе ладони, расправьте пальцы и отведите большие пальцы от указательных.
+2. Разместите руки **снаружи слева и справа от сосуда**, на одинаковой высоте. Для первого шага урока выберите середину сосуда.
+3. Подведите внутренние края контуров рук к стенкам. Медленно двигайте левую ладонь вправо, а правую — влево, как будто сжимаете глину между ними.
+4. Стенки в месте касания постепенно сойдутся. Остановитесь у прозрачного образца или на желаемой ширине.
+
+**Как закончить:** отведите ладони наружу, от стенок. Это отпускает глину. Чтобы начать новый нажим, сначала выйдите из контакта, затем снова подведите руки. Удержание без движения не должно продолжать сужение.
+
+### 2. Поднять и вытянуть сосуд
+
+1. Одной раскрытой ладонью поддерживайте боковую стенку.
+2. Вторую руку подведите **горизонтально к основанию, немного под дно**. Пальцы направлены в сторону, словно вы подхватываете глину снизу ребром ладони.
+3. Сохраняйте опору и держите нижнюю руку неподвижно **около 3 секунд**, пока круг не заполнится.
+4. **Очень медленно поднимайте нижнюю руку**. Высота сосуда будет увеличиваться; опорную ладонь продолжайте держать у стенки.
+
+**Как закончить:** остановитесь на нужной высоте и выведите рабочую руку из области основания в сторону. Если движение отменилось, снова займите исходное положение и дождитесь полного круга. В уроке не поднимайте сосуд выше целевого силуэта.
+
+### 3. Сделать начальную ямку большим пальцем
+
+1. Оставьте одну раскрытую ладонь у боковой стенки как опору.
+2. На рабочей руке согните остальные пальцы и **направьте большой палец вниз**.
+3. Совместите его кончик с **центром верхней поверхности** глины.
+4. Плавно опустите кончик немного внутрь сосуда. Ямка появляется и углубляется вслед за движением; можно сгибать большой палец, сохраняя положение кисти.
+
+**Ориентир глубины:** в уроке остановитесь у голубой отметки дна. Жёлтая линия обозначает безопасный ориентир — примерно **одна фаланга большого пальца**. Для начальной ямки достаточно небольшого нажатия; долгой предварительной выдержки здесь нет.
+
+**Как закончить:** выведите большой палец вверх из глины. Слишком быстрое нажатие отменяется с подсказкой; слишком глубокое истончает и может пробить дно. Это условный масштаб по размеру руки, а не измерение глубины в сантиметрах.
+
+### 4. Расширить и углубить отверстие
+
+1. Сначала создайте ямку большим пальцем. Одна ладонь по-прежнему поддерживает стенку снаружи.
+2. Соедините **большой и указательный пальцы** рабочей руки в щипок и поместите их кончики **внутрь существующей ямки**.
+3. Задержите сомкнутый щипок примерно **0,2 секунды**, до заполнения круга.
+4. Медленно увеличивайте расстояние между пальцами. Отверстие станет **шире и глубже**, а стенки — тоньше.
+
+**Как закончить:** выведите рабочую руку из отверстия. Одного прекращения разведения недостаточно для долгой паузы: пока рука остаётся в активном раскрытии, продолжает идти время растягивания. Примерно через **7 секунд** появляется опасность истончения; продолжение может разорвать стенку. В уроке останавливайтесь у целевой ширины раньше.
+
+### 5. Понизить сосуд и уплотнить край
+
+1. Одну раскрытую ладонь держите **вертикально сбоку**, поддерживая стенку.
+2. Другую раскройте **горизонтально над верхним краем**, словно кладёте её на поверхность глины. Пальцы направьте в сторону. Положение рук напоминает угол: одна рука сбоку, другая сверху; соприкасаться друг с другом они не должны.
+3. Не двигайте верхнюю ладонь примерно **0,5 секунды**, пока круг не заполнится.
+4. Медленно и равномерно **опускайте верхнюю ладонь**, сохраняя боковую опору. Сосуд станет ниже, край выровняется. Продолжение движения усиливает сжатие.
+
+**Как закончить:** остановитесь, когда верх сосуда совпадёт с силуэтом, и уберите рабочую руку от края. Здесь высота меняется от движения руки, камера не измеряет силу давления. Если продолжать нажим слишком долго, глина превратится в плоскую лепёшку и потребует перезапуска.
+
+### 6. Расширить внешнюю стенку изнутри
+
+Доступно в **свободной лепке и режиме по образцу**. Сначала нужны ямка и отверстие достаточной глубины.
+
+1. Одной ладонью поддерживайте боковую стенку снаружи.
+2. Рабочий **указательный палец направьте вниз** и опустите его кончик в отверстие, на высоту участка, который хотите расширить. Большой палец держите выше кончика указательного; не соединяйте их в щипок.
+3. Задержите руку примерно **0,3 секунды**, до заполнения круга.
+4. Медленно двигайте указательный палец **изнутри к левой или правой стенке**. Внешний профиль сосуда расширится на высоте кончика пальца.
+
+**Как закончить:** выведите палец из отверстия. Возврат пальца к центру не добавляет расширения. Для плавного профиля работайте короткими движениями на соседних высотах.
+
+**Различие действий:** ладони снаружи сужают внешнюю форму; щипок с разведением увеличивает полость; указательный палец изнутри расширяет внешний профиль на выбранной высоте.
+
+## От первого движения до готового сосуда
+
+### Урок с прозрачным образцом
+
+Урок последовательно учит сужению, подъёму, начальной ямке, раскрытию и уплотнению края. На шестом экране появляется **«Обучение окончено»**.
+
+У каждого действия есть голубой целевой силуэт и показатель **«Форма»**. Переход проверяет результат лепки: высоту, профиль стенок, ширину и глубину полости. Когда форма совпадёт, прекратите движение и отпустите жест, чтобы перейти дальше. Удержание одной позы не пропускает несколько этапов.
+
+При выходе за допустимую форму или повреждении продвижение останавливается. Прочитайте причину и выберите **«Попробовать снова · с первого шага»**. Эта кнопка начинает учебную попытку с первого шага. После завершения урока вернитесь в мастерскую и начните свободную лепку или работу по образцу.
+
+### Лепка → глазурь → обжиг → результат
+
+1. Выберите **«Свободная форма»** для своего замысла или **«Создать вазу · по образцу»** для повторения прозрачного силуэта.
+2. Сформуйте сосуд с помощью описанных жестов. В свободном режиме можно применять все шесть действий.
+3. Уберите руки от глины и выберите **«Готово»**. Только после этого открываются глазурь и обжиг.
+4. Наведите ладонь на глазурь: **«Янтарь»**, **«Нефрит»** или **«Молоко»**. После выбора станет доступна кнопка **«В печь»**.
+5. Выберите «В печь» и дождитесь окончания обжига — около **4 секунд**.
+6. На экране результата посмотрите время работы и ошибки. В режиме по образцу также показывается **процент сходства** с целевой вазой.
+7. Сосуд автоматически попадает на **«Мою полку»**. Можно выгрузить изображение кнопкой **«Сохранить PNG»** или начать новый сосуд.
+
+Галерея хранит до 24 работ и лучшие результаты для образца в текущем браузере. Если браузер запрещает сохранение, полка работает до закрытия страницы; завершить сценарий всё равно можно.
+
+### Рассмотреть сосуд со всех сторон
+
+Отпустите глину и выберите **«Осмотреть в 3D»**. Поворот не ограничен одним ракурсом: доступны вид сверху, снизу, приближение и свободное вращение.
+
+- **Руками:** задерживайте ладонь над кнопками стрелок, «Сверху», «Снизу», «+», «−» и «Сбросить вид».
+- **Дополнительно:** мышью или одним пальцем на экране можно перетаскивать модель, колёсиком или щипком на сенсорном экране — менять масштаб.
+- Выберите **«Вернуться к сосуду»**, чтобы продолжить. Во время осмотра лепка и урок стоят на паузе.
+
+## Режим «ошибка»: что не так и как исправить
+
+KILN проверяет позу, место контакта, наличие опоры, время подготовки и скорость движения. Подсказка над заголовком сообщает, **что изменить**, а контуры рук, круг подготовки и подсветка участка помогают найти ошибку.
+
+| Ситуация | Пример подсказки в игре | Что сделать |
+|---|---|---|
+| Правая ладонь далеко от стенки | «Поднеси правую руку к правой стенке» | Совместить контур руки с правым боком сосуда |
+| Рабочая кисть стоит вертикально вместо горизонтального положения | «Раскройте правую ладонь и поверните кисть горизонтально — пальцы в сторону.» | Развернуть кисть, затем дождаться круга подготовки |
+| Подъём начат слишком резко | «Поднимайте руку медленнее. Снова задержите её горизонтально у основания на три секунды.» | Вернуться к основанию, заново подготовить жест и поднимать плавно |
+| Нет ямки для раскрытия | «Сначала сделайте неглубокую ямку большим пальцем вниз, поддерживая стенку другой рукой.» | Сделать начальное углубление, затем перейти к щипку |
+| Рабочая рука движется без опоры | «Держите ладонь левой руки у боковой стенки для поддержки.» | Вернуть опорную руку к стенке и повторить подготовку |
+| Камера потеряла руки | «Отслеживание потеряно. Верните руки в кадр и разведите кисти. Глина на паузе.» | Вернуть обе руки в кадр и дождаться устойчивых контуров |
+
+**Ошибка техники и потеря отслеживания различаются.** При ненадёжном кадре деформация приостанавливается; сохранённый на мгновение контур руки не продолжает лепить глину. В итогах проблемы распознавания учитываются отдельно от ошибок исполнения.
+
+### Видимые последствия ошибок
+
+- Слишком глубокое нажатие большим пальцем истончает дно, затем может сделать сквозное отверстие.
+- Долгое раскрытие или критически тонкая стенка приводят к разрыву **от края сосуда**.
+- Чрезмерное вертикальное сжатие превращает сосуд в лепёшку. При высоте около 20% от начальной это окончательно испорченная форма.
+- Слишком высокий или неустойчивый сосуд может осесть. В уроке выход за допустимые границы силуэта также останавливает этап.
+
+При повреждении появляется **«Глина испортилась, начните заново»**, пояснение причины и инструкция перезапуска. Уберите руки и выберите **«Начать сначала»**. Сквозное дно, окончательный разрыв стенки и лепёшка блокируют дальнейшую лепку до перезапуска. Небольшие повреждения и обратимое оседание могут исправляться уплотнением края.
+
+## Соответствие кейсу MOTION
+
+| Требование | Реализация в KILN |
 |---|---|
-| Shape | Open both palms at opposite side walls, at the same height; move inward to narrow. Moving either palm outward releases the stroke. Leave contact before starting another stroke |
-| Lift | One open hand horizontal near the base; other hand supports a wall. Hold still for 3 seconds until the ring fills, then rise very slowly |
-| Initial indentation | Support a wall; point the other thumb downward at the top centre and insert slowly. Depth follows the thumb tip, including thumb bending with a stationary palm. Continuing too deeply thins and perforates the floor |
-| Open/deepen cavity | Support a wall; pinch thumb/index inside the dent, hold briefly, then gradually spread the fingers |
-| Widen outer wall from inside | First create an opening. Point the index finger down into it, with the thumb higher; support a side wall with the other palm. Hold for 0.3 seconds, then push slowly sideways toward a wall. The outer profile widens at the fingertip's height. Pulling back adds nothing; leave the opening to release |
-| Compress/smooth rim | Support a wall; hold the other open hand horizontal just above the rim for 0.5 seconds, then lower it slowly. Repairs recoverable damage; continued pressing can flatten the pot |
-| Finish | Select «Готово» with palm dwell or click, then choose glaze and fire. Raised hands do not finish the pot |
-| Navigate | Hold either palm centre over a button; alternatively point with the index finger and curl the others |
+| Веб-камера и распознавание в браузере | Отслеживание двух рук, поз и движений в реальном времени |
+| Не менее трёх разных жестов | Шесть действий с разными изменениями глины; навигация считается отдельно |
+| Понятная обратная связь | Контуры рук, отметка опоры, круг подготовки, подсветка контакта, целевой силуэт и видимая деформация |
+| Законченный сценарий | Лепка → «Готово» → глазурь → обжиг → результат, изображение и галерея |
+| Запуск без установки | Публичная HTTPS-ссылка; требуется браузер и разрешение камеры |
+| Обязательный режим «ошибка» | Проверка техники, конкретные корректирующие подсказки, предупреждения и видимые повреждения |
+| Собственная логика распознавания | Правила поз, контакта и скорости, выдержка жестов, фильтрация и устойчивость к небольшим колебаниям |
+| Прогресс / рекорды | Личная полка работ и лучший результат повторения образца |
+| Камера телефона | Адаптивная компоновка, обработка изменения ориентации, поддержка сенсорного осмотра |
+| Звук и визуальные эффекты | Звук круга и лепки, обжиг, вращение, брызги глины и оформление глазури |
 
-The original five pottery actions are joined by the requested inside-wall widening action in studio modes. External palms press inward; inside finger movement pushes outward. Pinch-spread still opens/deepens the cavity separately. Either hand can act while the other supports; keep those roles throughout one action. The gold ring shows activation and green marks support. Moving too early/fast or losing support cancels activation.
+## Запуск из исходного кода
 
-**Studio controls:** Done/restart/menu/inspection hide and disable during contact or active gesture arming and return after 400 ms of clear disengagement. Session controls use a deliberate 1.8-second dwell; menu selection remains 0.9 seconds. Terminal damage leaves restart and inspection available and Done disabled. Small lift-pose fluctuations pause progress for up to 250 ms instead of erasing it; questionable frames never deform clay. Genuine departure, tracking/support loss and changed hand roles still cancel the action.
-
-**Geometry-led lessons:** every phase shows a cyan transparent target, including a dotted cavity cross-section. The amber section shows actual cavity depth. Completion requires the correct action to produce a matching height, full outer profile, cavity radius and depth. Goals lock when each step begins; a gesture alone cannot pass. The shape freezes briefly at the target, then releasing the action advances. After compression in step 5 is validated, step 6 displays «Обучение окончено» immediately. No additional gesture is needed. Overshoot or damage stops progression with corrective feedback and a palm-selectable Try Again button, which restarts the entire attempt. The same five pottery actions are tested in Free Mode and commissions with either hand assignment.
-
-**Damage in every shaping mode:** a ceiling at roughly 75% of the space above the pot base limits height. Thumb penetration beyond a palm-scaled safe depth warns of a thin floor; further pushing makes a through-hole. Holding an engaged opening for 7 seconds starts thinning the walls, and 10 seconds tears them. A wall reaching 10% of its original normalized thickness tears locally without sagging. Downward compression warns below height 0.4 and becomes a terminal pancake at 20% of initial height (0.24 game units); the cavity closes. Perforation, torn walls and pancakes freeze further sculpting and require restart. The camera infers movement; it does not measure physical pressure. The model does not conserve clay volume exactly.
-
-Rim compression was selected from [Clayground's wheel tutorial](https://www.clayground.net/post/beginnings-on-the-wheel-part-1-how-to-center-open-your-clay). A horizontal hand above the rim is distinguishable from a base lift, thumb-down indentation and pinch-spread opening. This camera mapping is a game adaptation.
-
-## Feedback, privacy and local data
-
-- Text coaching is always visible when needed. There is no voice-over; synthesized sound effects are optional and the sound button also supports dwell.
-- Brief interrupted tracking keeps a fading hand drawing for up to 350 ms. Cached drawing coordinates never enter the engine; deformation and confirmations require fresh reliable input.
-- Results separate execution mistakes from tracking interruptions. Gallery and target-version best scores are local to this browser. The shelf keeps 24 pots; best scores survive trimming. Storage failure retains the shelf only until the page closes.
-- Pots start solid. Opening radius/depth, floor thickness and bottom perforation are preserved in schema-3 saves. WebGL leaves an actual hole; the annotated cross-section makes deep perforation visible from the camera angle. Damaged cavity walls show open tears. Legacy schema-2 pots retain their cavity and derive floor thickness; schema-1 pots migrate as solid silhouettes.
-- PNG export, storage and sound may fail without blocking the result.
-- Camera frames stay in the browser. The application requests no microphone and has no application backend. The model is served locally; pinned MediaPipe WASM loads from jsDelivr.
-- This is a game model, not a measurement or simulation of real clay pressure or physical thickness.
-
-## Run locally
-
-Use Node.js 24.x. The deployment runtime is pinned to this tested major version.
+Нужны **Node.js 24.x**, npm, Git, веб-камера и интернет для первой загрузки зависимостей и компонентов распознавания.
 
 ```sh
-npm install
+git clone https://github.com/yetolegen/kiln.git
+cd kiln
+npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite. `?dev=1` enables A's tracking debug panel only in the dev server. Add `&rec=1` for landmark recordings (R starts/stops). Keys 0–8 select neutral, shape, lift, indent, open, rim compression, point, finish and too fast. Production excludes debug and recording tools.
+Откройте локальный адрес, напечатанный Vite в терминале, нажмите «Начать» и разрешите камеру. Локальная камера работает на `localhost`; при публикации на другом устройстве нужен **HTTPS**. Обычная HTTP-ссылка на IP компьютера может не дать доступ к камере.
 
-Frontend fixtures: `?dev=1&mock=1` skips camera/model loading. Keys 0–9 select loading/permission/calibrate/menu/tutorial/studio/glaze/firing/result/gallery; S/U/I/O/D/G simulate shape/lift/indent/open/rim compression/inside widening (G requires a cavity), Escape releases, F simulates raised palms without finishing, T/W/C toggle tear/wobble/collapse, X toggles hand loss, arrows change the middle radius. Mouse movement simulates the cursor: H selects palm-centre mode, P selects index-pointing mode. Finish by selecting «Готово». Fixture action keys apply immediately; they do not exercise recognition or physical hold timing. These fixtures are never included in production.
-
-V5 failure fixtures: B perforates the floor, E toggles the over-stretch warning, N creates a pancake. They are display fixtures; real-controller tests separately exercise the actual gesture/damage pipeline.
-
-The camera uses a mirrored, centered cover crop with an ideal front-camera resolution of 1280×720 and a 640×480 fallback. It never requests the microphone. Resize/orientation changes reset tracker and core together. Optional sound unlocks in the Start click. Camera permission requires HTTPS or localhost; see [getUserMedia](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia).
+Сборка и локальный просмотр готового приложения:
 
 ```sh
-npm run build   # TypeScript check + production bundle in dist/
-npm test        # core and frontend unit/integration tests
-npm run test:browser # Playwright Chromium, Firefox, WebKit (install browsers first)
+npm run build
 npm run preview
 ```
 
-The production build loads hand tracking asynchronously and splits Three.js core/renderer into independently cached chunks using Vite's supported `rolldownOptions.output.codeSplitting`. The 500 KB warning threshold is unchanged; V8's largest minified JavaScript chunk is about 352 KB. See [Vite production chunking](https://vite.dev/guide/build.html#chunking-strategy).
+Для публикации используйте Vite-совместимый хостинг: команда сборки `npm run build`, каталог результата `dist`. В репозитории есть конфигурация Vercel. Ключи API и сервер приложения не требуются.
 
-## Deploy
-
-Import this repository into Vercel using the Vite preset. `vercel.json` sets the build command, `dist` output and SPA fallback. No environment variables are required. Deployment configuration follows [Vercel's Vite guide](https://vercel.com/docs/frameworks/frontend/vite).
-
-Deployed to the `kiln` project via Vercel CLI. To update production from this linked checkout:
+Проверки:
 
 ```sh
-npx vercel@61.0.0 deploy --prod --scope mansurertaj5-4014
+npm test
+npx playwright install chromium
+npm run test:browser -- --project=chromium
 ```
 
-Automatic deployments on GitHub pushes are not connected yet: Vercel requires a GitHub login connection for the account. Until that is configured, deploy with the CLI.
+## Техническая реализация и используемые компоненты
 
-Verification results and physical-device limitations are recorded in [QA.md](docs/QA.md). Browser fixtures do not verify recognition quality or the mouse-free human T22 task. Real recordings are still required for threshold tuning.
+**Собственная логика проекта:** интерпретация движений, выбор рабочей и опорной руки, проверка контакта, подготовка и отмена действий, деформация сосуда, распознавание ошибок, сравнение формы с целью, уроки и игровой сценарий. Она реализована на TypeScript.
 
-Windows Playwright WebKit can omit the pot from landscape screenshots after a resize despite populated WebGL pixels. This remains unresolved; physical Safari support is unverified. Chromium is the verified real-model/simulated-camera path.
+**MediaPipe Hand Landmarker** предоставляет координаты кистей и пальцев. Значение жеста и его влияние на глину определяются правилами KILN. **Three.js** отвечает за трёхмерный сосуд; интерфейс использует TypeScript, HTML и CSS, звук — Web Audio. Сборка выполняется Vite, проверки — Vitest и Playwright. Зависимости перечислены в [package.json](package.json).
 
-## Collaboration
+Код разделён по назначению:
 
-[Plan](docs/PLAN.md) · [Core contract](src/types.ts) · [A's handoff](docs/handoff/A.md) · [B's handoff](docs/handoff/B.md)
+- `src/tracking` — наблюдения камеры, координаты, фильтрация и распознавание жестов;
+- `src/engine` — геометрия глины, игровые ограничения, ошибки, цели и статистика;
+- `src/render` — сосуд, круг, эффекты и изображение рук;
+- `src/ui` — меню, выбор удержанием, обучение, подсказки и результаты;
+- `src/browser` — камера и локальное хранение; `src/audio` — звуки.
 
-Vite + vanilla TypeScript, Three.js, MediaPipe Tasks Vision, Vitest and Playwright. Audio uses Web Audio. MediaPipe is pinned in `package.json`; its WASM CDN version must match exactly. `engine/`, `tracking/`, config and shared types belong to A; browser/render/UI/audio and this README top belong to B.
+Модель сосуда, диаграммы и эффекты создаются кодом; звуки синтезируются в браузере. Декоративный фон мастерской создан с помощью генерации изображений; [источник и текст запроса](docs/WORKSHOP_ART.md) указаны отдельно.
 
-Assets: procedural Three.js/Canvas pots and SVG hand/action diagrams; locally synthesized sounds; original AI-generated workshop scenery in `public/workshop-dusk.png` (see the art notes above); no stock audio or custom-trained hand model. The hand landmarker is the pretrained MediaPipe model. The project builds on the repository's existing core code and the libraries above.
+## Условия работы и ограничения
 
-Kiln - hackathon case solution
+- Видеокадры обрабатываются в браузере и не отправляются на сервер приложения. Микрофон не запрашивается. Для распознавания браузер загружает модель и WASM-компоненты.
+- Не перекрывайте руки, держите пальцы в кадре и избегайте резких движений. При сбое сверяйтесь с контурами и текстовой подсказкой; если круг не заполняется, сначала проверьте опору и положение рабочей руки.
+- Адаптивная компоновка есть для компьютера и телефона. Точность зависит от камеры, освещения, браузера и производительности устройства; результаты автоматизированных проверок с имитацией рук не гарантируют одинаковое распознавание на всех устройствах.
+- Для свободного 3D-осмотра требуется WebGL. При потере графического контекста предусмотрено упрощённое двумерное отображение сосуда.
+- Это игровая модель глины: камера оценивает положения и движения, а не реальное усилие, физическую толщину или точный объём материала.
+
+## Описание проекта для формы сдачи
+
+> **KILN, команда Avivengers — свободное направление кейса MOTION.** Мы создали браузерную гончарную мастерскую, управляемую двумя руками через обычную веб-камеру. Шесть действий позволяют сузить и поднять сосуд, сделать ямку, раскрыть полость, уплотнить край и расширить стенку изнутри. После лепки пользователь выбирает глазурь, обжигает работу и получает готовый сосуд, статистику, а в режиме по образцу — оценку сходства. Работы и лучшие результаты сохраняются в личной галерее.
+>
+> **Режим «ошибка»** проверяет положение рук, опору, выдержку и скорость. Вместо общего сообщения о нераспознанном жесте появляются конкретные советы: «Поднеси правую руку к правой стенке», «Раскройте правую ладонь и поверните кисть горизонтально — пальцы в сторону», «Поднимайте руку медленнее. Снова задержите её горизонтально у основания на три секунды», «Сначала сделайте неглубокую ямку большим пальцем вниз, поддерживая стенку другой рукой». Ошибки имеют видимые последствия: истончение, разрыв, отверстие в дне или сплющивание. Потеря отслеживания ставит лепку на паузу и учитывается отдельно. MediaPipe даёт координаты рук; распознавание действий, проверка техники и игровая механика реализованы собственной логикой проекта.
