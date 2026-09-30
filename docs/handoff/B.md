@@ -1,3 +1,7 @@
+### 2026-09-30 · B · English README translation
+**Done:** made the main README English, including all six actions, both widening methods, release instructions, seven-screen lesson, mistake-mode examples, setup, criteria mapping and submission description. Preserved the current Russian guide as `README.ru.md` with reciprocal language links. Added an English gesture diagram; retained actual Russian UI labels with English translations for navigation. No game changes or deployment required.
+**Verification:** checked local links, six action sections and code fences in both READMEs; rendered the translated SVG in Chromium and checked XML, text bounds and untranslated labels. Physical-hand testing is unrelated to this documentation update.
+
 ### 2026-09-30 · B · V9.1 LIVE, including A's 1ccf509
 **Deployed:** `dd054f8` (rebased cleanly onto A's `1ccf509`) is READY at https://kiln-delta-rose.vercel.app, deployment `dpl_869Acn2JfuZMp3HuXt3ywZBKfHfM`. Final integrated suite: 321/321; typecheck/build clean. Five local Chromium checks plus public real-model/simulated-camera startup, V9.1 footer, mirroring and resize pass. Initial public test was blocked by sandbox networking; rerunning with network access passed.
 **For A:** your light-damage banner correction is live. User explicitly authorized B's focused core widening changes described below. No merge conflicts. Physical retest remains: lesson 2/7, two outside pinches → hold 0.5 s → spread both hands slowly → open fingers to release.

@@ -1,184 +1,190 @@
-# KILN — гончарная мастерская, управляемая руками
+# KILN — a pottery studio controlled by your hands
 
-**Команда: Avivengers**
+**Team: Avivengers**
 
-**ADMIT HACKATHON · MOTION: «Камера вместо джойстика» · свободное направление**
+**ADMIT HACKATHON · MOTION: “Camera Instead of a Joystick” · Open track**
 
-KILN превращает обычную веб-камеру в инструмент для лепки. Пользователь формует виртуальную глину двумя руками, создаёт полость, подбирает глазурь и обжигает сосуд. Приложение распознаёт шесть гончарных действий, показывает положение рук и объясняет, как исправить неверное движение.
+**English** · [Русский](README.ru.md)
 
-**[Открыть мастерскую](https://kiln-delta-rose.vercel.app/)** · **[Публичный репозиторий](https://github.com/yetolegen/kiln)**
+KILN turns an ordinary webcam into a pottery tool. Shape virtual clay with both hands, create a cavity, choose a glaze and fire your vessel. The application recognizes six pottery actions, displays your hands and explains how to correct an inaccurate movement.
 
-Устанавливать приложение не нужно. Для первого запуска нажмите «Начать» и разрешите камеру в браузере. Затем меню, лепка, завершение, глазурь, обжиг и галерея доступны через жесты.
+**[Open the studio](https://kiln-delta-rose.vercel.app/)** · **[Public repository](https://github.com/yetolegen/kiln)**
 
-## Быстрый старт
+No installation is required. On your first visit, click **Start («Начать»)** and allow camera access. You can then use gestures for menus, shaping, finishing, glazing, firing and the gallery.
 
-1. Откройте мастерскую на устройстве с камерой. Для первого знакомства удобнее компьютер с Chrome и достаточно большой экран.
-2. Расположитесь так, чтобы камера видела **обе кисти целиком**, включая кончики пальцев. Осветите руки спереди; не перекрывайте одну кисть другой.
-3. Дождитесь загрузки распознавания, нажмите **«Начать»**, разрешите камеру и покажите обе раскрытые ладони. Ненадолго замрите для калибровки, пока не появится меню.
-4. Для знакомства с действиями выберите **«Научиться · урок»**. Чтобы сразу создать сосуд, выберите **«Свободная форма»** или **«Создать вазу · по образцу»**. Проходить урок перед этими режимами необязательно.
+The game interface is currently in Russian. This guide includes the original button labels so you can find them on screen.
 
-Изображение зеркальное. Ориентируйтесь на **контуры рук и сосуд на экране**: контакт означает их совмещение в изображении. Кнопка «Показать камеру» делает видео ярче и помогает выставить руки. Кнопка «Звук включён» / «Звук выключен» переключает звуковые эффекты; она тоже доступна удержанием ладони.
+## Quick start
 
-### Как выбирать кнопки без мыши
+1. Open the studio on a device with a camera. A computer running Chrome with a reasonably large screen is convenient for your first session.
+2. Position yourself so the camera can see **both entire hands, including fingertips**. Light your hands from the front and avoid overlapping them.
+3. Wait for hand recognition to load, click **Start («Начать»)**, grant camera permission and show both open palms. Hold still briefly for calibration until the menu appears.
+4. Choose **Learn · Lesson («Научиться · урок»)** to learn the actions. To start making a vessel immediately, choose **Free Sculpting («Свободная форма»)** or **Create a Vase · From a Reference («Создать вазу · по образцу»)**. Completing the lesson is optional.
 
-- Подведите **центр ладони** — голубую точку на её контуре — к нужной кнопке.
-- Задержите ладонь, пока круг указателя не заполнится. Обычный выбор занимает примерно **0,9 секунды**; «Готово», перезапуск, выход и осмотр во время лепки — **1,8 секунды**.
-- После выбора отведите ладонь от кнопки. Выход из её области сбрасывает незавершённый выбор.
-- Можно также направить указательный палец на кнопку, согнув остальные пальцы. Основной способ навигации — центр ладони.
-- Во время лепки кнопки завершения и выхода скрываются, чтобы не срабатывать случайно. **Отпустите глину и уберите руки от неё**; примерно через полсекунды кнопки вернутся.
+The camera view is mirrored. Follow the **hand outlines and vessel on screen**: contact means aligning them in the image. **Show Camera («Показать камеру»)** makes the video brighter to help you position your hands. **Sound On / Sound Off («Звук включён» / «Звук выключен»)** toggles sound effects and also supports palm selection.
 
-## Как лепить: шесть действий
+### Selecting buttons without a mouse
 
-Во всех действиях с опорой **любая рука может быть рабочей**. Вторая ладонь остаётся сбоку у стенки, в пределах высоты сосуда. Не меняйте роли рук посреди движения.
+- Move the **center of your palm**, shown as a cyan dot on its outline, over a button.
+- Hold it there until the progress circle fills. Ordinary selections take about **0.9 seconds**. Done, restart, exit and inspection during shaping take **1.8 seconds**.
+- Move your palm away after activation. Leaving the button before completion resets its progress.
+- You can also point your index finger at a button while curling the other fingers. Palm position is the main navigation method.
+- Finishing and exit buttons hide during active shaping to prevent accidental selection. **Release the clay and move your hands away**; the buttons return after about half a second.
 
-**Обратная связь:** зелёное кольцо и надпись «Опора» отмечают поддерживающую руку. Золотой круг у рабочей руки показывает подготовку действия. Если для жеста нужна выдержка, начинайте движение после заполнения круга и появления «Медленно».
+## How to sculpt: six actions
 
-![Схемы шести действий: сузить, поднять, сделать ямку, раскрыть полость, понизить и расширить корпус](docs/gestures-guide.svg)
+For actions that require support, **either hand can be the working hand**. Keep the other palm beside the wall, within the vessel's height. Keep the same hand roles throughout each action.
 
-### 1. Сузить сосуд снаружи
+**Feedback:** a green ring and **Support («Опора»)** label identify the supporting hand. A gold ring shows preparation progress on the working hand. For actions with a hold, wait until the ring fills and **Slowly («Медленно»)** appears before moving.
 
-1. Раскройте обе ладони, расправьте пальцы и отведите большие пальцы от указательных.
-2. Разместите руки **снаружи слева и справа от сосуда**, на одинаковой высоте. Для первого шага урока выберите середину сосуда.
-3. Подведите внутренние края контуров рук к стенкам. Медленно двигайте левую ладонь вправо, а правую — влево, как будто сжимаете глину между ними.
-4. Стенки в месте касания постепенно сойдутся. Остановитесь у прозрачного образца или на желаемой ширине.
+![Six pottery actions: narrow, lift, indent, open, compress and widen the body](docs/gestures-guide.en.svg)
 
-**Как закончить:** отведите ладони наружу, от стенок. Это отпускает глину. Чтобы начать новый нажим, сначала выйдите из контакта, затем снова подведите руки. Удержание без движения не должно продолжать сужение.
+### 1. Narrow the vessel from outside
 
-### 2. Поднять и вытянуть сосуд
+1. Open both palms, straighten your fingers and move your thumbs away from your index fingers.
+2. Place your hands **outside the left and right walls**, at the same height. For lesson step 1, work around the middle of the vessel.
+3. Bring the inner edges of the hand outlines to the walls. Slowly move the left palm rightward and the right palm leftward, as though squeezing the clay between them.
+4. The walls move inward at the contact height. Stop at the transparent target or your preferred width.
 
-1. Одной раскрытой ладонью поддерживайте боковую стенку.
-2. Вторую руку подведите **горизонтально к основанию, немного под дно**. Пальцы направлены в сторону, словно вы подхватываете глину снизу ребром ладони.
-3. Сохраняйте опору и держите нижнюю руку неподвижно **около 3 секунд**, пока круг не заполнится.
-4. **Очень медленно поднимайте нижнюю руку**. Высота сосуда будет увеличиваться; опорную ладонь продолжайте держать у стенки.
+**To stop:** move your palms outward, away from the walls. This releases the clay. For another press, leave contact first, then bring your hands back. Holding still should not keep narrowing the vessel.
 
-**Как закончить:** остановитесь на нужной высоте и выведите рабочую руку из области основания в сторону. Если движение отменилось, снова займите исходное положение и дождитесь полного круга. В уроке не поднимайте сосуд выше целевого силуэта.
+### 2. Lift and stretch the vessel
 
-### 3. Сделать начальную ямку большим пальцем
+1. Support a side wall with one open palm.
+2. Bring your other hand **horizontally to the base, slightly underneath it**. Point your fingers sideways, as though scooping up the clay with the edge of your palm.
+3. Maintain support and hold the lower hand still for **about 3 seconds**, until the circle fills.
+4. **Raise the lower hand very slowly.** The vessel grows taller; keep the supporting palm against the wall.
 
-1. Оставьте одну раскрытую ладонь у боковой стенки как опору.
-2. На рабочей руке согните остальные пальцы и **направьте большой палец вниз**.
-3. Совместите его кончик с **центром верхней поверхности** глины.
-4. Плавно опустите кончик немного внутрь сосуда. Ямка появляется и углубляется вслед за движением; можно сгибать большой палец, сохраняя положение кисти.
+**To stop:** stop at the desired height and move the working hand sideways out of the base area. If the action is cancelled, return to the starting position and wait for a full circle again. In the lesson, keep the top within the target silhouette.
 
-**Ориентир глубины:** в уроке остановитесь у голубой отметки дна. Жёлтая линия обозначает безопасный ориентир — примерно **одна фаланга большого пальца**. Для начальной ямки достаточно небольшого нажатия; долгой предварительной выдержки здесь нет.
+### 3. Make the initial thumb indentation
 
-**Как закончить:** выведите большой палец вверх из глины. Слишком быстрое нажатие отменяется с подсказкой; слишком глубокое истончает и может пробить дно. Это условный масштаб по размеру руки, а не измерение глубины в сантиметрах.
+1. Keep one open palm beside the wall for support.
+2. Curl the other fingers of your working hand and **point its thumb downward**.
+3. Align the thumb tip with the **center of the clay's top surface**.
+4. Slowly lower the tip a little into the clay. The indentation deepens with the tip's movement; you can bend the thumb while keeping the palm still.
 
-### 4. Расширить и углубить отверстие
+**Depth guide:** in the lesson, stop at the cyan floor marker. The yellow line marks the safe guide depth: roughly **one segment of the thumb**. The initial dent needs only a small press; it has no long preparation hold.
 
-1. Сначала создайте ямку большим пальцем. Одна ладонь по-прежнему поддерживает стенку снаружи.
-2. Соедините **большой и указательный пальцы** рабочей руки в щипок и поместите их кончики **внутрь существующей ямки**.
-3. Задержите сомкнутый щипок примерно **0,2 секунды**, до заполнения круга.
-4. Медленно увеличивайте расстояние между пальцами. Отверстие станет **шире и глубже**, а стенки — тоньше.
+**To stop:** lift the thumb out of the clay. Pressing too quickly cancels the action and shows advice. Pressing too deeply thins the bottom and can puncture it. Depth is scaled to the tracked hand, not measured in real centimeters.
 
-**Как закончить:** выведите рабочую руку из отверстия. Одного прекращения разведения недостаточно для долгой паузы: пока рука остаётся в активном раскрытии, продолжает идти время растягивания. Примерно через **7 секунд** появляется опасность истончения; продолжение может разорвать стенку. В уроке останавливайтесь у целевой ширины раньше.
+### 4. Widen and deepen the opening
 
-### 5. Понизить сосуд и уплотнить край
+1. Make a thumb indentation first. Keep one palm supporting the outside wall.
+2. Bring the working hand's **thumb and index finger together in a pinch** and place their tips **inside the existing indentation**.
+3. Hold the closed pinch for about **0.2 seconds**, until the circle fills.
+4. Slowly spread those fingers. The opening becomes **wider and deeper**, and the walls become thinner.
 
-1. Одну раскрытую ладонь держите **вертикально сбоку**, поддерживая стенку.
-2. Другую раскройте **горизонтально над верхним краем**, словно кладёте её на поверхность глины. Пальцы направьте в сторону. Положение рук напоминает угол: одна рука сбоку, другая сверху; соприкасаться друг с другом они не должны.
-3. Не двигайте верхнюю ладонь примерно **0,5 секунды**, пока круг не заполнится.
-4. Медленно и равномерно **опускайте верхнюю ладонь**, сохраняя боковую опору. Сосуд станет ниже, край выровняется. Продолжение движения усиливает сжатие.
+**To stop:** withdraw the working hand from the opening. Simply stopping the spread is insufficient for a long pause: the stretching timer continues while the opening gesture remains engaged. After about **7 seconds**, the walls become dangerously thin; continuing can tear them. In the lesson, stop earlier when the target width is reached.
 
-**Как закончить:** остановитесь, когда верх сосуда совпадёт с силуэтом, и уберите рабочую руку от края. Здесь высота меняется от движения руки, камера не измеряет силу давления. Если продолжать нажим слишком долго, глина превратится в плоскую лепёшку и потребует перезапуска.
+### 5. Lower the vessel and compress the rim
 
-### 6. Расширить корпус сосуда
+1. Hold one open palm **vertically beside the vessel**, supporting its wall.
+2. Hold the other palm **horizontally just above the rim**, as though resting it on the clay. Point its fingers sideways. Your hands form an angle: one beside the vessel, one above it. They do not need to touch each other.
+3. Hold the upper palm still for about **0.5 seconds**, until the circle fills.
+4. Slowly and steadily **lower the upper palm**, maintaining side support. The vessel becomes shorter and its rim becomes smoother. Continuing the movement increases compression.
 
-**Чтобы увеличить общую ширину, отверстие не требуется:**
+**To stop:** stop when the top aligns with the silhouette, then move the working hand away from the rim. Height changes follow hand movement; the camera does not measure pressure. Excessive compression flattens the clay into a pancake and requires a restart.
 
-1. Расположите руки снаружи у левой и правой стенок, примерно на одной высоте.
-2. Соедините большой и указательный пальцы **каждой руки** в щипок — словно захватываете сосуд с двух сторон.
-3. Замрите примерно на **0,5 секунды**, пока круги подготовки не заполнятся.
-4. Медленно **разведите обе руки в стороны**, сохраняя щипки. Весь внешний профиль станет шире; полость отдельно не расширяется.
-5. **Разомкните щипки**, затем уберите руки. Это прекращает расширение. Перемещение только одной руки не расширяет корпус.
+### 6. Widen the vessel's body
 
-Обычные раскрытые ладони по-прежнему сужают сосуд при движении навстречу; их отведение наружу отпускает глину. Два сомкнутых щипка нужны именно для намеренного расширения. Резкий рывок отменяет расширение: разомкните пальцы и начните подготовку заново.
+**To increase the overall width, no opening is required:**
 
-**Дополнительный способ: расширить стенку локально изнутри.**
+1. Place your hands outside the left and right walls, at roughly the same height.
+2. Pinch the thumb and index finger of **each hand** together, as though gripping the vessel from both sides.
+3. Hold still for about **0.5 seconds**, until the preparation circles fill.
+4. Slowly **spread both hands sideways**, keeping both pinches closed. The entire outer profile widens; this action does not expand the cavity itself.
+5. **Open both pinches**, then move your hands away. This stops widening. Moving only one hand does not widen the body.
 
-Доступно в **свободной лепке и режиме по образцу**. Сначала нужны ямка и отверстие достаточной глубины.
+Ordinary open palms still narrow the vessel when brought together and release it when moved outward. Use two closed pinches for deliberate widening. A sudden movement cancels the action: open your fingers and prepare again.
 
-1. Одной ладонью поддерживайте боковую стенку снаружи.
-2. Рабочий **указательный палец направьте вниз** и опустите его кончик в отверстие, на высоту участка, который хотите расширить. Большой палец держите выше кончика указательного; не соединяйте их в щипок.
-3. Задержите руку примерно **0,3 секунды**, до заполнения круга.
-4. Медленно двигайте указательный палец **изнутри к левой или правой стенке**. Внешний профиль сосуда расширится на высоте кончика пальца.
+**Alternative: widen a wall locally from inside.**
 
-**Как закончить:** выведите палец из отверстия. Возврат пальца к центру не добавляет расширения. Для плавного профиля работайте короткими движениями на соседних высотах.
+This method is available in **Free Sculpting and Reference mode**. It requires an existing cavity with enough depth.
 
-**Различие действий:** ладони снаружи сужают форму; два щипка у внешних стенок расширяют весь корпус; разведение пальцев одной руки внутри увеличивает полость; указательный палец изнутри расширяет стенку на выбранной высоте.
+1. Support an outside wall with one palm.
+2. Point the working hand's **index finger downward** into the opening, at the height you want to widen. Keep the thumb above the index fingertip, without pinching them together.
+3. Hold still for about **0.3 seconds**, until the circle fills.
+4. Slowly move the index finger **from inside toward either wall**. The outer profile widens at the fingertip's height.
 
-## От первого движения до готового сосуда
+**To stop:** withdraw the finger. Returning toward the center adds no further widening. Work in short strokes at nearby heights for a smooth profile.
 
-### Урок с прозрачным образцом
+**Action differences:** outside palms narrow the shape; two outside pinches widen the whole body; spreading two fingers of one hand inside enlarges the cavity; an inside index finger widens the wall at a chosen height.
 
-Урок последовательно учит сужению, расширению всего корпуса, подъёму, начальной ямке, раскрытию и уплотнению края. Всего **семь экранов**: шесть действий и **«Обучение окончено»**. Расширение — второй шаг, сразу после сужения.
+## From the first movement to a finished vessel
 
-У каждого действия есть голубой целевой силуэт и показатель **«Форма»**. Переход проверяет результат лепки: высоту, профиль стенок, ширину и глубину полости. Когда форма совпадёт, прекратите движение и отпустите жест, чтобы перейти дальше. Удержание одной позы не пропускает несколько этапов.
+### A lesson with transparent targets
 
-При выходе за допустимую форму или повреждении продвижение останавливается. Прочитайте причину и выберите **«Попробовать снова · с первого шага»**. Эта кнопка начинает учебную попытку с первого шага. После завершения урока вернитесь в мастерскую и начните свободную лепку или работу по образцу.
+The lesson teaches narrowing, widening the whole body, lifting, making an indentation, opening the cavity and compressing the rim. It has **seven screens**: six actions followed by **Training Complete («Обучение окончено»)**. Widening is step 2, immediately after narrowing.
 
-### Лепка → глазурь → обжиг → результат
+Each action has a cyan target silhouette and a **Shape («Форма»)** indicator. Progress depends on the resulting geometry: height, wall profile, cavity width and cavity depth. Once the shape matches, stop moving and release the gesture to continue. Holding one pose does not skip several steps.
 
-1. Выберите **«Свободная форма»** для своего замысла или **«Создать вазу · по образцу»** для повторения прозрачного силуэта.
-2. Сформуйте сосуд с помощью описанных жестов. В свободном режиме можно применять все шесть действий.
-3. Уберите руки от глины и выберите **«Готово»**. Только после этого открываются глазурь и обжиг.
-4. Наведите ладонь на глазурь: **«Янтарь»**, **«Нефрит»** или **«Молоко»**. После выбора станет доступна кнопка **«В печь»**.
-5. Выберите «В печь» и дождитесь окончания обжига — около **4 секунд**.
-6. На экране результата посмотрите время работы и ошибки. В режиме по образцу также показывается **процент сходства** с целевой вазой.
-7. Сосуд автоматически попадает на **«Мою полку»**. Можно выгрузить изображение кнопкой **«Сохранить PNG»** или начать новый сосуд.
+Exceeding the permitted shape or damaging the clay stops progression. Read the explanation and choose **Try Again · From Step One («Попробовать снова · с первого шага»)**. This restarts the entire lesson attempt. After completing the lesson, return to the studio and begin Free Sculpting or Reference mode.
 
-Галерея хранит до 24 работ и лучшие результаты для образца в текущем браузере. Если браузер запрещает сохранение, полка работает до закрытия страницы; завершить сценарий всё равно можно.
+### Shape → glaze → fire → result
 
-### Рассмотреть сосуд со всех сторон
+1. Choose **Free Sculpting («Свободная форма»)** for your own design, or **Create a Vase · From a Reference («Создать вазу · по образцу»)** to match a transparent silhouette.
+2. Shape the vessel using the gestures above. All six actions are available in Free Sculpting.
+3. Move your hands away and select **Done («Готово»)**. This unlocks glazing and firing.
+4. Hover your palm over a glaze: **Amber («Янтарь»)**, **Jade («Нефрит»)** or **Milk («Молоко»)**. Selecting a glaze enables **Fire («В печь»)**.
+5. Select Fire and wait about **4 seconds** for firing to finish.
+6. Review your time and mistakes on the result screen. Reference mode also shows a **similarity percentage** against the target vase.
+7. Your vessel is automatically added to **My Shelf («Моя полка»)**. Export its image with **Save PNG («Сохранить PNG»)** or begin another vessel.
 
-Отпустите глину и выберите **«Осмотреть в 3D»**. Поворот не ограничен одним ракурсом: доступны вид сверху, снизу, приближение и свободное вращение.
+The gallery stores up to 24 works and the best reference scores in the current browser. If browser storage is unavailable, the shelf lasts until the page is closed; the complete scenario remains playable.
 
-- **Руками:** задерживайте ладонь над кнопками стрелок, «Сверху», «Снизу», «+», «−» и «Сбросить вид».
-- **Дополнительно:** мышью или одним пальцем на экране можно перетаскивать модель, колёсиком или щипком на сенсорном экране — менять масштаб.
-- Выберите **«Вернуться к сосуду»**, чтобы продолжить. Во время осмотра лепка и урок стоят на паузе.
+### Inspect the vessel from any angle
 
-## Режим «ошибка»: что не так и как исправить
+Release the clay and choose **Inspect in 3D («Осмотреть в 3D»)**. You can freely rotate, zoom and inspect it from above or below.
 
-KILN проверяет позу, место контакта, наличие опоры, время подготовки и скорость движения. Подсказка над заголовком сообщает, **что изменить**, а контуры рук, круг подготовки и подсветка участка помогают найти ошибку.
+- **With your hands:** dwell over the arrow buttons, **Top («Сверху»)**, **Bottom («Снизу»)**, **+**, **−** and **Reset View («Сбросить вид»)**.
+- **Optional mouse or touch controls:** drag to rotate; use the mouse wheel or a touchscreen pinch to zoom.
+- Select **Return to Vessel («Вернуться к сосуду»)** to continue. Shaping and lesson progression pause during inspection.
 
-| Ситуация | Пример подсказки в игре | Что сделать |
+## Mistake mode: what went wrong and how to fix it
+
+KILN checks pose, contact position, support, preparation time and movement speed. Advice above the heading explains **what to change**. Hand outlines, preparation circles and contact highlights help you locate the problem.
+
+The following examples are English translations of the in-game Russian hints:
+
+| Situation | Example hint | Correction |
 |---|---|---|
-| Правая ладонь далеко от стенки | «Поднеси правую руку к правой стенке» | Совместить контур руки с правым боком сосуда |
-| Рабочая кисть стоит вертикально вместо горизонтального положения | «Раскройте правую ладонь и поверните кисть горизонтально — пальцы в сторону.» | Развернуть кисть, затем дождаться круга подготовки |
-| Подъём начат слишком резко | «Поднимайте руку медленнее. Снова задержите её горизонтально у основания на три секунды.» | Вернуться к основанию, заново подготовить жест и поднимать плавно |
-| Нет ямки для раскрытия | «Сначала сделайте неглубокую ямку большим пальцем вниз, поддерживая стенку другой рукой.» | Сделать начальное углубление, затем перейти к щипку |
-| Рабочая рука движется без опоры | «Держите ладонь левой руки у боковой стенки для поддержки.» | Вернуть опорную руку к стенке и повторить подготовку |
-| Камера потеряла руки | «Отслеживание потеряно. Верните руки в кадр и разведите кисти. Глина на паузе.» | Вернуть обе руки в кадр и дождаться устойчивых контуров |
+| Right palm is too far from the wall | “Bring your right hand to the right wall.” | Align its outline with the vessel's right side |
+| Working hand is vertical instead of horizontal | “Open your right palm and turn your wrist horizontally, with fingers pointing sideways.” | Rotate the hand, then wait for the preparation circle |
+| Lifting starts too quickly | “Raise your hand more slowly. Hold it horizontally at the base for three seconds again.” | Return to the base, prepare again and lift smoothly |
+| There is no indentation to open | “First make a shallow indentation with your thumb pointing down, supporting the wall with your other hand.” | Create the initial dent before pinching inside it |
+| Working hand moves without support | “Keep the palm of your left hand beside the wall for support.” | Restore side support and prepare the action again |
+| Camera loses the hands | “Tracking lost. Bring your hands back into view and separate them. The clay is paused.” | Show both hands and wait for stable outlines |
 
-**Ошибка техники и потеря отслеживания различаются.** При ненадёжном кадре деформация приостанавливается; сохранённый на мгновение контур руки не продолжает лепить глину. В итогах проблемы распознавания учитываются отдельно от ошибок исполнения.
+**Technique mistakes and tracking failures are handled separately.** Unreliable input pauses deformation. A hand outline briefly preserved on screen does not keep shaping the clay. Tracking issues are listed separately from execution mistakes in the results.
 
-### Видимые последствия ошибок
+### Visible consequences of mistakes
 
-- Слишком глубокое нажатие большим пальцем истончает дно, затем может сделать сквозное отверстие.
-- Долгое раскрытие или критически тонкая стенка приводят к разрыву **от края сосуда**.
-- Чрезмерное вертикальное сжатие превращает сосуд в лепёшку. При высоте около 20% от начальной это окончательно испорченная форма.
-- Слишком высокий или неустойчивый сосуд может осесть. В уроке выход за допустимые границы силуэта также останавливает этап.
+- Excessive thumb insertion thins the bottom and can make a hole through it.
+- Prolonged opening or critically thin walls causes a tear **starting at the rim**.
+- Excessive vertical compression creates a flat pancake. At around 20% of the initial height, this becomes a terminal failure.
+- An excessively tall or unstable vessel can slump. In the lesson, exceeding the target's permitted bounds also stops the step.
 
-При серьёзном повреждении появляется **«Глина испортилась, начните заново»**, пояснение причины и инструкция перезапуска. Уберите руки и выберите **«Начать сначала»**. Сквозное дно, окончательный разрыв стенки и лепёшка блокируют дальнейшую лепку до перезапуска. Небольшие повреждения сопровождаются советом исправить технику и могут устраняться уплотнением края; лёгкая царапина не требует начинать заново.
+Serious damage displays **“The clay is ruined. Start again.” («Глина испортилась, начните заново»)** with its cause and restart instructions. Withdraw your hands and select **Start Again («Начать сначала»)**. A punctured bottom, terminal wall tear or pancake blocks further shaping until restart. Minor damage produces technique advice and may be repaired by rim compression; a light scratch does not require restarting.
 
-## Соответствие кейсу MOTION
+## How KILN meets the MOTION case
 
-| Требование | Реализация в KILN |
+| Requirement | Implementation |
 |---|---|
-| Веб-камера и распознавание в браузере | Отслеживание двух рук, поз и движений в реальном времени |
-| Не менее трёх разных жестов | Шесть действий с разными изменениями глины; навигация считается отдельно |
-| Понятная обратная связь | Контуры рук, отметка опоры, круг подготовки, подсветка контакта, целевой силуэт и видимая деформация |
-| Законченный сценарий | Лепка → «Готово» → глазурь → обжиг → результат, изображение и галерея |
-| Запуск без установки | Публичная HTTPS-ссылка; требуется браузер и разрешение камеры |
-| Обязательный режим «ошибка» | Проверка техники, конкретные корректирующие подсказки, предупреждения и видимые повреждения |
-| Собственная логика распознавания | Правила поз, контакта и скорости, выдержка жестов, фильтрация и устойчивость к небольшим колебаниям |
-| Прогресс / рекорды | Личная полка работ и лучший результат повторения образца |
-| Камера телефона | Адаптивная компоновка, обработка изменения ориентации, поддержка сенсорного осмотра |
-| Звук и визуальные эффекты | Звук круга и лепки, обжиг, вращение, брызги глины и оформление глазури |
+| Webcam recognition in the browser | Real-time tracking of two hands, their poses and movements |
+| At least three distinct gestures | Six actions with different effects on clay; navigation is separate |
+| Clear feedback | Hand outlines, support markers, preparation circles, contact highlights, target silhouettes and visible deformation |
+| A complete scenario | Shaping → Done → glazing → firing → result, image export and gallery |
+| No installation for players | Public HTTPS link; a browser and camera permission are enough |
+| Required mistake mode | Technique checks, specific corrective advice, warnings and visible damage |
+| Custom recognition logic | Rules for pose, contact and speed, gesture holds, filtering and tolerance for small fluctuations |
+| Progress / high scores | A personal shelf and best reference-matching scores |
+| Phone camera support | Responsive layout, orientation handling and touch inspection |
+| Sound and visual effects | Wheel and shaping sounds, firing, rotation, clay splashes and glaze appearance |
 
-## Запуск из исходного кода
+## Run from source
 
-Нужны **Node.js 24.x**, npm, Git, веб-камера и интернет для первой загрузки зависимостей и компонентов распознавания.
+You need **Node.js 24.x**, npm, Git, a webcam and an internet connection for the initial dependency and recognition-component downloads.
 
 ```sh
 git clone https://github.com/yetolegen/kiln.git
@@ -187,18 +193,18 @@ npm ci
 npm run dev
 ```
 
-Откройте локальный адрес, напечатанный Vite в терминале, нажмите «Начать» и разрешите камеру. Локальная камера работает на `localhost`; при публикации на другом устройстве нужен **HTTPS**. Обычная HTTP-ссылка на IP компьютера может не дать доступ к камере.
+Open the local URL printed by Vite, click Start («Начать») and allow camera access. Camera access works on `localhost`. Access from another device requires **HTTPS**; an ordinary HTTP URL using your computer's IP address may not allow the camera.
 
-Сборка и локальный просмотр готового приложения:
+Build and preview the production application locally:
 
 ```sh
 npm run build
 npm run preview
 ```
 
-Для публикации используйте Vite-совместимый хостинг: команда сборки `npm run build`, каталог результата `dist`. В репозитории есть конфигурация Vercel. Ключи API и сервер приложения не требуются.
+Deploy to a host that supports Vite: use `npm run build` as the build command and `dist` as the output directory. A Vercel configuration is included. No API keys or application backend are required.
 
-Проверки:
+Run checks:
 
 ```sh
 npm test
@@ -206,32 +212,32 @@ npx playwright install chromium
 npm run test:browser -- --project=chromium
 ```
 
-## Техническая реализация и используемые компоненты
+## Technical implementation and components
 
-**Собственная логика проекта:** интерпретация движений, выбор рабочей и опорной руки, проверка контакта, подготовка и отмена действий, деформация сосуда, распознавание ошибок, сравнение формы с целью, уроки и игровой сценарий. Она реализована на TypeScript.
+**Custom project logic:** movement interpretation, working/supporting hand assignment, contact checks, action preparation and cancellation, vessel deformation, mistake detection, target comparison, lessons and the game flow. These are implemented in TypeScript.
 
-**MediaPipe Hand Landmarker** предоставляет координаты кистей и пальцев. Значение жеста и его влияние на глину определяются правилами KILN. **Three.js** отвечает за трёхмерный сосуд; интерфейс использует TypeScript, HTML и CSS, звук — Web Audio. Сборка выполняется Vite, проверки — Vitest и Playwright. Зависимости перечислены в [package.json](package.json).
+**MediaPipe Hand Landmarker** supplies hand and finger coordinates. KILN's rules determine each gesture's meaning and effect on the clay. **Three.js** renders the vessel. The interface uses TypeScript, HTML and CSS; sound uses Web Audio. Vite builds the application, and Vitest and Playwright run the checks. Dependencies are listed in [package.json](package.json).
 
-Код разделён по назначению:
+Code is organized by responsibility:
 
-- `src/tracking` — наблюдения камеры, координаты, фильтрация и распознавание жестов;
-- `src/engine` — геометрия глины, игровые ограничения, ошибки, цели и статистика;
-- `src/render` — сосуд, круг, эффекты и изображение рук;
-- `src/ui` — меню, выбор удержанием, обучение, подсказки и результаты;
-- `src/browser` — камера и локальное хранение; `src/audio` — звуки.
+- `src/tracking` — camera observations, coordinates, filtering and gesture recognition;
+- `src/engine` — clay geometry, game limits, mistakes, targets and statistics;
+- `src/render` — vessel, wheel, effects and hand visualization;
+- `src/ui` — menus, dwell selection, lessons, hints and results;
+- `src/browser` — camera and local storage; `src/audio` — sound.
 
-Модель сосуда, диаграммы и эффекты создаются кодом; звуки синтезируются в браузере. Декоративный фон мастерской создан с помощью генерации изображений; [источник и текст запроса](docs/WORKSHOP_ART.md) указаны отдельно.
+The vessel model, diagrams and effects are generated in code; sounds are synthesized in the browser. The decorative studio backdrop was created with image generation; its [source and prompt](docs/WORKSHOP_ART.md) are documented separately.
 
-## Условия работы и ограничения
+## Operating conditions and limitations
 
-- Видеокадры обрабатываются в браузере и не отправляются на сервер приложения. Микрофон не запрашивается. Для распознавания браузер загружает модель и WASM-компоненты.
-- Не перекрывайте руки, держите пальцы в кадре и избегайте резких движений. При сбое сверяйтесь с контурами и текстовой подсказкой; если круг не заполняется, сначала проверьте опору и положение рабочей руки.
-- Адаптивная компоновка есть для компьютера и телефона. Точность зависит от камеры, освещения, браузера и производительности устройства; результаты автоматизированных проверок с имитацией рук не гарантируют одинаковое распознавание на всех устройствах.
-- Для свободного 3D-осмотра требуется WebGL. При потере графического контекста предусмотрено упрощённое двумерное отображение сосуда.
-- Это игровая модель глины: камера оценивает положения и движения, а не реальное усилие, физическую толщину или точный объём материала.
+- Video frames are processed in the browser and are not sent to an application server. The microphone is not requested. The browser downloads the recognition model and WASM components.
+- Keep your fingers visible, avoid overlapping hands and move slowly. If recognition is unclear, check the outlines and advice. If a circle does not fill, check support and working-hand placement first.
+- The layout adapts to computers and phones. Recognition depends on the camera, lighting, browser and device performance. Automated tests with simulated hands do not guarantee identical recognition on every physical device.
+- Free 3D inspection requires WebGL. A simplified 2D vessel display is available if the graphics context is lost.
+- This is a game model of clay. The camera estimates positions and movement, not real force, physical thickness or exact material volume.
 
-## Описание проекта для формы сдачи
+## Project description for the submission form
 
-> **KILN, команда Avivengers — свободное направление кейса MOTION.** Мы создали браузерную гончарную мастерскую, управляемую двумя руками через обычную веб-камеру. Шесть действий позволяют сузить и поднять сосуд, сделать ямку, раскрыть полость, уплотнить край и расширить корпус. После лепки пользователь выбирает глазурь, обжигает работу и получает готовый сосуд, статистику, а в режиме по образцу — оценку сходства. Работы и лучшие результаты сохраняются в личной галерее.
+> **KILN, team Avivengers — Open track of the MOTION case.** We built a browser-based pottery studio controlled with two hands through an ordinary webcam. Six actions let the player narrow and lift a vessel, make an indentation, open its cavity, compress its rim and widen its body. After shaping, the player chooses a glaze, fires the piece and receives a finished vessel and statistics, plus a similarity score in Reference mode. Works and best scores are saved in a personal gallery.
 >
-> **Режим «ошибка»** проверяет положение рук, опору, выдержку и скорость. Вместо общего сообщения о нераспознанном жесте появляются конкретные советы: «Поднеси правую руку к правой стенке», «Раскройте правую ладонь и поверните кисть горизонтально — пальцы в сторону», «Поднимайте руку медленнее. Снова задержите её горизонтально у основания на три секунды», «Сначала сделайте неглубокую ямку большим пальцем вниз, поддерживая стенку другой рукой». Ошибки имеют видимые последствия: истончение, разрыв, отверстие в дне или сплющивание. Потеря отслеживания ставит лепку на паузу и учитывается отдельно. MediaPipe даёт координаты рук; распознавание действий, проверка техники и игровая механика реализованы собственной логикой проекта.
+> **Mistake mode** checks hand placement, support, hold time and speed. It gives concrete advice such as “Bring your right hand to the right wall,” “Open your right palm and turn your wrist horizontally, with fingers pointing sideways,” “Raise your hand more slowly; hold it horizontally at the base for three seconds again,” and “First make a shallow indentation with your thumb pointing down, supporting the wall with your other hand.” These hints appear in Russian in the game. Mistakes have visible consequences: thinning, tears, bottom holes or flattening. Tracking loss pauses shaping and is counted separately. MediaPipe supplies hand coordinates; action recognition, technique checks and gameplay use the project's own logic.

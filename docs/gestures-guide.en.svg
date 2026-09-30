@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1320" viewBox="0 0 1200 1320" role="img" aria-labelledby="title desc">
+  <title id="title">KILN — six ways to shape clay</title>
+  <desc id="desc">Front-view diagrams: outside palms move inward; a lower hand rises after three seconds; a thumb makes a dent; a pinch opens the cavity; the upper palm moves down; two outside pinches spread apart to widen the whole body. Green indicates support, gold indicates movement. Either hand can work.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0L7 4L0 8Z" fill="#986016"/></marker>
+    <g id="hand" fill="currentColor" fill-opacity=".12" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M22 62L8 39Q5 32 11 31L22 42V15Q22 8 27 10V34V6Q29 0 33 6V34V10Q38 3 40 11V36V20Q45 14 47 21V49Q47 61 40 67L22 67Z"/>
+    </g>
+    <g id="thumb" fill="currentColor" fill-opacity=".12" stroke="currentColor" stroke-width="3" stroke-linejoin="round">
+      <path d="M18 12H43V37Q43 44 36 44H28V64Q23 70 20 63V43L12 35V20Z"/>
+      <path d="M28 18H39M28 26H39M28 34H39"/>
+    </g>
+    <g id="index" fill="currentColor" fill-opacity=".12" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 10Q13 3 21 3H44Q54 4 54 14V27Q50 37 43 31L36 27V78Q36 87 30 87Q24 87 24 79V27L16 23Z"/>
+      <path d="M42 10V24M48 11V24"/>
+    </g>
+    <g id="grip" fill="currentColor" fill-opacity=".12" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M22 64L10 39Q7 30 14 28L24 36L34 27Q40 22 42 28Q43 34 35 40L28 45L38 48L38 18Q42 12 46 20V51Q47 61 40 67Z"/>
+    </g>
+    <g id="pot">
+      <path d="M219 158Q222 195 225 241Q276 254 327 241Q330 195 333 158Z" fill="#bf7d55" stroke="#75472f" stroke-width="2"/>
+      <ellipse cx="276" cy="158" rx="57" ry="12" fill="#d49c73" stroke="#75472f" stroke-width="2"/>
+      <path d="M230 187Q276 200 321 187M232 218Q276 230 320 218" fill="none" stroke="#9c6141" stroke-opacity=".55" stroke-width="2"/>
+    </g>
+    <g id="hollow">
+      <use href="#pot"/>
+      <ellipse cx="276" cy="158" rx="37" ry="8" fill="#714a36"/>
+      <path d="M242 159Q276 169 310 159" fill="none" stroke="#e0aa80" stroke-width="2"/>
+    </g>
+    <g id="wheel" fill="none" stroke="#b7aa95" stroke-width="2"><ellipse cx="276" cy="258" rx="111" ry="12"/><path d="M165 258V264Q276 291 387 264V258"/></g>
+    <g id="support" color="#247668"><use href="#hand" transform="translate(341 175)"/><text x="368" y="165" text-anchor="middle" class="small" fill="#247668">support</text></g>
+    <style>
+      text{font-family:Arial,Helvetica,sans-serif;fill:#392c25}
+      .heading{font-size:25px;font-weight:700}
+      .body{font-size:19px}
+      .small{font-size:17px}
+      .action{fill:none;stroke:#986016;stroke-width:4;stroke-linecap:round;marker-end:url(#arrow)}
+      .ghost{fill:none;stroke:#588c95;stroke-width:2;stroke-dasharray:6 5}
+      .card{fill:#fffaf1;stroke:#d8c9b2;stroke-width:1.5}
+      .number{font-size:21px;fill:#fffaf1;font-weight:700;text-anchor:middle}
+    </style>
+  </defs>
+  <rect width="1200" height="1320" rx="18" fill="#efe6d5"/>
+  <text x="36" y="52" font-size="32" font-weight="700">KILN / How to use your hands</text>
+  <text x="36" y="85" class="body">Front-view diagrams. Move slowly and follow your hand outlines.</text>
+  <circle cx="45" cy="112" r="6" fill="#986016"/><text x="61" y="118" class="small">working hand</text>
+  <circle cx="229" cy="112" r="6" fill="#247668"/><text x="245" y="118" class="small">support hand</text>
+  <path d="M420 112H451" class="ghost"/><text x="463" y="118" class="small">shape before movement</text>
+  <text x="1138" y="118" class="small" text-anchor="end">Either hand can work</text>
+
+  <g transform="translate(24 140)">
+    <rect width="564" height="354" rx="16" class="card"/>
+    <circle cx="37" cy="36" r="18" fill="#392c25"/><text x="37" y="43" class="number">1</text>
+    <text x="67" y="44" class="heading">Narrow from outside</text>
+    <text x="24" y="76" class="small">Both palms outside · no preparation hold</text>
+    <use href="#wheel"/>
+    <path d="M207 151Q210 198 215 241Q276 258 337 241Q342 198 345 151Z" class="ghost"/>
+    <path d="M219 158Q244 194 225 241Q276 254 327 241Q308 194 333 158Z" fill="#bf7d55" stroke="#75472f" stroke-width="2"/>
+    <ellipse cx="276" cy="158" rx="57" ry="12" fill="#d49c73" stroke="#75472f" stroke-width="2"/>
+    <use href="#hand" transform="translate(140 174)" color="#986016"/>
+    <use href="#hand" transform="translate(412 174) scale(-1 1)" color="#986016"/>
+    <path d="M193 209H231M359 209H321" class="action"/>
+    <text x="24" y="306" class="body">Move palms together → walls move inward.</text>
+    <text x="24" y="333" class="small">Move open palms away to release the clay.</text>
+  </g>
+
+  <g transform="translate(612 140)">
+    <rect width="564" height="354" rx="16" class="card"/>
+    <circle cx="37" cy="36" r="18" fill="#392c25"/><text x="37" y="43" class="number">2</text>
+    <text x="67" y="44" class="heading">Lift from the base</text>
+    <text x="24" y="76" class="small">Horizontal palm underneath · hold 3 s</text>
+    <use href="#wheel"/>
+    <path d="M219 125Q225 190 225 241Q276 254 327 241Q327 190 333 125Z" fill="#bf7d55" stroke="#75472f" stroke-width="2"/>
+    <ellipse cx="276" cy="125" rx="57" ry="12" fill="#d49c73" stroke="#75472f" stroke-width="2"/>
+    <path d="M219 158Q276 181 333 158" class="ghost"/>
+    <use href="#support"/>
+    <use href="#hand" transform="translate(222 280) rotate(-90)" color="#986016"/>
+    <path d="M191 249V177" class="action"/>
+    <text x="112" y="139" class="small">slowly</text>
+    <text x="24" y="306" class="body">Wait for the circle, then raise the lower hand.</text>
+    <text x="24" y="333" class="small">Keep the supporting hand beside the wall.</text>
+  </g>
+
+  <g transform="translate(24 516)">
+    <rect width="564" height="354" rx="16" class="card"/>
+    <circle cx="37" cy="36" r="18" fill="#392c25"/><text x="37" y="43" class="number">3</text>
+    <text x="67" y="44" class="heading">Make an indentation</text>
+    <text x="24" y="76" class="small">Thumb pointing down · no long hold</text>
+    <use href="#wheel"/><use href="#pot"/><use href="#support"/>
+    <ellipse cx="276" cy="158" rx="14" ry="5" fill="#714a36"/>
+    <use href="#thumb" transform="translate(252 100)" color="#986016"/>
+    <path d="M210 108V151" class="action"/>
+    <path d="M252 185H300" stroke="#bd8123" stroke-width="2" stroke-dasharray="3 3"/>
+    <text x="24" y="306" class="body">Slowly press the thumb tip into the top.</text>
+    <text x="24" y="333" class="small">Safe depth guide: about one thumb segment.</text>
+  </g>
+
+  <g transform="translate(612 516)">
+    <rect width="564" height="354" rx="16" class="card"/>
+    <circle cx="37" cy="36" r="18" fill="#392c25"/><text x="37" y="43" class="number">4</text>
+    <text x="67" y="44" class="heading">Open the cavity</text>
+    <text x="24" y="76" class="small">Pinch inside an existing dent · hold 0.2 s</text>
+    <use href="#wheel"/><use href="#hollow"/><use href="#support"/>
+    <ellipse cx="276" cy="158" rx="14" ry="5" class="ghost"/>
+    <path d="M256 93L252 113L238 148Q236 155 242 157Q247 159 250 151L265 126Q277 118 289 129L302 151Q306 158 311 155Q316 152 312 145L300 118V95" fill="#986016" fill-opacity=".12" stroke="#986016" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M263 180H239M289 180H313" class="action"/>
+    <text x="24" y="306" class="body">Spread the fingers: wider and deeper.</text>
+    <text x="24" y="333" class="small">Withdraw the hand from the opening to stop.</text>
+  </g>
+
+  <g transform="translate(24 892)">
+    <rect width="564" height="354" rx="16" class="card"/>
+    <circle cx="37" cy="36" r="18" fill="#392c25"/><text x="37" y="43" class="number">5</text>
+    <text x="67" y="44" class="heading">Lower the vessel</text>
+    <text x="24" y="76" class="small">Flat palm above the rim · hold 0.5 s</text>
+    <use href="#wheel"/>
+    <path d="M219 149Q223 198 225 241M333 149Q329 198 327 241" class="ghost"/>
+    <ellipse cx="276" cy="149" rx="57" ry="12" class="ghost"/>
+    <path d="M214 187Q220 215 220 241Q276 256 332 241Q332 215 338 187Z" fill="#bf7d55" stroke="#75472f" stroke-width="2"/>
+    <ellipse cx="276" cy="187" rx="62" ry="12" fill="#d49c73" stroke="#75472f" stroke-width="2"/>
+    <ellipse cx="276" cy="187" rx="39" ry="8" fill="#714a36"/>
+    <use href="#support"/>
+    <use href="#hand" transform="translate(316 94) rotate(90)" color="#986016"/>
+    <path d="M191 132V189" class="action"/>
+    <text x="24" y="306" class="body">Wait for the circle, then lower the upper hand.</text>
+    <text x="24" y="333" class="small">Stop when the height matches the ghost target.</text>
+  </g>
+
+  <g transform="translate(612 892)">
+    <rect width="564" height="354" rx="16" class="card"/>
+    <circle cx="37" cy="36" r="18" fill="#392c25"/><text x="37" y="43" class="number">6</text>
+    <text x="67" y="44" class="heading">Widen the whole body</text>
+    <text x="24" y="76" class="small">Two outside pinches · hold 0.5 s</text>
+    <use href="#wheel"/>
+    <path d="M200 158L206 241Q276 258 346 241L352 158Z" fill="#bf7d55" stroke="#75472f" stroke-width="2"/>
+    <ellipse cx="276" cy="158" rx="76" ry="12" fill="#d49c73" stroke="#75472f" stroke-width="2"/>
+    <path d="M219 158Q222 195 225 241M333 158Q330 195 327 241" class="ghost"/>
+    <use href="#grip" transform="translate(142 153)" color="#986016"/>
+    <use href="#grip" transform="translate(410 153) scale(-1 1)" color="#986016"/>
+    <path d="M183 232H143M369 232H409" class="action"/>
+    <text x="24" y="306" class="body">Grip both sides → slowly spread both hands.</text>
+    <text x="24" y="333" class="small">Open both pinches to release the clay.</text>
+  </g>
+  <text x="36" y="1281" class="body">Green supports the wall. Gold moves after the preparation hold, where required.</text>
+  <text x="36" y="1307" class="small">See the instructions below for placement, releasing the clay and the consequences of mistakes.</text>
+</svg>
