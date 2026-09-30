@@ -114,6 +114,25 @@ const RULES: Rule[] = [
       return o ? { severity: 0.6, band: o.band, data: { slope: round2(o.slope) } } : null;
     },
   },
+  // v5 dangers: warnings before the permanent failures (bottomHole / wallTorn / pancake are collapse causes)
+  {
+    type: 'thinFloor', category: 'execution', enterMs: 0, clearMs: CONFIG.RULE_CLEAR_MS,
+    test: (i) => (i.gesture.gesture === 'indent' && !i.clay.collapsed && i.clay.cavityDepthWorld > i.clay.safeIndentDepthWorld
+      ? { severity: 0.8, band: 0, data: { floor: round2(i.clay.floorThicknessWorld), safeDepth: round2(i.clay.safeIndentDepthWorld) } }
+      : null),
+  },
+  {
+    type: 'overStretch', category: 'execution', enterMs: 0, clearMs: CONFIG.RULE_CLEAR_MS,
+    test: (i) => (i.gesture.gesture === 'open' && !i.clay.collapsed && i.gesture.engagedMs >= CONFIG.STRETCH_DANGER_MS
+      ? { severity: 0.9, data: { seconds: Math.round(i.gesture.engagedMs / 1000), tearInS: Math.max(0, Math.ceil((CONFIG.STRETCH_TEAR_MS - i.gesture.engagedMs) / 1000)) } }
+      : null),
+  },
+  {
+    type: 'tooFlat', category: 'execution', enterMs: 0, clearMs: CONFIG.RULE_CLEAR_MS,
+    test: (i) => (i.gesture.gesture === 'compressRim' && !i.clay.collapsed && i.clay.height <= CONFIG.TOO_FLAT_HEIGHT_WORLD
+      ? { severity: 0.8, data: { height: round2(i.clay.height) } }
+      : null),
+  },
 
   // coaching: guidance only
   {

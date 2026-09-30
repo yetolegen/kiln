@@ -72,7 +72,7 @@ describe('lifting too thin', () => {
     const lift = actionGesture('pullUp');
     let clay = createClay();
     clay.radii.fill(1.6); // wide base, so tooTall doesn't come first
-    clay = stepClay(clay, actionGesture('indent'), 0.05, undefined, { ...NO_DELTA, indent: true });
+    clay = stepClay(clay, actionGesture('indent'), 0.05, undefined, { ...NO_DELTA, indentWorld: 0.01 });
     for (let k = 0; k < 60; k++) clay = stepClay(clay, actionGesture('open'), 0.05, undefined, { ...NO_DELTA, spreadRatio: 0.2 });
     const order: string[] = [];
     for (let t = 0; t < 8000 && !clay.collapsed; t += 50) {

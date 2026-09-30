@@ -90,7 +90,8 @@ function run(seed: number, steps: number) {
         c.height >= CONFIG.MIN_HEIGHT && c.height <= CONFIG.MAX_HEIGHT &&
         Number.isFinite(c.thickness) && c.thickness >= CONFIG.THICKNESS_FLOOR - 1e-6 &&
         (c.cavityDepthWorld === 0) === (c.cavityRadiusWorld === 0) &&
-        c.cavityDepthWorld <= c.height - CONFIG.FLOOR_WORLD + 1e-6 &&
+        c.cavityDepthWorld <= c.height + 1e-6 && Math.abs(c.floorThicknessWorld - (c.height - c.cavityDepthWorld)) < 1e-6 &&
+        (!c.bottomHole || (c.floorThicknessWorld === 0 && c.collapseCause === 'bottomHole')) &&
         c.wobble >= 0 && c.wobble <= 1;
       if (c.cavityDepthWorld > 0) cavities++;
       if (c.height > CONFIG.INIT_HEIGHT + 0.05) lifts++;

@@ -10,6 +10,7 @@ import type { ClayEvent, ClayState, GestureState, Hint } from '../types';
 const PRIORITY: Partial<Record<Hint['id'], number>> = {
   noHands: 100, oneHand: 100, trackingUncertain: 100,
   collapse: 90,
+  overStretch: 85, thinFloor: 85, tooFlat: 85, // stop NOW or it becomes permanent
   tear: 80,
   wobble: 70,
   tooThin: 60, overhang: 60,
@@ -26,6 +27,7 @@ const SEVERITY: Partial<Record<Hint['id'], Hint['severity']>> = {
   collapse: 'error', tear: 'error',
   wobble: 'warn', tooThin: 'warn', overhang: 'warn', noHands: 'warn', oneHand: 'warn', trackingUncertain: 'warn',
   liftTooFast: 'warn', spreadTooFast: 'warn',
+  overStretch: 'error', thinFloor: 'error', tooFlat: 'error',
 };
 
 type Candidate = Omit<Hint, 'expiresAtMs' | 'speak'>;
