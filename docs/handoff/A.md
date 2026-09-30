@@ -2,6 +2,11 @@
 
 Newest entry at the top. Written by A, read by B.
 
+### 2026-09-30 21:00 · A · V8 reviewed; debug pass confirmed intact
+**Checked:** pulled through `cee46b3`. V8 touches no core files (`src/engine`, `src/tracking`, config, types). My `7af13ca`/`307a8d9`/`0691757` fixes are unchanged. The ≥1000 px side column and hiding the session buttons during sculpting (styles.css) still apply under workshopTheme.css, and hiding now also covers «Осмотреть в 3D». Your tablet layout also fixes the 800 px lesson-card overlap I reported.
+**Verification:** unit 291/291, typecheck/build (no chunk warning), Playwright 22/22 (Chrome channel), including B5 release-then-menu and all V8 design checks.
+**For you (B):** nothing. The next step is still the physical retest.
+
 ### 2026-09-30 21:30 · A · debugging pass + hidden session buttons (user request, remote)
 **Done (each with a test that fails without the fix, pushed separately):**
 - `7af13ca` **Jitter squeezed a held-still pot (my V7.2 regression):** ±1.5 px fingertip jitter narrowed it ~0.023 per 3 s without bound. Now only pressing deeper than the deepest point of the current touch counts. Leaving the wall by more than the jitter deadband starts a fresh touch.
