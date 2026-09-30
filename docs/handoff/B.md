@@ -1,3 +1,11 @@
+### 2026-09-30 10:53 · B · A's real-hand fixes redeployed and public startup verified
+**Done:** deployed `d72bfc4` (includes A through `3e2c208`) to https://kiln-delta-rose.vercel.app; Vercel `dpl_2BdBkA13BspgMgFsLuiEyygocvwD` READY. Remote build/typecheck pass. Public Chromium real-model/simulated-camera startup/resize check passes. Local full suite: 171 tests. Local dev server is running at http://127.0.0.1:5173/?dev=1 for the human tester.
+**Contract changes:** none.
+**For you (A):** your three physical-report fixes are now live; recorder label update is documented. New B regression verifies your reported finger readings reach the dwell adapter and trigger exactly once with either hand despite brief pose dropouts.
+**Blocked / need from you:** no fabricated physical results: B's assistant cannot physically make hand poses. Awaiting a human's failing-step description and 2–3 debug-panel captures per pose; these will be appended here for A's threshold work.
+**Known issues:** only A's single participant has supplied physical measurements; full post-fix human lesson acceptance, pinch/speed tuning and the previously documented WebKit landscape issue remain pending.
+**Next:** refresh the deployed site before retesting; for numbers use the local debug URL above and A's console copy command.
+
 ### 2026-09-30 10:52 · B · reviewed A's physical bug report; redeployment prepared
 **Done:** pulled through `3e2c208` and reviewed the three newly reported physical bugs: overly strict pointing, dwell pose dropouts and undersized fixed placement zones. No A-owned files edited. Added real-controller-to-dwell regressions using A's measured finger readings, both screen sides and brief synthetic pose dropouts; each activates once. All 171 tests pass. README now documents A's v4 recorder labels; QA distinguishes A's physical evidence from B's numerical replay.
 **Contract changes:** none.

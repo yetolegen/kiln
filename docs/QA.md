@@ -10,7 +10,7 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 - Frontend browser matrix from the preceding v4 integration: 31 passed, 2 camera tests intentionally skipped. The updated landscape lesson/warning test also passes in all three engines. Chromium's camera test loads the real MediaPipe model but supplies a simulated camera stream; it does not test a person's gestures. See the WebKit screenshot limitation below: passing DOM checks do not prove every rendered surface is visible.
 - Viewport checks cover 1440×900, 390×844, 360×740 and 844×390. These are layout tests on Windows, not tests on physical phones.
 - Optional failures tested: blocked/unavailable audio and speech, unavailable storage/quota, invalid saved data, failed PNG export, model load failure, camera denial/no device/playback failure, and WebGL context loss with 2D fallback.
-- PNG dimensions checked: 1200×1200. Production asset scan excludes mock/debug/recorder markers. The v4 live HTTPS real-model/simulated-camera check passed on 30 September at 09:40 Asia/Tashkent. Code `1df9220` is deployed as `dpl_9RBSP1s9BhykamgwLsRmvBz8oMs9`.
+- PNG dimensions checked: 1200×1200. Production asset scan excludes mock/debug/recorder markers. After A's real-hand fixes, the live HTTPS real-model/simulated-camera startup/resize check passed on 30 September at 10:53 Asia/Tashkent. Code `d72bfc4` (A through `3e2c208`) is deployed as `dpl_2BdBkA13BspgMgFsLuiEyygocvwD`.
 
 ## Browser matrix (Windows, Playwright 1.63.0)
 
