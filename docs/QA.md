@@ -4,6 +4,13 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ## Automated checks
 
+### External compression core fix (30 September 13:48, not yet deployed)
+
+- Replaced absolute palm-spacing radius targets with signed travel applied to the current outer profile. Inward movement narrows, outward movement widens, stationary contact adds no deformation. New contact and tracking/context changes establish a fresh reference.
+- Original B regression: **6/6 pass**, including free/tutorial with both hand assignments and separate internal pinch-spread controls. Full unit suite: **221/221 pass**. Production build/typecheck pass, with the existing bundle-size warning.
+- New core coverage verifies acquisition/hold, sign reversal, nonuniform profiles, duplicates, missing/stale input and contact/context resets. Updated old fixed-position motion fixtures in core and B integration tests; no UI interaction or renderer implementation was changed.
+- Chromium camera-order test passes palm menu dwell and first lesson geometry confirmation through real feature extraction/controller/UI with synthetic landmarks. Both-hand complete lesson/commission/firing/storage tests pass. **No post-fix physical-hand test and no deployment in this task.**
+
 ### V5.1 external compression report (30 September 13:38)
 
 - **Human report:** user confirms UI palm selection now works and must be preserved. External two-palm inward movement still widens the clay on the previously identified Chrome / Acer Nitro 5 AN515-58 setup.

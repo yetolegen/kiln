@@ -112,6 +112,10 @@ export class GestureRecognizer {
   private candidate: Gesture = 'none';
   private candidateSinceMs = 0;
   private contactValid = false;
+  private shapeContact: {
+    leftId: number; rightId: number; band: number; halfGap: number; tMs: number;
+    epoch: number; projection: number; phase: GestureContext['phase'];
+  } | null = null;
   private pointerId: number | null = null;
   private engagement: Engagement | null = null;
   private lastT: number | null = null;
@@ -123,6 +127,7 @@ export class GestureRecognizer {
     this.current = 'none';
     this.candidate = 'none';
     this.contactValid = false;
+    this.resetShapeContact();
     this.engagement = null;
     this.lastT = null;
     this.lastFrame = null;
@@ -130,6 +135,8 @@ export class GestureRecognizer {
     this.latched = null;
     this.delta = NO_DELTA;
   }
+
+  resetShapeContact(): void { this.shapeContact = null; }
 
   update(frame: FrameInput, ctx: GestureContext, clay: ClayState, proj: ProjectionParams): GestureState {
     // the same observation twice must never accumulate holds or deform twice
@@ -196,7 +203,28 @@ export class GestureRecognizer {
 
     let deforming = false;
     let motionStrength = 0;
-    if (both && g === 'shape' && allowed('shape') && !clay.collapsed) deforming = this.contactValid;
+    let shapeTarget: number | null = null;
+    if (both && g === 'shape' && cand === 'shape' && allowed('shape') && !clay.collapsed &&
+        c?.contact.valid && c.contact.activeBand !== null && c.halfGapWorld !== null &&
+        l.velocityValid && r.velocityValid) {
+      const previous = this.shapeContact;
+      const band = c.contact.activeBand;
+      this.shapeContact = {
+        leftId: l.trackId, rightId: r.trackId, band, halfGap: c.halfGapWorld, tMs: t,
+        epoch: frame.epoch, projection: proj.revision, phase: ctx.phase,
+      };
+      // Rebase on acquisition or discontinuity. Never apply movement across missing samples.
+      if (previous && previous.leftId === l.trackId && previous.rightId === r.trackId &&
+          previous.band === band && previous.epoch === frame.epoch && previous.projection === proj.revision &&
+          previous.phase === ctx.phase && t > previous.tMs && t - previous.tMs <= CONFIG.MAX_INPUT_AGE_MS) {
+        const travel = c.halfGapWorld - previous.halfGap;
+        if (Number.isFinite(travel) && Math.abs(travel) > 1e-6) {
+          this.delta = { ...NO_DELTA, shapeWorld: travel };
+          shapeTarget = clay.radii[band] + travel;
+          deforming = true;
+        }
+      }
+    } else this.resetShapeContact();
     if (act && g === act.kind && allowed(act.kind) && (!clay.collapsed || act.kind === 'compressRim')) {
       deforming = act.deforming;
       motionStrength = act.motionStrength;
@@ -223,7 +251,7 @@ export class GestureRecognizer {
       supportTrackId: act && g === act.kind ? act.supportId : null,
       activationProgress: act && g === act.kind ? act.progress : 0,
       engagedMs: act && g === act.kind ? act.engagedMs : 0,
-      targetRadiusWorld: deforming && g === 'shape' ? c!.targetRadiusWorld : null,
+      targetRadiusWorld: shapeTarget,
       centerOffsetPalm: c?.centerOffsetPalm ?? null,
       speedPalmPerS: speed,
       contact: c?.contact ?? NO_CONTACT,

@@ -56,10 +56,11 @@ describe('clay', () => {
       const pick = rand();
       const w = rand() < 0.05 ? weird[k % weird.length] : rand() * 0.2;
       const dt = rand() * CONFIG.MAX_STEP_S;
-      if (pick < 0.4) c = stepClay(c, shapeGesture(rand() * 1.4 - 0.2, rand() < 0.05 ? w : rand() * 4 - 1, rand() < 0.8), dt);
+      if (pick < 0.4) c = stepClay(c, shapeGesture(rand() * 1.4 - 0.2, 1, rand() < 0.8), dt, undefined,
+        { ...NO_DELTA, shapeWorld: rand() < 0.05 ? w : rand() * .2 - .1 });
       else {
         const kind = kinds[Math.floor(rand() * 4)];
-        const d = { liftWorld: w, indentWorld: rand() < 0.5 ? Math.abs(w) : 0, spreadRatio: w, compressWorld: Math.abs(w), stretchMs: rand() * 12000 };
+        const d = { ...NO_DELTA, liftWorld: w, indentWorld: rand() < 0.5 ? Math.abs(w) : 0, spreadRatio: w, compressWorld: Math.abs(w), stretchMs: rand() * 12000 };
         c = stepClay(c, actionGesture(kind, rand()), dt, { tearBand: rand() < 0.1 ? Math.floor(rand() * 48) : null, wobbling: rand() < 0.1 }, d);
       }
       expectInvariants(c);
@@ -79,20 +80,23 @@ describe('clay', () => {
 
   it('step does not mutate its input', () => {
     const c = createClay();
-    stepClay(c, shapeGesture(0.5, 0.5), 0.05);
+    stepClay(c, shapeGesture(0.5, 0.5), 0.05, undefined, { ...NO_DELTA, shapeWorld: -.1 });
     expect(c.radii[24]).toBe(1);
     expect(c.revision).toBe(0);
   });
 
   it('shape is rate-limited per second, not per frame', () => {
-    const one = stepClay(createClay(), shapeGesture(0.5, 0.25), 0.04);
-    let two = stepClay(createClay(), shapeGesture(0.5, 0.25), 0.02);
-    two = stepClay(two, shapeGesture(0.5, 0.25), 0.02);
+    const one = stepClay(createClay(), shapeGesture(0.5, 0.25), 0.04, undefined, { ...NO_DELTA, shapeWorld: -.1 });
+    let two = stepClay(createClay(), shapeGesture(0.5, 0.25), 0.02, undefined, { ...NO_DELTA, shapeWorld: -.05 });
+    two = stepClay(two, shapeGesture(0.5, 0.25), 0.02, undefined, { ...NO_DELTA, shapeWorld: -.05 });
     expect(1 - one.radii[24]).toBeLessThanOrEqual(CONFIG.MAX_DR_PER_S * 0.04 + EPS);
+    expect(one.radii[24]).toBeLessThan(.99);
     expect(two.radii[24]).toBeCloseTo(one.radii[24], 3);
   });
 
   it('a deforming gesture without its delta changes nothing (no fake actions)', () => {
+    const shape = stepClay(createClay(), shapeGesture(.5, .25), .03);
+    expect(Array.from(shape.radii)).toEqual(Array(48).fill(1));
     for (const kind of ['pullUp', 'indent', 'open', 'compressRim'] as const) {
       const c = stepClay(createClay(), actionGesture(kind), 0.05);
       expect(c.height).toBe(CONFIG.INIT_HEIGHT);
@@ -136,7 +140,7 @@ describe('v4 actions on the clay', () => {
     // rim compression neither repairs NOR changes it: the failure is frozen with its cause (B's damageFlow regression)
     const frozen = { h: c.height, d: c.cavityDepthWorld, r: c.cavityRadiusWorld, radii: Array.from(c.radii), rev: c.revision };
     for (let k = 0; k < 100; k++) c = stepClay(c, actionGesture('compressRim', 0.5), 0.05, undefined, press(0.05));
-    c = stepClay(c, shapeGesture(0.5, 0.3), 0.05, { tearBand: 20, wobbling: true });
+    c = stepClay(c, shapeGesture(0.5, 0.3), 0.05, { tearBand: 20, wobbling: true }, { ...NO_DELTA, shapeWorld: -.1 });
     expect(c.collapseCause).toBe('bottomHole');
     expect(c.bottomHole).toBe(true);
     expect({ h: c.height, d: c.cavityDepthWorld, r: c.cavityRadiusWorld, radii: Array.from(c.radii), rev: c.revision }).toEqual(frozen);
@@ -244,7 +248,7 @@ describe('v4 actions on the clay', () => {
   it('while collapsed, shape / lift / indent / open do nothing', () => {
     const base: ClayModel = { ...createClay(), collapsed: true, collapseCause: 'thinWall' };
     let c = stepClay(base, actionGesture('pullUp'), 0.05, undefined, lift(0.2));
-    c = stepClay(c, shapeGesture(0.5, 0.4), 0.05);
+    c = stepClay(c, shapeGesture(0.5, 0.4), 0.05, undefined, { ...NO_DELTA, shapeWorld: -.1 });
     c = stepClay(c, actionGesture('indent'), 0.05, undefined, INDENT);
     expect(c.height).toBe(base.height);
     expect(c.radii[24]).toBe(1);

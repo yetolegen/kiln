@@ -10,13 +10,13 @@ describe('two-wall contact', () => {
     const c = computeContact(hand(0.1, 0.6), hand(2.1, 0.6), clay, 180, false);
     expect(c.contact.valid).toBe(false);
     expect(c.contact.reason).toBe('handsNotOpposite');
-    expect(c.targetRadiusWorld).toBeNull();
+    expect(c.halfGapWorld).toBeNull();
   });
 
-  it('hands at both walls → contact with target radius = half the gap', () => {
+  it('hands at both walls report measured half-gap separately from wall errors', () => {
     const c = computeContact(hand(-1.1, 0.6), hand(0.9, 0.6), clay, 180, false);
     expect(c.contact.valid).toBe(true);
-    expect(c.targetRadiusWorld).toBeCloseTo(1.0);
+    expect(c.halfGapWorld).toBeCloseTo(1.0);
     expect(c.contact.leftErrorWorld).toBeCloseTo(0.1); // left hand 0.1 outside its wall
     expect(c.contact.rightErrorWorld).toBeCloseTo(-0.1); // right hand 0.1 into the clay
     expect(c.centerOffsetPalm).toBeCloseTo((-0.1 * 180) / 100);

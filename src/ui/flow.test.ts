@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { createController } from '../engine/controller';
-import { hand, frame, moving, poseHand, toMenu } from '../../tests/helpers';
+import { hand, frame, moving, poseHand, shapingHands, toMenu } from '../../tests/helpers';
 import { TutorialScript } from './tutorial';
 import { DwellController } from './dwell';
 import { createGalleryStore } from '../browser/storage';
@@ -48,7 +48,10 @@ it.each([1, 2])('integrates v4 lessons with active track %i, one-hand dwell, com
   }
   expect(select({ type: 'start', mode: 'tutorial', sessionId: 'lesson' }).phase).toBe('tutorial');
   const release = () => feed(hand(-3, .6), hand(3, .6), 150);
-  feed(hand(-.8, 1.2 * 24 / 47), hand(.8, 1.2 * 24 / 47), 1800);
+  for (let i = 0; i < 55; i++) {
+    const [left, right] = shapingHands(Math.min(i * 33, 1000), false, 1.2 * 24 / 47);
+    feed(left, right, 33);
+  }
   expect(tutorial.status).toBe('matched'); release(); expect(tutorial.step).toBe(1);
   function action(makeHand: (elapsed: number) => HandFeatures, ms: number) {
     const start = now;

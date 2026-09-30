@@ -12,15 +12,16 @@ const finiteOr = (v: number, fallback: number) => (Number.isFinite(v) ? v : fall
 export interface ClayEffects { tearBand: number | null; wobbling: boolean }
 export const NO_EFFECTS: ClayEffects = { tearBand: null, wobbling: false };
 
-/** What the recognizer measured for the one-hand actions on this observation (gestures.ts decides). */
+/** Hand travel measured on this observation (gestures.ts decides). */
 export interface ActionDelta {
+  shapeWorld: number;    // signed change in external palm half-gap; inward is negative
   liftWorld: number;     // hand rise while the lift is armed
   indentWorld: number;   // downward thumb travel this observation (after the jitter guard)
   spreadRatio: number;   // pinch-ratio growth since the widest span so far
   compressWorld: number; // hand descent while the rim compression is armed
   stretchMs: number;     // how long the opening has been engaged (armed), for the v5 over-stretch
 }
-export const NO_DELTA: ActionDelta = { liftWorld: 0, indentWorld: 0, spreadRatio: 0, compressWorld: 0, stretchMs: 0 };
+export const NO_DELTA: ActionDelta = { shapeWorld: 0, liftWorld: 0, indentWorld: 0, spreadRatio: 0, compressWorld: 0, stretchMs: 0 };
 
 /** Limits that come from outside the clay (screen, hand size); the controller supplies them each step. */
 export interface ClayLimits { maxHeightWorld: number; safeIndentDepthWorld: number }
@@ -135,8 +136,8 @@ export function stepClay(
 
   if (dtS > 0) {
     const acting = g.deforming && !c.collapsed; // while collapsed only the rim compression acts
-    if (acting && g.gesture === 'shape' && g.targetRadiusWorld !== null && g.contact.bandY !== null) {
-      shape(c, g.contact.bandY, g.targetRadiusWorld, dtS);
+    if (acting && g.gesture === 'shape' && d.shapeWorld !== 0 && Number.isFinite(d.shapeWorld) && g.contact.bandY !== null) {
+      shape(c, g.contact.bandY, d.shapeWorld, dtS);
       changed = true;
     }
     if (acting && g.gesture === 'pullUp' && d.liftWorld > 0) {
@@ -194,17 +195,15 @@ export function stepClay(
   return c;
 }
 
-// Radii near the hands' band move toward the target radius; gaussian falloff over neighbouring bands.
-// a = 1 − exp(−k·w·dt) is frame-rate independent: two 16 ms steps ≈ one 33 ms step.
-function shape(c: ClayState, bandY: number, targetRadiusWorld: number, dtS: number): void {
+// Apply fresh external hand travel, not absolute palm spacing. Every affected band moves in the
+// same direction; no lagging target can widen the clay during an inward stroke or a stationary hold.
+function shape(c: ClayState, bandY: number, travelWorld: number, dtS: number): void {
   const n = c.radii.length;
   const i = Math.round(bandY * (n - 1));
-  const R = clamp(targetRadiusWorld, CONFIG.MIN_R, CONFIG.MAX_R);
   const maxStep = CONFIG.MAX_DR_PER_S * dtS;
   for (let j = 0; j < n; j++) {
     const w = Math.exp(-0.5 * ((j - i) / CONFIG.SIGMA_BANDS) ** 2);
-    const a = 1 - Math.exp(-CONFIG.SHAPE_GAIN * w * dtS);
-    c.radii[j] += clamp((R - c.radii[j]) * a, -maxStep, maxStep);
+    c.radii[j] += clamp(travelWorld * w, -maxStep, maxStep);
   }
 }
 

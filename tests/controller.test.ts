@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CONFIG } from '../src/config';
 import { createController } from '../src/engine/controller';
 import type { CoreController, HandFeatures } from '../src/types';
-import { frame, hand, inSession, PROJ, T_START, toMenu } from './helpers';
+import { frame, hand, inSession, PROJ, shapingHands, T_START, toMenu } from './helpers';
 
 /** Feed the same hands for `ms` starting at t0; returns the end time. */
 function feed(core: CoreController, l: HandFeatures | null, r: HandFeatures | null, t0: number, ms: number): number {
@@ -14,6 +14,15 @@ function feed(core: CoreController, l: HandFeatures | null, r: HandFeatures | nu
   return t;
 }
 const fast = { velocityPalmPerS: { x: 9, y: 0 } };
+
+function feedMotion(core: CoreController, t0: number, ms: number, fast = false): number {
+  let t = t0;
+  for (; t < t0 + ms; t += 33) {
+    core.observe(frame(t, ...shapingHands(t - t0, fast)));
+    core.tick(t);
+  }
+  return t;
+}
 
 describe('phases', () => {
   it('loading → permission → calibrate → menu', () => {
@@ -75,7 +84,7 @@ describe('phases', () => {
     const core = inSession('tutorial');
     core.dispatch({ type: 'tutorialStep', step: 1, expectedGesture: 'shape' }, T_START);
     core.dispatch({ type: 'restart', newSessionId: 'tut2' }, T_START);
-    const t = feed(core, hand(-0.8, 0.6), hand(0.8, 0.6), T_START, 600);
+    const t = feedMotion(core, T_START, 600);
     const s = core.tick(t);
     expect(s.stats?.sessionId).toBe('tut2');
     expect(s.gesture?.deforming).toBe(true); // shaping still allowed on this step
@@ -132,7 +141,7 @@ describe('sessions', () => {
   it('T17 a tutorial tear does not count in the next session', () => {
     const core = inSession('tutorial', 'tut');
     core.dispatch({ type: 'tutorialStep', step: 4, expectedGesture: 'shape' }, T_START);
-    let t = feed(core, hand(-1, 0.6, fast), hand(1, 0.6, fast), T_START, 1000);
+    let t = feedMotion(core, T_START, 1000, true);
     expect(core.tick(t).stats?.executionEpisodes.tear).toBe(1);
     core.dispatch({ type: 'backToMenu' }, t);
     core.dispatch({ type: 'start', mode: 'commission', sessionId: 'c1' }, t);
@@ -144,7 +153,7 @@ describe('sessions', () => {
 
   it('stats count episode begins, and tracking issues separately', () => {
     const core = inSession('free');
-    let t = feed(core, hand(-1, 0.6, fast), hand(1, 0.6, fast), T_START, 2000); // one long tear
+    let t = feedMotion(core, T_START, 2000, true); // one long tear
     t = feed(core, null, null, t, CONFIG.NO_HANDS_ENTER_MS + 500);
     const s = core.tick(t).stats!;
     expect(s.executionEpisodes.tear).toBe(1);
@@ -198,7 +207,7 @@ describe('sessions', () => {
 
   it('"start over" mid-tear ends the tear episode instead of dropping it', () => {
     const core = inSession('free');
-    const t = feed(core, hand(-1, 0.6, fast), hand(1, 0.6, fast), T_START, 1000);
+    const t = feedMotion(core, T_START, 1000, true);
     core.dispatch({ type: 'restart', newSessionId: 's2' }, t);
     const s = core.tick(t);
     expect(s.events.some((e) => e.type === 'tear' && e.phase === 'end')).toBe(true);
@@ -207,7 +216,7 @@ describe('sessions', () => {
 
   it('leaving the studio ends every running episode', () => {
     const core = inSession('free');
-    const t = feed(core, hand(-1, 0.6, fast), hand(1, 0.6, fast), T_START, 1000);
+    const t = feedMotion(core, T_START, 1000, true);
     core.dispatch({ type: 'finishShaping' }, t);
     const s = core.tick(t);
     expect(s.events.some((e) => e.type === 'tear' && e.phase === 'end')).toBe(true);

@@ -133,6 +133,14 @@ export function moving(vxPalm: number, vyPalm: number): Pick<HandFeatures, 'velo
   return { velocityPalmPerS: { x: vxPalm, y: vyPalm }, velocityWorldPerS: { x: (vxPalm * 100) / 180, y: (vyPalm * 100) / 180 } };
 }
 
+/** Moving external palms: slow inward stroke, or rapid back-and-forth travel for tear tests. */
+export function shapingHands(elapsedMs: number, fast = false, y = .6): [HandFeatures, HandFeatures] {
+  const phase = Math.round(elapsedMs / 33) % 4;
+  const halfGap = fast ? 1 + [0, .165, .33, .165][phase] : 1.3 - elapsedMs * .0003;
+  const rightSpeed = fast ? (phase === 1 || phase === 2 ? 9 : -9) : -.54;
+  return [poseHand('wall', -halfGap, y, moving(-rightSpeed, 0)), poseHand('wall', halfGap, y, moving(rightSpeed, 0))];
+}
+
 /** Real controller walked through loading → calibrate (hands held still) → menu. Returns the next free time. */
 export function toMenu(core: CoreController, t0 = 0): number {
   core.dispatch({ type: 'modelReady' }, t0);

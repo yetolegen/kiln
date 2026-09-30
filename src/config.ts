@@ -28,7 +28,6 @@ export const CONFIG = {
   RAISE_MARGIN_WORLD: 0.15,
 
   // rates (per second, or per unit of actual height change)
-  SHAPE_GAIN: 3.0,
   SIGMA_BANDS: 4,
   MAX_DR_PER_S: 0.8,
   RADIAL_STRAIN_PER_HEIGHT: 0.08,   // lifting narrows, compressing widens (per unit of height change)

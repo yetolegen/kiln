@@ -27,7 +27,9 @@ export class HandTracker {
       }
       if (phase === 'tutorial') {
         const ppu = Math.min(w/5,h*.48/3.2), y = h*.8 - 1.2*24/47*ppu;
-        hands = [hand(w*.5-.8*ppu,y), hand(w*.5+.8*ppu,y)];
+        this.shapeStart ??= now;
+        const halfGap = 1.3 - Math.min(.4, Math.max(0, now - this.shapeStart - 500) * .0002);
+        hands = [hand(w*.5-halfGap*ppu,y), hand(w*.5+halfGap*ppu,y)];
       }
       window.__cameraAhead = (window.__cameraAhead ?? 0) + Number(now > rafTime);
       onPacket({frameId:++this.frame,epoch:this.epoch,capturedAtMs:now,receivedAtMs:performance.now(),mediaTimeMs:now,hands});

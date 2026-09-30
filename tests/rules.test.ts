@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createClay, NO_DELTA, stepClay } from '../src/engine/clay';
 import { RuleEngine, type RuleInput } from '../src/engine/rules';
 import type { ClayEvent, EngineSnapshot, GestureState } from '../src/types';
-import { actionGesture, frame, hand, inSession, shapeGesture, T_START } from './helpers';
+import { actionGesture, frame, hand, inSession, shapeGesture, shapingHands, T_START } from './helpers';
 
 const wobbling = (off: number): GestureState => ({ ...shapeGesture(0.5, 1), centerOffsetPalm: off });
 const input = (tMs: number, g: GestureState): RuleInput =>
@@ -104,8 +104,7 @@ describe('controller end-to-end', () => {
 
     const snaps: EngineSnapshot[] = [];
     for (let t = t0; t < t0 + ms; t += 33) {
-      const v = { velocityPalmPerS: { x: fast ? 9 : 0.2, y: 0 } };
-      core.observe(frame(t, hand(-1, 0.6, v), hand(1, 0.6, v)));
+      core.observe(frame(t, ...shapingHands(t - t0, fast)));
       snaps.push(core.tick(t));
     }
     return { core, snaps, events: snaps.flatMap((s) => [...s.events]) };

@@ -190,6 +190,7 @@ class Controller implements CoreController {
         break;
       case 'tutorialStep':
         if (this.phase === 'tutorial') {
+          this.gestures.resetShapeContact();
           this.expectedGesture = command.expectedGesture;
           this.raiseArmed = true; // a new step is a new screen for one-shot purposes
         }
@@ -212,6 +213,7 @@ class Controller implements CoreController {
   }
 
   updateProjection(projection: ProjectionParams): void {
+    this.gestures.resetShapeContact();
     this.projection = projection;
     // a projection needs real video dimensions, so the camera is running
     if (this.phase === 'loading' || this.phase === 'permission') this.phase = 'calibrate';

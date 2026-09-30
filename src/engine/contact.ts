@@ -5,7 +5,7 @@ import type { ClayState, ContactState, HandFeatures, NearMissReason } from '../t
 
 export interface ContactResult {
   contact: ContactState;
-  targetRadiusWorld: number | null;
+  halfGapWorld: number | null; // measured palm spacing, NOT an absolute clay radius target
   centerOffsetPalm: number | null; // + = hands' midpoint right of the wheel axis
 }
 
@@ -36,7 +36,7 @@ export function computeContact(
   const centerOffsetPalm = refPx > 0 ? (((lx + rx) / 2) * pixelsPerWorldUnit) / refPx : null;
   const miss = (reason: NearMissReason, le: number | null = null, re: number | null = null): ContactResult => ({
     contact: { valid: false, activeBand: null, bandY: null, leftErrorWorld: le, rightErrorWorld: re, reason },
-    targetRadiusWorld: null,
+    halfGapWorld: null,
     centerOffsetPalm,
   });
 
@@ -62,7 +62,7 @@ export function computeContact(
 
   return {
     contact: { valid: true, activeBand: band, bandY, leftErrorWorld: le, rightErrorWorld: re, reason: null },
-    targetRadiusWorld: (rx - lx) / 2,
+    halfGapWorld: (rx - lx) / 2,
     centerOffsetPalm,
   };
 }
