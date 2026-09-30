@@ -1,3 +1,9 @@
+### 2026-09-30 · B · V8.1 LIVE; realistic clay pass verified
+**Done:** integrated visual commit `b57755b` on top of A's `f1292dc`, then compatibility correction `e9b04ae`. Final deployment `dpl_AZ3EV8MFdqHuMaPmXDxpdBoLVXSj` READY at https://kiln-delta-rose.vercel.app. Public real-model/simulated-camera startup, V8.1 footer, mirrored video and resize pass. No A-owned files edited; remote rewritten history was preserved via a single-commit rebase, no force push.
+**Verification:** 294/294 unit/integration; six final browser feature checks, plus the corrected motion test with Three warnings treated as failures. Typecheck/build and public smoke green. Fixed reflected-light washout, exact texture seam rounding and deprecated shadow-filter selection. The renderer's actual surface pixels move during spin and freeze under reduced motion; the core dimensions stay fixed.
+**Contract / For A / Blocked:** no changes or requests. Read below for rendering details. Physical GPU performance and physical hands remain for user testing.
+**Next:** user refreshes for V8.1 and checks raw-clay rotation, cavity/tear appearance, inspection and glaze. Continue core/debug work independently.
+
 ### 2026-09-30 · B · V8.1 runtime warning correction
 **Done:** final dev-server log exposed Three r186 replacing deprecated PCFSoftShadowMap with PCFShadowMap. Select PCFShadowMap explicitly; the rendered filter is identical to the successful screenshot tests. Browser motion test now also rejects Three.js console warnings. No core changes. Preparing final deployment of this correction on top of the visual release.
 

@@ -6,9 +6,11 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ### V8.1 clay appearance and spin
 
+- **Live:** `e9b04ae`, deployment `dpl_AZ3EV8MFdqHuMaPmXDxpdBoLVXSj` READY; public V8.1 real-model/simulated-camera startup, mirrored video and resize pass. Based on A's current history `f1292dc` without changing his source files.
 - 294/294 unit/integration tests and warning-free typecheck/build. The rotation test preserves mesh vertices and underlying clay dimensions; texture maps are deterministic and exactly seamless.
 - Six final Chromium checks pass: changing front-wall pixels while the pot rotates, stationary pixels under reduced motion, inspection/return, touch drag/pinch, rim-origin tear, WebGL fallback, finishing/export/gallery with and without storage. Four initial V8 checks also passed during development.
 - Fixed excessive environment brightness and a one-byte texture-wrap mismatch found during verification. Reviewed raw clay, two rotation angles, hollow clay, jade glaze and torn-wall screenshots.
+- Final runtime log revealed deprecated PCFSoftShadowMap being replaced automatically by PCFShadowMap in Three r186. Selected PCFShadowMap directly and reran motion verification with Three console warnings treated as failures; passes without renderer warnings.
 - The new material uses baked pigment, relief and roughness maps with a subtle wet layer, studio reflections and self/contact shadows. Core geometry and gesture logic are unchanged. Effects stop for reduced motion, inspection and terminal damage.
 - Browser inputs are synthetic. Physical GPU performance and physical-hand behavior are not certified by these checks.
 
