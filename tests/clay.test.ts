@@ -36,7 +36,7 @@ export function expectInvariants(c: ClayState) {
 const lift = (world: number) => ({ ...NO_DELTA, liftWorld: world });
 const spread = (ratio: number) => ({ ...NO_DELTA, spreadRatio: ratio });
 const press = (world: number) => ({ ...NO_DELTA, compressWorld: world });
-const INDENT = { ...NO_DELTA, indentWorld: 0.01 }; // first push: the dent appears at INDENT_DEPTH
+const INDENT = { ...NO_DELTA, indentWorld: 0.01 }; // first push: a 0.01 dent (v6: no fixed first depth)
 const indented = (): ClayModel => stepClay(createClay(), actionGesture('indent'), 0.03, undefined, INDENT);
 
 describe('clay', () => {
@@ -125,11 +125,12 @@ describe('v4 actions on the clay', () => {
     expect(c.radii[20]).toBe(r);
   });
 
-  it('v5: the dent deepens with thumb travel, then goes through the floor (permanent hole)', () => {
+  it('v6: the dent follows thumb travel from the first contact (no fixed first dent), then goes through the floor', () => {
     let c = indented();
-    expect(c.cavityDepthWorld).toBeCloseTo(CONFIG.INDENT_DEPTH_WORLD);
+    const first = c.cavityDepthWorld;
+    expect(first).toBeCloseTo(INDENT.indentWorld * CONFIG.INDENT_GAIN);
     c = stepClay(c, actionGesture('indent'), 0.05, undefined, { ...NO_DELTA, indentWorld: 0.2 });
-    expect(c.cavityDepthWorld).toBeCloseTo(CONFIG.INDENT_DEPTH_WORLD + 0.2);
+    expect(c.cavityDepthWorld).toBeCloseTo(first + 0.2 * CONFIG.INDENT_GAIN);
     expect(c.floorThicknessWorld).toBeCloseTo(c.height - c.cavityDepthWorld);
     for (let k = 0; k < 20 && !c.bottomHole; k++) c = stepClay(c, actionGesture('indent'), 0.05, undefined, { ...NO_DELTA, indentWorld: 0.1 });
     expect(c.bottomHole).toBe(true);

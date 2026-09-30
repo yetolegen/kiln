@@ -51,14 +51,14 @@ export const CONFIG = {
   LIFT_ZONE_BELOW_WORLD: 0.5,       // active palm height at the base: from −this ...
   LIFT_ZONE_ABOVE_WORLD: 0.3,       // ... to +this
   LIFT_ZONE_X_MARGIN_WORLD: 0.2,    // ... and within the base radius + this
-  LIFT_DEADBAND_PALM: 0.02,         // armed: palm must rise this × palm above its arming height before lifting (jitter)
+  MOTION_DEADBAND_PALM: 0.02,       // jitter deadband (× palm) for displacement-driven lift / indent / rim and the shaping release
   LIFT_GRACE_MS: 250,               // one-frame orientation/speed/pose glitches pause the lift this long before cancelling
   LIFT_MAX_PALM_PER_S: 1.0,         // armed: rising faster than this cancels (re-hold needed)
   LIFT_GAIN: 1.0,                   // pot height gained per world unit the hand rises
   INDENT_TOL_X_WORLD: 0.3,          // thumb tip within this of the axis ...
   INDENT_TOL_Y_WORLD: 0.3,          // ... and of the top surface
-  INDENT_TRAVEL_WORLD: 0.08,        // downward thumb travel before the indentation starts (jitter guard)
-  INDENT_DEPTH_WORLD: 0.12,         // first dent depth; further thumb travel keeps deepening it (v5)
+  INDENT_DEPTH_WORLD: 0.12,         // lesson target for the first dent (v6: the core deepens continuously, no fixed jump)
+  INDENT_MAX_PALM_PER_S: 2.0,       // thumb tip pushing in faster than this is rejected (indentTooFast)
   INDENT_RADIUS_WORLD: 0.12,
   OPEN_ZONE_MARGIN_WORLD: 0.25,     // pinch point within the opening + this
   OPEN_ACQUIRE_MS: 200,             // pinch held this long before spreading counts
@@ -69,8 +69,8 @@ export const CONFIG = {
   RIM_BELOW_WORLD: 0.15,
   RIM_X_MARGIN_WORLD: 0.3,          // ... and within the top radius + this
   COMPRESS_HOLD_MS: 500,
-  COMPRESS_MIN_PALM_PER_S: 0.1,     // armed: moving down slower than this doesn't compress
-  COMPRESS_MAX_PALM_PER_S: 1.0,     // faster than this stops the action
+  COMPRESS_MIN_PALM_PER_S: 0.1,     // armed: descending at least this fast presses by velocity; slower by displacement
+  COMPRESS_MAX_PALM_PER_S: 1.0,     // faster than this stops the action (compressTooFast)
   COMPRESS_GAIN: 1.0,               // height removed per world unit the hand moves down (no cap: v5 → pancake)
   COMPRESS_SMOOTH_PER_S: 2.0,       // upper-profile smoothing rate while compressing
   COMPRESS_CAVITY_SHRINK_PER_WORLD: 0.3, // opening narrows (wall strengthens) per unit compressed

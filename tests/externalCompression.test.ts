@@ -28,20 +28,41 @@ describe('external shaping motion boundaries', () => {
     }
   });
 
-  it('inward narrows, outward widens, a reversal immediately narrows again, and a hold stops', () => {
+  it('inward narrows; outward withdrawal releases without widening until contact breaks; a hold stops (v6)', () => {
     const f = fixture();
+    let gap = 1.4;
     let last = f.core.tick(f.now()).clay!;
-    for (const direction of [-1, 1, -1]) {
-      let gap = f.core.tick(f.now()).input!.screenRight!.palmWorld.x;
-      for (let i = 0; i < 20; i++) {
-        gap += direction * .005;
-        const next = f.sample(gap).clay!;
-        expect(Math.sign(next.radii[24] - last.radii[24])).toBe(direction);
-        for (let j = 0; j < 48; j++) expect((next.radii[j] - last.radii[j]) * direction).toBeGreaterThanOrEqual(-1e-7);
-        last = next;
-      }
-      expect(Array.from(f.sample(gap).clay!.radii)).toEqual(Array.from(last.radii));
+    for (let i = 0; i < 20; i++) {
+      gap -= .005;
+      const next = f.sample(gap).clay!;
+      expect(next.radii[24]).toBeLessThan(last.radii[24]);
+      last = next;
     }
+    expect(Array.from(f.sample(gap).clay!.radii)).toEqual(Array.from(last.radii)); // hold
+    const pressed = Array.from(last.radii);
+    for (let i = 0; i < 10; i++) f.sample(gap += .01); // withdraw: never widens
+    for (let i = 0; i < 10; i++) f.sample(gap -= .01); // come back in without letting go: still released
+    expect(Array.from(f.sample(gap).clay!.radii)).toEqual(pressed);
+    f.sample(3); // contact actually breaks
+    f.sample(1.3); // new contact: acquisition only
+    expect(Array.from(f.sample(1.3).clay!.radii)).toEqual(pressed);
+    expect(f.sample(1.28).clay!.radii[24]).toBeLessThan(pressed[24]); // a new stroke presses again
+  });
+
+  it('one hand pulling out also releases the stroke, and bringing it back in does not resume (v6)', () => {
+    const f = fixture();
+    const y = 1.2 * 24 / 47;
+    const before = Array.from(f.sample(1.39).clay!.radii);
+    let t = f.now();
+    const right = (x: number) => {
+      t += 33;
+      f.core.observe(frame(t, poseHand('wall', -1.39, y), poseHand('wall', x, y)));
+      return f.core.tick(t).clay!;
+    };
+    for (let i = 1; i <= 10; i++) right(1.39 + .02 * i);
+    let c = right(1.59);
+    for (let i = 1; i <= 15; i++) c = right(1.59 - .02 * i);
+    expect(Array.from(c.radii)).toEqual(before);
   });
 
   it.each(['lost', 'invalid', 'stale', 'gap', 'contact', 'pose', 'velocity'] as const)(

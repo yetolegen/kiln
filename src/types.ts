@@ -96,6 +96,8 @@ export type NearMissReason =
   | 'noIndentation'  // open: make the indentation first
   | 'pinchFirst'     // open: start with thumb and index pinched inside the opening
   | 'spreadTooFast'  // open cancelled: fingers spread too fast
+  | 'indentTooFast'  // indent: thumb tip pushed in too fast; nothing applied, push again slowly
+  | 'compressTooFast' // rim: palm pressed down too fast; cancelled, hold above the rim again
   | 'rimPlacement';  // rim: params.dir 'lower' (hand too high) | 'closer' (too far out)
 export interface NearMiss {
   intended: ActionGesture;

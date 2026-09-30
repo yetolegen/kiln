@@ -144,10 +144,9 @@ export function stepClay(
       changed = changeHeight(c, d.liftWorld) || changed;
     }
     if (acting && g.gesture === 'indent' && d.indentWorld > 0) {
-      // v5: the thumb keeps going in. Past the safe depth the floor thins (rules warn); through it = a hole.
-      c.cavityDepthWorld = c.cavityDepthWorld > 0
-        ? c.cavityDepthWorld + CONFIG.INDENT_GAIN * d.indentWorld
-        : CONFIG.INDENT_DEPTH_WORLD;
+      // v6: depth follows the thumb tip continuously from the first contact (no fixed first dent).
+      // Past the safe depth the floor thins (rules warn); through it = a hole.
+      c.cavityDepthWorld += CONFIG.INDENT_GAIN * d.indentWorld;
       c.cavityRadiusWorld = Math.max(c.cavityRadiusWorld, CONFIG.INDENT_RADIUS_WORLD);
       if (c.height - c.cavityDepthWorld <= CONFIG.HOLE_FLOOR_WORLD) {
         c.bottomHole = true;

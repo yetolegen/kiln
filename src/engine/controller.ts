@@ -44,6 +44,7 @@ class Controller implements CoreController {
   private session: SessionTracker | null = null;
   private target: TargetProfile | null = null;
   private expectedGesture: GestureContext['expectedGesture'];
+  private tutorialStepIndex: number | null = null;
   private calibrationStillMs = 0;
   private raiseArmed = true;
   private glazeId: string | null = null;
@@ -191,6 +192,10 @@ class Controller implements CoreController {
       case 'tutorialStep':
         if (this.phase === 'tutorial') {
           this.gestures.resetShapeContact();
+          // a NEW step drops the previous step's action and coaching; re-sending the same step (the lesson's
+          // freeze/unfreeze) keeps the held action so its real release can still be seen
+          if (command.step !== this.tutorialStepIndex) this.gestures.resetAction();
+          this.tutorialStepIndex = command.step;
           this.expectedGesture = command.expectedGesture;
           this.raiseArmed = true; // a new step is a new screen for one-shot purposes
         }
@@ -263,6 +268,7 @@ class Controller implements CoreController {
     this.activeIssues = [];
     this.hint = null;
     this.expectedGesture = undefined;
+    this.tutorialStepIndex = null;
     this.raiseArmed = true;
     this.glazeId = null;
     this.result = null;

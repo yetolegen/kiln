@@ -67,7 +67,7 @@ function isThumbDown(h: HandFeatures): boolean {
 
 /** Placement zones for this frame, grown with the user's palm size (see config). */
 interface Zones {
-  supportReach: number; supportY: number; liftBelow: number; liftAbove: number; liftX: number; liftDeadband: number;
+  supportReach: number; supportY: number; liftBelow: number; liftAbove: number; liftX: number; deadband: number; palmW: number;
   rimBelow: number; rimAbove: number; rimX: number; indentX: number; indentY: number; openMargin: number;
 }
 function zonesFor(palmW: number): Zones {
@@ -78,7 +78,8 @@ function zonesFor(palmW: number): Zones {
     liftBelow: Math.max(CONFIG.LIFT_ZONE_BELOW_WORLD, z),
     liftAbove: Math.max(CONFIG.LIFT_ZONE_ABOVE_WORLD, 0.6 * z),
     liftX: Math.max(CONFIG.LIFT_ZONE_X_MARGIN_WORLD, 0.5 * z),
-    liftDeadband: CONFIG.LIFT_DEADBAND_PALM * palmW,
+    deadband: CONFIG.MOTION_DEADBAND_PALM * palmW,
+    palmW,
     rimBelow: Math.max(CONFIG.RIM_BELOW_WORLD, 0.4 * z),
     rimAbove: Math.max(CONFIG.RIM_ABOVE_WORLD, z),
     rimX: Math.max(CONFIG.RIM_X_MARGIN_WORLD, 0.5 * z),
@@ -103,9 +104,11 @@ interface Engagement {
   armedMs: number;    // time since the action armed (open: stretch duration, v5)
   span: number;       // open: widest pinch ratio so far
   stillSinceMs: number | null;
-  topY: number;       // lift: highest palm height already turned into clay height (or arming height + deadband)
+  topY: number;       // ratchet: lift = highest palm already applied; indent = deepest thumb tip; rim = lowest palm
+  lastY: number;      // indent: previous thumb-tip height, for its speed
+  started: boolean;   // ratchet: motion has passed the jitter deadband once; from then on every bit counts
   pauseSinceMs: number | null; // lift: start of the current run of glitchy frames (v7 grace)
-  lastMs: number;     // lift: time of the last step, to rebase after an observation gap
+  lastMs: number;     // time of the last step, to rebase after an observation gap
 }
 
 export class GestureRecognizer {
@@ -117,7 +120,7 @@ export class GestureRecognizer {
   private candidateSinceMs = 0;
   private contactValid = false;
   private shapeContact: {
-    leftId: number; rightId: number; band: number; halfGap: number; tMs: number;
+    leftId: number; rightId: number; band: number; minGap: number; released: boolean; tMs: number;
     epoch: number; projection: number; phase: GestureContext['phase'];
   } | null = null;
   private pointerId: number | null = null;
@@ -141,6 +144,13 @@ export class GestureRecognizer {
   }
 
   resetShapeContact(): void { this.shapeContact = null; }
+
+  /** New lesson step: no action, latched coaching or attempt evidence carries over from the previous one. */
+  resetAction(): void {
+    this.engagement = null;
+    this.latched = null;
+    this.evidenceSince.clear();
+  }
 
   update(frame: FrameInput, ctx: GestureContext, clay: ClayState, proj: ProjectionParams): GestureState {
     // the same observation twice must never accumulate holds or deform twice
@@ -177,7 +187,9 @@ export class GestureRecognizer {
 
     // one-hand actions first: their own holds replace the generic stability delay
     let act: ActionResult | null = null;
-    if (both && shapingPhase && !pointer) act = this.runAction(l, r, clay, proj, dtS, t);
+    // a lesson frozen at its target (no expected action) keeps the held engagement, without deforming
+    const keep = (g: ActionGesture) => allowed(g) || (ctx.phase === 'tutorial' && ctx.expectedGesture === undefined);
+    if (both && shapingPhase && !pointer) act = this.runAction(l, r, clay, proj, dtS, t, allowed, keep);
 
     let cand: Gesture = 'none';
     if (both && raisePhase && allOpen(l, cur === 'raise') && allOpen(r, cur === 'raise') &&
@@ -213,20 +225,29 @@ export class GestureRecognizer {
         l.velocityValid && r.velocityValid) {
       const previous = this.shapeContact;
       const band = c.contact.activeBand;
+      const gap = c.halfGapWorld;
+      // Rebase on acquisition or discontinuity. Never apply movement across missing samples.
+      const sameHands = previous !== null && previous.leftId === l.trackId && previous.rightId === r.trackId;
+      const continuous = sameHands && previous.band === band && previous.epoch === frame.epoch &&
+        previous.projection === proj.revision && previous.phase === ctx.phase &&
+        t > previous.tMs && t - previous.tMs <= CONFIG.MAX_INPUT_AGE_MS;
+      // v6: outside palms only PRESS (inward past the stroke's closest point). Moving out past the jitter
+      // deadband releases the stroke; it stays released until contact actually breaks (hovering can't resume).
+      let minGap = continuous ? previous.minGap : gap;
+      const released = (sameHands && previous.released) || gap - minGap > Z.deadband;
+      let travel = 0;
+      if (continuous && !released && gap < minGap) {
+        travel = gap - minGap;
+        minGap = gap;
+      }
       this.shapeContact = {
-        leftId: l.trackId, rightId: r.trackId, band, halfGap: c.halfGapWorld, tMs: t,
+        leftId: l.trackId, rightId: r.trackId, band, minGap, released, tMs: t,
         epoch: frame.epoch, projection: proj.revision, phase: ctx.phase,
       };
-      // Rebase on acquisition or discontinuity. Never apply movement across missing samples.
-      if (previous && previous.leftId === l.trackId && previous.rightId === r.trackId &&
-          previous.band === band && previous.epoch === frame.epoch && previous.projection === proj.revision &&
-          previous.phase === ctx.phase && t > previous.tMs && t - previous.tMs <= CONFIG.MAX_INPUT_AGE_MS) {
-        const travel = c.halfGapWorld - previous.halfGap;
-        if (Number.isFinite(travel) && Math.abs(travel) > 1e-6) {
-          this.delta = { ...NO_DELTA, shapeWorld: travel };
-          shapeTarget = clay.radii[band] + travel;
-          deforming = true;
-        }
+      if (Number.isFinite(travel) && travel < -1e-6) {
+        this.delta = { ...NO_DELTA, shapeWorld: travel };
+        shapeTarget = clay.radii[band] + travel;
+        deforming = true;
       }
     } else this.resetShapeContact();
     if (act && g === act.kind && allowed(act.kind) && (!clay.collapsed || act.kind === 'compressRim')) {
@@ -268,7 +289,10 @@ export class GestureRecognizer {
 
   // ---------- one-hand actions ----------
 
-  private runAction(l: HandFeatures, r: HandFeatures, clay: ClayState, proj: ProjectionParams, dtS: number, t: number): ActionResult | null {
+  private runAction(
+    l: HandFeatures, r: HandFeatures, clay: ClayState, proj: ProjectionParams, dtS: number, t: number,
+    allowed: (g: ActionGesture) => boolean, keep: (g: ActionGesture) => boolean,
+  ): ActionResult | null {
     const world = (p: Vec2) => pxToWorld(p, proj);
     const supportOk = (h: HandFeatures) => atSideWall(h, clay);
     const e = this.engagement;
@@ -277,7 +301,7 @@ export class GestureRecognizer {
     if (e) {
       const active = l.trackId === e.activeId ? l : r.trackId === e.activeId ? r : null;
       const support = active === l ? r : l;
-      if (active && support.trackId === e.supportId && supportOk(support)) {
+      if (keep(e.kind) && active && support.trackId === e.supportId && supportOk(support)) {
         if (e.armed) e.armedMs += dtS * 1000; // dtS is 0 for replayed frames (update() returns early for them)
         const res = STEP[e.kind](this, e, active, clay, world, dtS, t);
         if (res) return { ...res, kind: e.kind, activeId: e.activeId, supportId: e.supportId, engagedMs: e.armed ? e.armedMs : 0 };
@@ -287,12 +311,13 @@ export class GestureRecognizer {
 
     // start a new one: try both role assignments (right hand active first, then left)
     for (const kind of ['open', 'indent', 'compressRim', 'pullUp'] as const) {
+      if (!allowed(kind)) continue; // a lesson only recognizes its own action
       for (const [active, support] of [[r, l], [l, r]] as const) {
         if (!supportOk(support) || !QUALIFIES[kind](active, clay, world)) continue;
         if (kind === 'open' && clay.cavityDepthWorld <= 0) continue; // needs an indentation first
         const fresh: Engagement = {
           kind, activeId: active.trackId, supportId: support.trackId, ms: 0, armed: false,
-          travel: 0, armedMs: 0, span: active.pinchRatio, stillSinceMs: null, topY: 0, pauseSinceMs: null, lastMs: t,
+          travel: 0, armedMs: 0, span: active.pinchRatio, stillSinceMs: null, topY: NaN, lastY: NaN, started: false, pauseSinceMs: null, lastMs: t,
         };
         this.engagement = fresh;
         const res = STEP[kind](this, fresh, active, clay, world, 0, t);
@@ -323,7 +348,8 @@ export class GestureRecognizer {
     const miss = this.findNearMiss(ctx, t, g, l, r, clay, c, act, proj, held);
     // evidence only counts while it's continuously observed: forget anything not seen true this frame
     for (const key of [...this.evidenceSince.keys()]) if (!touched.has(key)) this.evidenceSince.delete(key);
-    return miss;
+    // a lesson only coaches its own step's technique
+    return ctx.phase === 'tutorial' && miss && miss.intended !== ctx.expectedGesture ? null : miss;
   }
 
   private findNearMiss(
@@ -517,7 +543,7 @@ const STEP: Record<Kind, Step> = {
       e.ms += dtS * 1000;
       if (e.ms < CONFIG.LIFT_HOLD_MS) return idle(e.ms / CONFIG.LIFT_HOLD_MS);
       e.armed = true;
-      e.topY = y + Z.liftDeadband;
+      e.topY = y;
     }
     if (y < -Z.liftBelow) return null;
     const vy = vUp(h);
@@ -526,8 +552,9 @@ const STEP: Record<Kind, Step> = {
       return null;
     }
     e.pauseSinceMs = null;
-    const rise = gap ? 0 : y - e.topY;
-    e.topY = Math.max(e.topY, y);
+    const rise = gap || (!e.started && y - e.topY <= Z.deadband) ? 0 : y - e.topY;
+    if (rise > 0) e.started = true;
+    if (e.started) e.topY = Math.max(e.topY, y); // before that the arming height stays the reference
     if (rise <= 0 || vy <= 0) {
       e.stillSinceMs ??= t;
       return idle(1);
@@ -539,19 +566,33 @@ const STEP: Record<Kind, Step> = {
     };
   },
 
-  // one short push down with the thumb at the top centre makes ONE shallow indentation per engagement
-  // v5: after a short jitter guard every bit of downward thumb travel deepens the dent. About one phalanx
-  // is safe; pushing on thins the floor (thinFloor) and finally goes through (bottomHole).
-  indent: (_rec, e, h, clay, world, dtS) => {
+  // v6: the thumb TIP (landmark 4) drives the depth, so bending the thumb with a still palm works. Depth grows
+  // with the deepest point the tip has reached below the cavity bottom (counted from contact, minus a jitter
+  // deadband): no fixed first dent, and withdrawing then returning to the same point adds nothing.
+  // Past the safe depth the floor thins (thinFloor); through it = bottomHole. Too fast a push is rejected.
+  indent: (rec, e, h, clay, world, dtS, t) => {
     if (!QUALIFIES.indent(h, clay, world)) return null;
-    const down = h.velocityValid ? Math.max(0, -h.velocityWorldPerS.y * dtS) : 0;
-    if (!e.armed) {
-      e.travel += down;
-      if (e.travel < CONFIG.INDENT_TRAVEL_WORLD) return idle(e.travel / CONFIG.INDENT_TRAVEL_WORLD);
-      e.armed = true;
+    const tipY = world(h.landmarksPx[THUMB_TIP]).y;
+    const gap = t - e.lastMs > CONFIG.MAX_INPUT_AGE_MS;
+    const prevY = e.lastY;
+    e.lastMs = t;
+    e.lastY = tipY;
+    if (Number.isNaN(e.topY)) e.topY = Math.min(tipY, clay.height - clay.cavityDepthWorld); // contact
+    const speed = !gap && dtS > 0 && Number.isFinite(prevY) ? (prevY - tipY) / dtS : 0;
+    const maxSpeed = CONFIG.INDENT_MAX_PALM_PER_S * Z.palmW;
+    if (speed > maxSpeed) {
+      rec.latch({ intended: 'indent', reason: 'indentTooFast', handTrackId: h.trackId, params: {} }, t);
+      return null; // nothing applied; the next contact starts from wherever the tip is then
     }
-    if (down <= 0) return idle(1);
-    return { progress: 1, deforming: true, motionStrength: 1, delta: { ...NO_DELTA, indentWorld: down } };
+    const insert = gap || (!e.started && e.topY - tipY <= Z.deadband) ? 0 : e.topY - tipY;
+    if (insert > 0) e.started = true;
+    if (e.started) e.topY = Math.min(e.topY, tipY);
+    if (insert <= 0) return idle(e.armed ? 1 : 0);
+    e.armed = true;
+    return {
+      progress: 1, deforming: true, motionStrength: maxSpeed > 0 ? Math.min(1, speed / maxSpeed) : 0,
+      delta: { ...NO_DELTA, indentWorld: insert },
+    };
   },
 
   // pinch inside the opening, hold briefly, then SLOWLY spread: the widest span so far drives the opening
@@ -578,22 +619,39 @@ const STEP: Record<Kind, Step> = {
     };
   },
 
-  // open horizontal hand just above the rim: brief still hold, then slowly down (no cap: v5)
-  compressRim: (_rec, e, h, clay, _world, dtS, t) => {
+  // open horizontal hand just above the rim: brief still hold, then down. v6: the palm's actual descent
+  // (below the lowest point already applied, after a jitter deadband) presses, so a very slow push works.
+  compressRim: (rec, e, h, clay, _world, dtS, t) => {
     if (!allOpen(h, true) || h.pinchRatio <= CONFIG.PINCH_ON || !isHorizontal(h) || !inRimZone(h, clay)) return null;
-    const vy = vUp(h);
+    const y = h.palmWorld.y, vy = vUp(h);
+    const gap = t - e.lastMs > CONFIG.MAX_INPUT_AGE_MS;
+    e.lastMs = t;
     if (!e.armed) {
       e.ms = speedOf(h) < CONFIG.STILL_PALM_PER_S ? e.ms + dtS * 1000 : 0;
       if (e.ms < CONFIG.COMPRESS_HOLD_MS) return idle(e.ms / CONFIG.COMPRESS_HOLD_MS);
       e.armed = true;
+      e.topY = y;
     }
-    if (vy > CONFIG.STILL_PALM_PER_S || -vy > CONFIG.COMPRESS_MAX_PALM_PER_S) return null; // up or too fast: stop
-    if (-vy < CONFIG.COMPRESS_MIN_PALM_PER_S) {
+    if (vy > CONFIG.STILL_PALM_PER_S) return null; // lifting the hand off releases
+    if (-vy > CONFIG.COMPRESS_MAX_PALM_PER_S) {
+      rec.latch({ intended: 'compressRim', reason: 'compressTooFast', handTrackId: h.trackId, params: {} }, t);
+      return null;
+    }
+    // v5: no cap, sustained pressing flattens it. Ordinary speed presses by the (filtered) velocity as before;
+    // the displacement ratchet adds very slow presses the velocity floor would drop. Per frame the larger wins.
+    const moved = gap || (!e.started && e.topY - y <= Z.deadband) ? 0 : e.topY - y;
+    if (moved > 0) e.started = true;
+    if (e.started) e.topY = Math.min(e.topY, y);
+    const byVelocity = -vy >= CONFIG.COMPRESS_MIN_PALM_PER_S ? -h.velocityWorldPerS.y * dtS : 0;
+    const push = Math.max(moved, byVelocity);
+    if (push <= 0 || vy >= 0) {
       e.stillSinceMs ??= t;
       return idle(1);
     }
     e.stillSinceMs = null;
-    const push = -h.velocityWorldPerS.y * dtS * CONFIG.COMPRESS_GAIN; // v5: no cap, sustained pressing flattens it
-    return { progress: 1, deforming: true, motionStrength: -vy / CONFIG.COMPRESS_MAX_PALM_PER_S, delta: { ...NO_DELTA, compressWorld: push } };
+    return {
+      progress: 1, deforming: true, motionStrength: Math.min(1, -vy / CONFIG.COMPRESS_MAX_PALM_PER_S),
+      delta: { ...NO_DELTA, compressWorld: push * CONFIG.COMPRESS_GAIN },
+    };
   },
 };
