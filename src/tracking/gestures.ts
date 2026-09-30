@@ -120,7 +120,7 @@ export class GestureRecognizer {
   private candidateSinceMs = 0;
   private contactValid = false;
   private shapeContact: {
-    leftId: number; rightId: number; band: number; edge: number; tMs: number;
+    leftId: number; rightId: number; band: number; deepest: number; tMs: number;
     epoch: number; projection: number; phase: GestureContext['phase'];
   } | null = null;
   private pointerId: number | null = null;
@@ -234,11 +234,15 @@ export class GestureRecognizer {
       // (their landmarks closest to the pot) that happens inside the wall presses, scaled by SHAPE_GAIN.
       // Hands outside the wall, arriving already inside it, holding still or withdrawing never change it.
       // (Palm-centre contact used to shape from about a palm away.)
+      // Within one touch only going DEEPER than the deepest point so far presses, so landmark jitter can't
+      // pump the clay; backing off past the jitter deadband outside the wall starts a fresh touch.
       const edge = (innerEdgeX(r, proj, -1) - innerEdgeX(l, proj, 1)) / 2;
       const radius = clay.radii[band];
-      const travel = continuous ? Math.min(0, Math.min(edge, radius) - Math.min(previous.edge, radius)) * CONFIG.SHAPE_GAIN : 0;
+      const prevDeepest = continuous ? previous.deepest : edge;
+      const travel = Math.min(0, Math.min(edge, radius) - Math.min(prevDeepest, radius)) * CONFIG.SHAPE_GAIN;
+      const deepest = edge >= radius + Z.deadband ? edge : Math.min(prevDeepest, edge);
       this.shapeContact = {
-        leftId: l.trackId, rightId: r.trackId, band, edge, tMs: t,
+        leftId: l.trackId, rightId: r.trackId, band, deepest, tMs: t,
         epoch: frame.epoch, projection: proj.revision, phase: ctx.phase,
       };
       if (Number.isFinite(travel) && travel < -1e-6) {

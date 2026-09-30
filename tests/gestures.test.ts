@@ -52,6 +52,25 @@ describe('shape gesture', () => {
     expect(clay.radii[0]).toBeGreaterThan(0.99);
   });
 
+  it('v7.2: a hand held still inside the wall does not squeeze the clay through landmark jitter', () => {
+    // palms 1.2 apart = edges 0.95: 0.05 inside a radius-1 wall; the thumb tips jitter ±1.5 px every frame
+    const jittery = (x: number, t: number) => {
+      const h = poseHand('wall', x, .6, { trackId: x < 0 ? 1 : 2 });
+      const lm = h.landmarksPx.map((p) => ({ ...p }));
+      lm[4] = { x: lm[4].x - Math.sign(x) * ((t / DT) % 2 ? 1.5 : -1.5), y: lm[4].y }; // both toward/away together
+      return { ...h, landmarksPx: lm };
+    };
+    for (const palm of [1.2, 1.25]) { // inside the wall, and right at its surface
+      const settle = run((t) => [jittery(-palm, t), jittery(palm, t)], 300); // may press once, by the jitter
+      const before = Array.from(settle.clay.radii);
+      const held = run((t) => [jittery(-palm, t), jittery(palm, t)], 3000, cont(settle));
+      // at most settles onto the innermost jitter position (bounded), then no drift at all
+      expect(before[24] - held.clay.radii[24]).toBeLessThan(1.5 / 180);
+      const later = run((t) => [jittery(-palm, t), jittery(palm, t)], 3000, cont(held));
+      expect(later.clay.radii[24]).toBeCloseTo(held.clay.radii[24], 6);
+    }
+  });
+
   it('v7.2: palms whose hands never reach the wall do not shape, however they move', () => {
     // no landmarks: the hand is just its palm centre, 0.12-0.3 outside the wall the whole time
     const { clay, seen } = run((t) => {
