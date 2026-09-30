@@ -4,6 +4,17 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ## Automated checks
 
+### Geometry-led lesson revision (V5 frontend, 30 September 12:00)
+
+- 182 unit/integration tests pass; production build and typecheck pass. Both active-hand roles reach actual geometry targets through A's real controller. Unchanged/tiny geometry changes cannot pass; overshoot, damage, wrong profile, lost tracking, replayed input, release and whole-attempt restart are covered.
+- Updated browser matrix: **34 passed, 2 intentionally skipped** across Chromium, Firefox and WebKit. Includes palm-only fixture navigation with visible dwell progress, all five geometry actions, release gating, failure/retry, portrait/landscape controls, optional API failures and camera startup. The final tolerance-boundary adjustment has separate passing unit/integration coverage.
+- Browser counts: Chromium 12 passed; Firefox 11 passed/1 camera skip; WebKit 11 passed/1 camera skip. The WebKit visual caveat below still applies. A first Firefox launch failed inside Playwright before a page opened; the subsequent full matrix passed without application changes for that error.
+- New bugs found/fixed: index-only UI did not accept the requested palm centre; tiny old lesson deltas disabled deformation prematurely; no target profile or cavity-depth guide; no latched failure/retry; mock activation incorrectly reset after tutorial freeze; failure card overflowed a 390px landscape viewport. Irreversible target overshoot now fails immediately outside the accepted tolerance, rather than leaving an uncorrectable stage active. Displayed 90% cannot be rounded up from a failing geometry score.
+- The cyan target locks on phase entry. Height, every outer-profile band, cavity radius and cavity depth must all be in tolerance; recognizing a gesture or changing just one dimension is insufficient. Clay freezes at an accepted target and requires release to advance. Retry resets the whole attempt; compression is step 5, final review/raise is step 6.
+- **Not implemented yet:** A-owned V5 all-mode height failure, excessive thumb depth/perforation, ~7s stretching damage, sustained-pressure pancake and their result-schema/render adapters. Detailed handoff: [GESTURES_V5.md](GESTURES_V5.md). Current core remains v4. No new physical-camera acceptance or fabricated landmark measurements.
+
+### Previous deployed revision
+
 - Production build and TypeScript check pass locally. Vercel production build passed after fixing an excluded test-helper dependency.
 - 171 Vitest tests pass after A's real-hand fixes, including both-hand-role lessons and B's new measured-feature dwell regression. An earlier concurrent run hit the core stress test's 5s timeout under browser load; isolated full runs pass without changing that test or its timeout.
 - A real-controller integration test drives synthetic landmark-bearing `HandFeatures` through all six v4 lessons with **each active-hand assignment**, then one-hand dwell → commission → raise → glaze → firing → result → memory storage. It does not bypass recognition by injecting gesture events. This verifies integration with controlled data, not MediaPipe recognition of physical hands.

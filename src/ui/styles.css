@@ -139,6 +139,12 @@ progress { display: block; width: min(240px, 80vw); height: 8px; margin: 20px 0;
 .tutorial-card h2 { margin: 10px 0; font: 400 26px/1.1 Georgia, serif; }
 .tutorial-card p { font-size: 14px; line-height: 1.5; margin: 0; }
 .tutorial-card .tutorial-feedback { margin-top: 12px; padding-top: 10px; border-top: 1px solid #70513c; color: #ffe0a2; font-size: 12px; }
+.tutorial-card .tutorial-match { color: #a5e9ed; font-size: 11px; margin-top: 6px; }
+.tutorial-card[data-state='matched'] { border-color: #9ee3c4; }
+.tutorial-card[data-state='failed'] { border-color: #ff9c85; }
+.tutorial-card[data-state='failed'] .tutorial-feedback { color: #ffd0c0; }
+.tutorial-card[data-state='failed'] .tutorial-instruction, .tutorial-card[data-state='failed'] .ghost-hands { display: none; }
+.tutorial-card .dwell-button { margin-top: 10px; width: 100%; padding: 10px; min-height: 44px; font-size: 12px; }
 .tutorial-card progress { width: 100%; margin: 10px 0 0; height: 4px; }
 .ghost-hands { display: flex; justify-content: center; gap: 40px; height: 70px; padding: 8px 0; }
 .ghost-hands svg { width: 44px; fill: #e5ba7b15; stroke: #eccb9c; stroke-width: 2; stroke-linecap: round; animation: ghost-drift 2s ease-in-out infinite alternate; }

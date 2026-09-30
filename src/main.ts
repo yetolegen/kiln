@@ -39,7 +39,8 @@ const screens = createScreens(root, () => { void start(); }, (command) => core.d
 const dwell = new DwellController();
 const hud = createHud(screens.page);
 const presentationHint = new PresentationHint();
-const tutorial = createTutorial(screens.page, (command) => core.dispatch(command, performance.now()));
+const tutorial = createTutorial(screens.page, (command) => core.dispatch(command, performance.now()),
+  (parent) => screens.addAction('lesson-retry', 'Попробовать снова · с первого шага', () => core.dispatch({ type: 'restart', newSessionId: crypto.randomUUID() }, performance.now()), parent), screens.refreshTargets);
 const scene = createScene(screens.viewport);
 const kiln = createKiln(screens.viewport, scene.setSurface);
 const finishing = createFinishing(screens, (command) => core.dispatch(command, performance.now()), scene.exportPng);
@@ -149,7 +150,8 @@ function render(nowMs: number): void {
   screens.update(snapshot, state, nowMs);
   finishing.update(snapshot, state.cameraActive && !state.error);
   const lessonHint = tutorial.update(snapshot, nowMs);
-  const activeHint = presentationHint.update(snapshot, nowMs) ?? lessonHint;
+  const coreHint = presentationHint.update(snapshot, nowMs);
+  const activeHint = lessonHint?.severity === 'error' && coreHint?.id !== 'trackingUncertain' ? lessonHint : coreHint ?? lessonHint;
   hud.update(snapshot, nowMs, activeHint);
   sound.update(snapshot, !document.hidden && state.cameraActive);
   voice.update(document.hidden || !state.cameraActive ? null : activeHint);
@@ -158,7 +160,7 @@ function render(nowMs: number): void {
   if (selected) screens.activate(selected);
   kiln.update(snapshot, nowMs);
   scene.render(snapshot, nowMs);
-  overlay.render(snapshot, nowMs, dwell.progress);
+  overlay.render(snapshot, nowMs, dwell.progress, dwell.cursorPx, tutorial.goal, tutorial.status);
   debug?.update(snapshot, nowMs);
   animation = requestAnimationFrame(render);
 }

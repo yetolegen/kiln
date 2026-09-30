@@ -47,7 +47,9 @@ it.each([1, 2])('integrates v4 lessons with active track %i, one-hand dwell, com
     const snap = feed(pointing, null, 1400); command = null; return snap;
   }
   expect(select({ type: 'start', mode: 'tutorial', sessionId: 'lesson' }).phase).toBe('tutorial');
-  feed(hand(-.9, .5), hand(.9, .5), 1000); expect(tutorial.step).toBe(1);
+  const release = () => feed(hand(-3, .6), hand(3, .6), 150);
+  feed(hand(-.8, 1.2 * 24 / 47), hand(.8, 1.2 * 24 / 47), 1800);
+  expect(tutorial.status).toBe('matched'); release(); expect(tutorial.step).toBe(1);
   function action(makeHand: (elapsed: number) => HandFeatures, ms: number) {
     const start = now;
     while (now < start + ms) {
@@ -58,18 +60,19 @@ it.each([1, 2])('integrates v4 lessons with active track %i, one-hand dwell, com
   }
   action(() => poseHand('flat', 0, 0), 3300);
   expect(core.tick(now).gesture!.activationProgress).toBe(1);
-  action((s) => poseHand('flat', 0, s * 50 / 180, moving(0, .5)), 500);
-  expect(tutorial.step).toBe(2);
+  action((s) => poseHand('flat', 0, s * 50 / 180, moving(0, .5)), 1700);
+  expect(tutorial.status).toBe('matched'); release(); expect(tutorial.step).toBe(2);
   const lifted = core.tick(now).clay!.height;
-  action((s) => poseHand('thumbDown', 0, lifted - s * .3, moving(0, -.54)), 600);
-  expect(tutorial.step).toBe(3);
+  action((s) => poseHand('thumbDown', 0, lifted - Math.min(s * .3, .12), moving(0, -.54)), 1100);
+  expect(tutorial.status).toBe('matched'); release(); expect(tutorial.step).toBe(3);
   expect(core.tick(now).clay!.cavityDepthWorld).toBeCloseTo(.12);
   action(() => poseHand('pinch', 0, lifted - .05), 400);
-  action((s) => poseHand('spread', 0, lifted - .05, { ratio: .2 + s }), 600);
-  expect(tutorial.step).toBe(4);
+  action((s) => poseHand('spread', 0, lifted - .05, { ratio: .2 + s }), 1100);
+  expect(tutorial.status).toBe('matched'); release(); expect(tutorial.step).toBe(4);
   action(() => poseHand('flat', 0, lifted + .1), 800);
-  action((s) => poseHand('flat', 0, lifted + .1 - s * 50 / 180, moving(0, -.5)), 500);
-  expect(tutorial.step).toBe(5);
+  action((s) => poseHand('flat', 0, lifted + .1 - s * 50 / 180, moving(0, -.5)), 1800);
+  // Leaving the rim zone can release the action before this sample ends.
+  expect(tutorial.assessment?.matched).toBe(true); release(); expect(tutorial.step).toBe(5);
   let top = core.tick(now).clay!.height + .4;
   expect(feed(hand(-1, top), hand(1, top), 2000).phase).toBe('menu');
   expect(select({ type: 'start', mode: 'commission', sessionId: 'commission', targetId: 'vase@1' }).phase).toBe('studio');

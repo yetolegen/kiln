@@ -10,7 +10,7 @@ A virtual pottery wheel controlled by hand gestures through a webcam. A browser 
 
 *The GIF is a labelled development preview using keyboard/mouse fixtures, not a recording of real hand recognition.*
 
-Wait for the hand model, click «Начать» once and allow the camera. Hold both hands still for calibration, then point at a menu button and dwell for 0.9 seconds. After system camera permission, in-app navigation is designed to work with gestures. Tutorial, commission/free shaping, three glazes, firing, results, PNG export and a local gallery are implemented.
+Wait for the hand model, click «Начать» once and allow the camera. Hold both hands still for calibration, then place the centre of either palm over a menu button for 0.9 seconds. The button highlights and the cursor ring fills. Index-finger pointing also works. After system camera permission, in-app navigation is designed to work with gestures. Tutorial, commission/free shaping, three glazes, firing, results, PNG export and a local gallery are implemented.
 
 **v4 interaction:** A's new recognizer and cavity model are integrated with the frontend. The controls below replace the former two-pinch lift and two-fist press. Automated synthetic tests cover both hand roles; physical-camera recognition and T22 still need human verification. See [GESTURES_V4.md](docs/GESTURES_V4.md).
 
@@ -24,9 +24,13 @@ Wait for the hand model, click «Начать» once and allow the camera. Hold 
 | Widen/deepen | Support a wall; pinch thumb/index inside the dent, hold briefly, then gradually spread the fingers |
 | Compress/smooth rim | Support a wall; hold the other open hand horizontal just above the rim for 0.5 seconds, then lower it slowly. Also repairs damage |
 | Finish | Hold both open palms above the pot for 1.5 seconds |
-| Navigate | Point the index finger, curl the other fingers, dwell on a button; use one hand in the studio |
+| Navigate | Hold either palm centre over a button; alternatively point with the index finger and curl the others |
 
-These are basic shaping plus exactly four additional pottery functions. Either hand can act while the other supports; keep those roles throughout one action. The gold ring shows activation and green marks support. Moving too early/fast or losing support cancels activation. Six lessons require the requested action and actual shape change, with a gesture release between steps.
+These are basic shaping plus exactly four additional pottery functions. Either hand can act while the other supports; keep those roles throughout one action. The gold ring shows activation and green marks support. Moving too early/fast or losing support cancels activation.
+
+**Geometry-led lessons:** every phase shows a cyan transparent target, including a dotted cavity cross-section. The amber section shows actual cavity depth. Completion requires the correct action to produce a matching height, full outer profile, cavity radius and depth. Goals lock when each step begins; a gesture alone cannot pass. The shape freezes briefly at the target, then releasing the action advances. Compression is step 5; step 6 reviews the final shape and finishes with raised hands. Overshoot or damage stops progression with corrective feedback and a palm-selectable Try Again button, which restarts the entire attempt.
+
+**Still pending in A's core:** the new all-mode screen-height failure, deep-thumb bottom perforation, ~7-second stretching damage and sustained-pressure pancake rules. The current engine retains v4 bounds until that contract arrives. See [GESTURES_V5.md](docs/GESTURES_V5.md); these mechanics are not claimed as implemented.
 
 Rim compression was selected from [Clayground's wheel tutorial](https://www.clayground.net/post/beginnings-on-the-wheel-part-1-how-to-center-open-your-clay). A horizontal hand above the rim is distinguishable from a base lift, thumb-down indentation and pinch-spread opening. This camera mapping is a game adaptation.
 
@@ -51,7 +55,7 @@ npm run dev
 
 Open the local URL printed by Vite. `?dev=1` enables A's tracking debug panel only in the dev server. Add `&rec=1` for landmark recordings (R starts/stops). Keys 0–8 select neutral, shape, lift, indent, open, rim compression, point, finish and too fast. Production excludes debug and recording tools.
 
-Frontend fixtures: `?dev=1&mock=1` skips camera/model loading. Keys 0–9 select loading/permission/calibrate/menu/tutorial/studio/glaze/firing/result/gallery; S/U/I/O/D simulate shape/lift/indent/open/rim compression, Escape releases, F finishes, T/W/C toggle tear/wobble/collapse, X toggles hand loss, arrows change the middle radius, and moving the mouse simulates pointing. Fixture action keys apply immediately; they do not exercise recognition or physical hold timing. These fixtures are never included in production.
+Frontend fixtures: `?dev=1&mock=1` skips camera/model loading. Keys 0–9 select loading/permission/calibrate/menu/tutorial/studio/glaze/firing/result/gallery; S/U/I/O/D simulate shape/lift/indent/open/rim compression, Escape releases, F finishes, T/W/C toggle tear/wobble/collapse, X toggles hand loss, arrows change the middle radius. Mouse movement simulates the cursor: H selects palm-centre mode, P selects index-pointing mode. Fixture action keys apply immediately; they do not exercise recognition or physical hold timing. These fixtures are never included in production.
 
 The camera uses a mirrored, centered cover crop with an ideal front-camera resolution of 1280×720 and a 640×480 fallback. It never requests the microphone. Resize/orientation changes reset tracker and core together. Audio and speech unlock in the Start click and remain optional. Camera permission requires HTTPS or localhost; see [getUserMedia](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia).
 

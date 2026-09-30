@@ -1,5 +1,6 @@
 import { CONFIG } from '../config';
-import type { EngineSnapshot, ProjectionParams } from '../types';
+import type { EngineSnapshot, ProjectionParams, Vec2 } from '../types';
+import type { LessonGoal, LessonShape } from '../ui/tutorialGeometry';
 import { HandVisuals } from './handVisuals';
 
 const CHAINS = [[0, 1, 2, 3, 4], [0, 5, 6, 7, 8], [5, 9, 10, 11, 12], [9, 13, 14, 15, 16], [13, 17, 18, 19, 20], [0, 17]];
@@ -21,10 +22,39 @@ export function createOverlay(parent: HTMLElement) {
       dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr);
     },
-    render(snapshot: EngineSnapshot, nowMs: number, dwellProgress = 0): void {
+    render(snapshot: EngineSnapshot, nowMs: number, dwellProgress = 0, uiCursor: Vec2 | null = null, goal: LessonGoal | null = null, lessonStatus = 'working'): void {
       if (!ctx) return;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, width, height);
+      if (snapshot.phase === 'tutorial' && goal && projection) {
+        const p = projection, t = goal.target, scale = p.pixelsPerWorldUnit;
+        const color = lessonStatus === 'failed' ? '#ff9c85' : lessonStatus === 'matched' ? '#9ee3c4' : '#a5e9ed';
+        ctx.fillStyle = lessonStatus === 'failed' ? '#ff9c8510' : '#a5e9ed1c';
+        ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.setLineDash([7, 5]); ctx.beginPath();
+        for (let i = 0; i < t.radii.length; i++) {
+          const x = p.axisXPx - t.radii[i] * scale, y = p.bottomYPx - t.height * i / (t.radii.length - 1) * scale;
+          if (!i) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        for (let i = t.radii.length - 1; i >= 0; i--) ctx.lineTo(p.axisXPx + t.radii[i] * scale, p.bottomYPx - t.height * i / (t.radii.length - 1) * scale);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+        const top = p.bottomYPx - t.height * scale;
+        ctx.beginPath(); ctx.ellipse(p.axisXPx, top, t.radii.at(-1)! * scale, t.radii.at(-1)! * scale * .15, 0, 0, Math.PI * 2); ctx.stroke();
+        const section = (shape: Pick<LessonShape, 'height' | 'cavityRadiusWorld' | 'cavityDepthWorld'>, stroke: string) => {
+          if (shape.cavityDepthWorld <= 0) return;
+          const r = shape.cavityRadiusWorld * scale, y = p.bottomYPx - shape.height * scale;
+          ctx.strokeStyle = stroke; ctx.beginPath(); ctx.moveTo(p.axisXPx - r, y);
+          ctx.lineTo(p.axisXPx - r, y + shape.cavityDepthWorld * scale);
+          ctx.lineTo(p.axisXPx + r, y + shape.cavityDepthWorld * scale); ctx.lineTo(p.axisXPx + r, y); ctx.stroke();
+          ctx.beginPath(); ctx.ellipse(p.axisXPx, y, r, r * .15, 0, 0, Math.PI * 2); ctx.stroke();
+        };
+        section(t, color);
+        if (snapshot.clay?.cavityDepthWorld) {
+          ctx.setLineDash([]); ctx.lineWidth = 1;
+          section(snapshot.clay, '#ffd4a0');
+        }
+        ctx.setLineDash([]); ctx.fillStyle = color; ctx.font = '12px system-ui';
+        ctx.fillText(`Цель ${goal.step + 1}/6${t.cavityDepthWorld ? ' · глубина в разрезе' : ''}`, p.axisXPx - t.radii.at(-1)! * scale, top - 22);
+      }
       if (snapshot.phase === 'studio' && snapshot.target && projection) {
         const target = snapshot.target, p = projection;
         ctx.strokeStyle = '#cce5dfbb'; ctx.lineWidth = 2; ctx.setLineDash([6, 6]);
@@ -74,7 +104,7 @@ export function createOverlay(parent: HTMLElement) {
           ctx.fillText(support ? 'Опора' : action.activationProgress >= 1 ? 'Медленно' : `${Math.round(action.activationProgress * 100)}%`, x - 22, y + 50);
         }
       }
-      const cursor = ['ready', 'oneHand'].includes(input.status) && snapshot.gesture?.sourceFrameId === input.frameId ? snapshot.gesture.cursorPx : null;
+      const cursor = uiCursor ?? (['ready', 'oneHand'].includes(input.status) && snapshot.gesture?.sourceFrameId === input.frameId ? snapshot.gesture.cursorPx : null);
       if (cursor) {
         ctx.fillStyle = '#fff5db'; ctx.beginPath(); ctx.arc(cursor.x, cursor.y, 6, 0, Math.PI * 2); ctx.fill();
         ctx.lineWidth = 2; ctx.strokeStyle = '#ffffff66'; ctx.beginPath(); ctx.arc(cursor.x, cursor.y, 21, 0, Math.PI * 2); ctx.stroke();

@@ -93,14 +93,17 @@ for (const blockedStorage of [false, true]) test(`B8 finishes a pot, exports PNG
   expect(errors).toEqual([]);
 });
 
-test('B7 tutorial completes shaping and all four v4 actions', async ({ page }) => {
+test('B7 tutorial validates geometry for all actions and requires release', async ({ page }) => {
   await page.goto('/?dev=1&mock=1');
   await page.locator('[data-action="tutorial"]').hover();
   const lesson = page.locator('.tutorial-card');
+  const complete = async (key: string, step: number) => {
+    await page.keyboard.press(key); await expect(lesson).toHaveAttribute('data-state', 'matched');
+    await expect(lesson).toHaveAttribute('data-step', String(step));
+    await page.keyboard.press('Escape'); await expect(lesson).toHaveAttribute('data-step', String(step + 1));
+  };
   await expect(lesson).toHaveAttribute('data-step', '0');
-  await page.keyboard.press('s'); await expect(lesson).toHaveAttribute('data-step', '1');
-  await page.keyboard.press('u'); await expect(lesson).toHaveAttribute('data-step', '2');
-  await page.keyboard.press('i'); await expect(lesson).toHaveAttribute('data-step', '3');
+  await complete('s', 0); await complete('u', 1); await complete('i', 2);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.mouse.move(0, 0);
   await page.keyboard.press('Escape');
@@ -115,9 +118,37 @@ test('B7 tutorial completes shaping and all four v4 actions', async ({ page }) =
   await page.keyboard.press('x');
   await page.keyboard.press('w'); await expect(page.locator('.hud__hint')).toContainText('Смести');
   await expect(page.locator('.hud__hint')).toBeVisible(); await page.keyboard.press('w');
-  await page.keyboard.press('o'); await expect(lesson).toHaveAttribute('data-step', '4');
-  await page.keyboard.press('d'); await expect(lesson).toHaveAttribute('data-step', '5');
+  await complete('o', 3); await complete('d', 4);
   await page.keyboard.press('f'); await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'menu');
+});
+
+test('B7 palm dwell fills, failures stop the lesson and palm retry resets the attempt', async ({ page }) => {
+  await page.goto('/?dev=1&mock=1');
+  await expect(page.getByTestId('mock-badge')).toBeVisible();
+  await page.keyboard.press('h');
+  const button = page.locator('[data-action="tutorial"]');
+  await button.hover();
+  await expect(button).toHaveClass(/is-dwelling/);
+  await expect.poll(() => button.evaluate((el) => parseFloat((el as HTMLElement).style.getPropertyValue('--dwell')))).toBeGreaterThan(0);
+  const lesson = page.locator('.tutorial-card');
+  await expect(lesson).toHaveAttribute('data-step', '0');
+  await page.mouse.move(0, 0);
+  // An actual mock clay tear exceeds the geometry validator's damage limit.
+  await page.keyboard.press('t');
+  await expect(lesson).toHaveAttribute('data-state', 'failed');
+  await expect(lesson.locator('.tutorial-feedback')).toContainText('Стенка повреждена');
+  await page.keyboard.press('s'); await expect(lesson).toHaveAttribute('data-step', '0');
+  for (const size of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
+    await page.setViewportSize(size);
+    const retry = page.locator('[data-action="lesson-retry"]');
+    await expect(retry).toBeVisible();
+    const box = await retry.boundingBox(); expect(box!.y + box!.height).toBeLessThanOrEqual(size.height);
+    await page.screenshot({ path: `test-results/b7-failed-${size.width}.png` });
+  }
+  await page.locator('[data-action="lesson-retry"]').hover();
+  await expect(lesson).toHaveAttribute('data-state', 'working');
+  await expect(lesson).toHaveAttribute('data-step', '0');
+  await expect(page.locator('[data-action="lesson-retry"]')).toBeHidden();
 });
 
 test('B6 continues without sound APIs and toggles mute by dwell', async ({ page }) => {

@@ -12,8 +12,9 @@ function fixture() {
   const tick = () => { now += 100; const snap = core.tick(now); script.update(snap, now); return snap; };
   const key = (name: string) => core.key(name, now);
   const hold = (name: string, frames = 9) => { key(name); for (let i = 0; i < frames; i++) tick(); };
+  const complete = (name: string) => { hold(name); expect(script.status).toBe('matched'); hold('Escape', 1); };
   tick();
-  return { core, script, tick, key, hold, now: () => now };
+  return { core, script, tick, key, hold, complete, now: () => now };
 }
 
 it('explains the missing lesson condition rather than leaving step one silent', () => {
@@ -27,12 +28,12 @@ it('explains the missing lesson condition rather than leaving step one silent', 
 
 it('completes exactly the five pottery actions and then finishes', () => {
   const f = fixture();
+  f.complete('s'); expect(f.script.step).toBe(1);
   f.hold('s'); expect(f.script.step).toBe(1);
-  f.hold('s'); expect(f.script.step).toBe(1);
-  f.hold('u'); expect(f.script.step).toBe(2);
-  f.hold('i'); expect(f.script.step).toBe(3);
-  f.hold('o'); expect(f.script.step).toBe(4);
-  f.hold('d'); expect(f.script.step).toBe(5);
+  f.complete('u'); expect(f.script.step).toBe(2);
+  f.complete('i'); expect(f.script.step).toBe(3);
+  f.complete('o'); expect(f.script.step).toBe(4);
+  f.complete('d'); expect(f.script.step).toBe(5);
   f.key('f'); expect(f.tick().phase).toBe('menu');
 });
 
@@ -42,21 +43,31 @@ it('does not accept a deforming flag without a matching shape change, replayed i
   for (let t = f.now(); t < f.now() + 2000; t += 10) f.script.update(snapshot, t);
   expect(f.script.step).toBe(0);
   f.key('x'); f.hold('s'); expect(f.script.step).toBe(0);
-  f.key('x'); f.hold('s'); expect(f.script.step).toBe(1);
-  f.hold('s'); expect(f.script.step).toBe(1); expect(f.script.waitingRelease).toBe(true);
+  f.key('x'); f.hold('s'); expect(f.script.step).toBe(0);
+  f.hold('s'); expect(f.script.step).toBe(0); expect(f.script.waitingRelease).toBe(true);
   f.key('x'); f.tick(); expect(f.script.waitingRelease).toBe(true);
   f.key('x'); f.hold('Escape'); expect(f.script.waitingRelease).toBe(false);
   f.core.dispatch({ type: 'restart', newSessionId: 'lesson-2' }, f.now()); f.tick();
   expect(f.script.step).toBe(0);
 });
 
-it('requires both width and depth to increase when opening', () => {
-  const f = fixture(); f.hold('s'); f.hold('u'); f.hold('i');
+it('requires both opening dimensions to match the target, not merely increase', () => {
+  const f = fixture(); f.complete('s'); f.complete('u'); f.complete('i');
   const snap = f.tick(); snap.gesture!.gesture = 'open'; snap.gesture!.deforming = true;
   snap.clay!.cavityRadiusWorld += .1;
   snap.input!.frameId++; snap.gesture!.sourceFrameId = snap.input!.frameId;
   f.script.update(snap, f.now()); expect(f.script.step).toBe(3);
   snap.clay!.cavityDepthWorld += .1;
   snap.input!.frameId++; snap.gesture!.sourceFrameId = snap.input!.frameId;
-  f.script.update(snap, f.now()); expect(f.script.step).toBe(4);
+  f.script.update(snap, f.now()); expect(f.script.step).toBe(3); expect(f.script.status).toBe('working');
+});
+
+it('latches geometry failure, disables actions, and restarts the whole attempt', () => {
+  const f = fixture(); f.complete('s'); f.key('u');
+  f.core.tick(f.now()).clay!.height += .4;
+  f.tick(); expect(f.script.status).toBe('failed'); expect(f.script.assessment!.failure).toContain('выше');
+  const height = f.core.tick(f.now()).clay!.height;
+  f.hold('u'); expect(f.core.tick(f.now()).clay!.height).toBe(height); expect(f.script.step).toBe(1);
+  f.core.dispatch({ type: 'restart', newSessionId: 'retry' }, f.now()); f.tick();
+  expect(f.script.step).toBe(0); expect(f.script.status).toBe('working');
 });

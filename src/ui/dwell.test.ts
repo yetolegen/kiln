@@ -2,6 +2,7 @@ import { expect, it } from 'vitest';
 import { DwellController } from './dwell';
 import { MockCore } from '../dev/mockCore';
 import { cameraProjection } from '../browser/camera';
+import type { FrameInput } from '../types';
 
 function fixture() {
   const core = new MockCore();
@@ -62,4 +63,29 @@ it('resets accumulated progress on stale input, loss, epoch, and screen change',
   for (let t = 2200; t <= 2600; t += 100) f.update(t);
   f.dwell.update(f.core.tick(2700), 2700, f.targets, 1);
   expect(f.dwell.progress).toBe(0);
+});
+
+it.each([1, 3])('uses palm track %i over a button without any pointing gesture', (track) => {
+  const f = fixture(); f.core.key('Escape', 0); let fires = 0;
+  for (let t = 0; t <= 2400; t += 100) {
+    const snap = f.core.tick(t), hand = [snap.input!.screenLeft, snap.input!.screenRight].find((h) => h?.trackId === track)!;
+    hand.palmPx = { x: 50, y: 50 }; snap.gesture!.cursorPx = null;
+    if (f.dwell.update(snap, t, f.targets)) fires++;
+    expect(f.dwell.cursorPx).toEqual({ x: 50, y: 50 });
+  }
+  expect(fires).toBe(1); expect(f.dwell.progress).toBe(1);
+});
+
+it('resets a palm hold on hand switch, leaving the button and invalid tracking', () => {
+  const f = fixture(); f.core.key('Escape', 0);
+  const update = (t: number, track: number, x = 50, status: FrameInput['status'] = 'ready') => {
+    const s = f.core.tick(t); s.input!.status = status;
+    for (const h of [s.input!.screenLeft, s.input!.screenRight]) if (h) h.palmPx = { x: h.trackId === track ? x : 400, y: 50 };
+    return f.dwell.update(s, t, f.targets);
+  };
+  for (let t = 0; t <= 600; t += 100) update(t, 1);
+  expect(f.dwell.progress).toBeGreaterThan(.5);
+  update(700, 3); expect(f.dwell.progress).toBe(0);
+  update(800, 3, 150); expect(f.dwell.activeId).toBeNull();
+  update(900, 3); update(1000, 3, 50, 'reacquiring'); expect(f.dwell.progress).toBe(0);
 });

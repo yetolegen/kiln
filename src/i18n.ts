@@ -41,7 +41,7 @@ export type StartupProblem = keyof typeof ru.errors;
 export const phaseText: Record<AppPhase, readonly [string, string]> = {
   loading: [ru.title, ru.loading], permission: [ru.title, ru.permission],
   calibrate: [ru.calibrateTitle, ru.calibrateText],
-  menu: ['Что создадим?', 'Укажите на карточку и задержите палец, пока круг не заполнится.'],
+  menu: ['Что создадим?', 'Наведите центр ладони на карточку и задержите, пока круг не заполнится.'],
   tutorial: ['Почувствуйте глину', 'Учимся управлять формой, шаг за шагом.'],
   studio: ['Ваша форма', 'Поднимите обе открытые ладони выше сосуда и удерживайте, чтобы завершить.'],
   glaze: ['Последний штрих', 'Выберите глазурь для своего сосуда.'],
