@@ -673,9 +673,7 @@ const STEP: Record<Kind, Step> = {
     if (!fingertipInOpening(h, clay, world, e.armed ? clay.radii[band] - clay.cavityRadiusWorld : 0)) return null;
     const x = Math.abs(tip.x);
     const gap = t - e.lastMs > CONFIG.MAX_INPUT_AGE_MS;
-    const prevX = e.lastY;
     e.lastMs = t;
-    e.lastY = x;
     if (!e.armed) {
       e.ms = speedOf(h) < CONFIG.STILL_PALM_PER_S ? e.ms + dtS * 1000 : 0;
       if (e.ms < CONFIG.WIDEN_ACQUIRE_MS) return idle(e.ms / CONFIG.WIDEN_ACQUIRE_MS);
@@ -683,7 +681,9 @@ const STEP: Record<Kind, Step> = {
       e.topY = x;
       return idle(1);
     }
-    const speed = !gap && dtS > 0 && Number.isFinite(prevX) ? (x - prevX) / dtS / Z.palmW : 0;
+    // outward speed from the FILTERED palm velocity: raw fingertip landmarks jitter ±3–5 px per frame on a webcam,
+    // which read as >1.5 palm/s and kept cancelling a slow push. The palm moves with the finger in a sideways push.
+    const speed = h.velocityValid ? h.velocityPalmPerS.x * Math.sign(tip.x) : 0;
     if (speed > CONFIG.WIDEN_MAX_PALM_PER_S) {
       rec.latch({ intended: 'widen', reason: 'widenTooFast', handTrackId: h.trackId, params: {} }, t);
       return null;

@@ -3,7 +3,7 @@ import { CONFIG } from '../src/config';
 import { createClay, enforceInvariants, stepClay, type ClayModel } from '../src/engine/clay';
 import { GestureRecognizer } from '../src/tracking/gestures';
 import type { FrameInput, GestureContext, GestureState, HandFeatures } from '../src/types';
-import { frame, hand, moving, poseHand, PROJ, shapingHands } from './helpers';
+import { frame, hand, moving, poseHand, PROJ, rng, shapingHands } from './helpers';
 
 const CTX: GestureContext = { phase: 'studio', potHeightWorld: 1.2, uiEnabled: false };
 const TOP = 47;
@@ -494,9 +494,17 @@ describe('widen (v8.2): fingertip inside the opening pushes the wall out, like a
     expect(s.g.gesture).toBe('compressRim');
   });
 
+  it('webcam fingertip jitter (±5 px per frame) during a slow push neither cancels it nor loses the widening', () => {
+    const r = rng(7);
+    const s = run((t) => [SUPPORT(), poke(t < 400 ? 0 : Math.min(0.3, ((t - 400) / 1000) * 0.15) + ((r() * 2 - 1) * 5) / 180, 0.9, moving(0.3, 0))],
+      2500, { rec: new GestureRecognizer(), clay: opened(), t: 0 });
+    expect(s.seen.some((g) => g.nearMiss?.reason === 'widenTooFast')).toBe(false);
+    expect(s.clay.radii[band(0.9, s.clay)]).toBeCloseTo(1 + 0.3 * CONFIG.WIDEN_GAIN, 1);
+  });
+
   it('pushing too fast cancels without widening and says so', () => {
     const armed = run([SUPPORT(), poke(0, 0.9)], CONFIG.WIDEN_ACQUIRE_MS + 100, { rec: new GestureRecognizer(), clay: opened(), t: 0 });
-    const fast = run((t) => [SUPPORT(), poke(t - armed.t < 40 ? 0 : 0.3, 0.9)], 300, cont(armed));
+    const fast = run((t) => [SUPPORT(), poke(t - armed.t < 40 ? 0 : 0.3, 0.9, moving(3, 0))], 300, cont(armed));
     expect(fast.clay.radii[band(0.9, fast.clay)]).toBeCloseTo(1, 2);
     expect(fast.seen.some((g) => g.nearMiss?.reason === 'widenTooFast')).toBe(true);
   });
