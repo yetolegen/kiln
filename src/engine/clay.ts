@@ -1,5 +1,7 @@
-// Clay game model (PLAN §7). Pure: returns new states, never mutates the input.
+// Clay game model (PLAN §7 + docs/GESTURES_V4.md). Pure: returns new states, never mutates the input.
 // All rates are per second; nothing depends on the frame rate.
+// The pot is solid until indented; the opening is a cylinder (cavityRadius, cavityDepth down from the rim).
+// thickness is DERIVED: the thinnest wall around the opening (solid pot: the narrowest radius).
 import { CONFIG } from '../config';
 import type { ClayState, CollapseCause, GestureState } from '../types';
 
@@ -10,17 +12,28 @@ const finiteOr = (v: number, fallback: number) => (Number.isFinite(v) ? v : fall
 export interface ClayEffects { tearBand: number | null; wobbling: boolean }
 export const NO_EFFECTS: ClayEffects = { tearBand: null, wobbling: false };
 
+/** What the recognizer measured for the one-hand actions on this observation (gestures.ts decides). */
+export interface ActionDelta {
+  liftWorld: number;     // hand rise while the lift is armed
+  indent: boolean;       // the one-shot shallow indentation happened now
+  spreadRatio: number;   // pinch-ratio growth since the widest span so far
+  compressWorld: number; // hand descent while the rim compression is armed (already bounded per engagement)
+}
+export const NO_DELTA: ActionDelta = { liftWorld: 0, indent: false, spreadRatio: 0, compressWorld: 0 };
+
 /** ClayState plus bookkeeping the renderer doesn't need. */
 export interface ClayModel extends ClayState {
-  recoveryMs: number; // real pressing accumulated while collapsed
+  recoveryMs: number; // real rim compression accumulated while collapsed
 }
 
 export function createClay(): ClayModel {
-  return {
+  const c: ClayModel = {
     revision: 0,
     radii: new Float32Array(CONFIG.N_BANDS).fill(CONFIG.INIT_RADIUS),
     height: CONFIG.INIT_HEIGHT,
-    thickness: CONFIG.INIT_THICKNESS,
+    thickness: 0,
+    cavityRadiusWorld: 0,
+    cavityDepthWorld: 0,
     wobble: 0,
     damage: new Float32Array(CONFIG.N_BANDS),
     collapsed: false,
@@ -29,28 +42,41 @@ export function createClay(): ClayModel {
     activeBand: null,
     recoveryMs: 0,
   };
+  return enforceInvariants(c);
 }
 
 export function cloneClay(c: ClayModel): ClayModel {
   return { ...c, radii: c.radii.slice(), damage: c.damage.slice() };
 }
 
-/** Clamp everything into the legal range and replace NaN/Infinity. Mutates and returns c. */
+/** First band (bottom → top) that lies inside the opening. */
+export function cavityStartBand(c: Pick<ClayState, 'radii' | 'height' | 'cavityDepthWorld'>): number {
+  const n = c.radii.length;
+  return Math.max(0, Math.min(n - 1, Math.floor(((c.height - c.cavityDepthWorld) / c.height) * (n - 1))));
+}
+
+function minRadius(radii: ArrayLike<number>, from = 0): number {
+  let m = Infinity;
+  for (let i = from; i < radii.length; i++) m = Math.min(m, radii[i]);
+  return m;
+}
+
+/** Clamp everything into the legal range, replace NaN/Infinity, derive thickness. Mutates and returns c. */
 export function enforceInvariants<T extends ClayState>(c: T): T {
-  let minR = Infinity;
   for (let i = 0; i < c.radii.length; i++) {
     c.radii[i] = clamp(finiteOr(c.radii[i], CONFIG.INIT_RADIUS), CONFIG.MIN_R, CONFIG.MAX_R);
     c.damage[i] = clamp(finiteOr(c.damage[i], 0), 0, 1);
-    minR = Math.min(minR, c.radii[i]);
   }
   c.height = clamp(finiteOr(c.height, CONFIG.INIT_HEIGHT), CONFIG.MIN_HEIGHT, CONFIG.MAX_HEIGHT);
-  // the wall can't be thicker than the narrowest band minus a small hole
-  c.thickness = clamp(
-    finiteOr(c.thickness, CONFIG.INIT_THICKNESS),
-    CONFIG.THICKNESS_FLOOR,
-    Math.min(CONFIG.MAX_THICKNESS, minR - CONFIG.MIN_INNER_RADIUS),
-  );
   c.wobble = clamp(finiteOr(c.wobble, 0), 0, 1);
+
+  // the opening keeps a floor under it and at least THICKNESS_FLOOR of wall around it
+  c.cavityDepthWorld = clamp(finiteOr(c.cavityDepthWorld, 0), 0, c.height - CONFIG.FLOOR_WORLD);
+  const wallR = minRadius(c.radii, cavityStartBand(c));
+  c.cavityRadiusWorld = clamp(finiteOr(c.cavityRadiusWorld, 0), 0, wallR - CONFIG.THICKNESS_FLOOR);
+  if (c.cavityDepthWorld <= 0 || c.cavityRadiusWorld <= 0) c.cavityDepthWorld = c.cavityRadiusWorld = 0;
+
+  c.thickness = c.cavityDepthWorld > 0 ? wallR - c.cavityRadiusWorld : minRadius(c.radii);
   return c;
 }
 
@@ -74,25 +100,35 @@ export function findOverhang(c: ClayState): { band: number; slope: number } | nu
 }
 
 /** One engine step per new observation. dtS is already capped by the controller. */
-export function stepClay(clay: ClayModel, g: GestureState, dtS: number, fx: ClayEffects = NO_EFFECTS): ClayModel {
+export function stepClay(
+  clay: ClayModel, g: GestureState, dtS: number, fx: ClayEffects = NO_EFFECTS, d: ActionDelta = NO_DELTA,
+): ClayModel {
   const c = cloneClay(clay);
   c.touching = g.deforming;
   c.activeBand = g.deforming ? g.contact.activeBand : null;
   let changed = false;
 
   if (dtS > 0) {
-    const ms = g.motionStrength;
-    const acting = g.deforming && !c.collapsed; // while collapsed only pressing acts
+    const acting = g.deforming && !c.collapsed; // while collapsed only the rim compression acts
     if (acting && g.gesture === 'shape' && g.targetRadiusWorld !== null && g.contact.bandY !== null) {
       shape(c, g.contact.bandY, g.targetRadiusWorld, dtS);
       changed = true;
     }
-    if (acting && g.gesture === 'pullUp' && ms > 0) {
-      changed = changeHeight(c, CONFIG.PULL_RATE * ms * dtS) || changed;
+    if (acting && g.gesture === 'pullUp' && d.liftWorld > 0) {
+      changed = changeHeight(c, d.liftWorld) || changed;
     }
-    if (g.deforming && g.gesture === 'pressDown' && ms > 0) {
-      changeHeight(c, -CONFIG.PRESS_RATE * ms * dtS);
-      repair(c, ms * dtS);
+    if (acting && g.gesture === 'indent' && d.indent) {
+      // exactly this shallow: re-indenting can't deepen it, only opening can
+      c.cavityDepthWorld = Math.max(c.cavityDepthWorld, CONFIG.INDENT_DEPTH_WORLD);
+      c.cavityRadiusWorld = Math.max(c.cavityRadiusWorld, CONFIG.INDENT_RADIUS_WORLD);
+      changed = true;
+    }
+    if (acting && g.gesture === 'open' && d.spreadRatio > 0 && c.cavityDepthWorld > 0) {
+      open(c, d.spreadRatio);
+      changed = true;
+    }
+    if (g.deforming && g.gesture === 'compressRim' && d.compressWorld > 0) {
+      compressRim(c, d.compressWorld, g.motionStrength * dtS);
       if (c.collapsed) c.recoveryMs += dtS * 1000;
       changed = true;
     }
@@ -129,23 +165,39 @@ function shape(c: ClayState, bandY: number, targetRadiusWorld: number, dtS: numb
   }
 }
 
-// Pull (+) / press (−). Thinning and narrowing follow the ACTUAL height change, so pulling
-// at MAX_HEIGHT (dH = 0) no longer thins the walls. Returns whether the height moved.
+// Lift (+) / compress (−). The walls narrow when lifted and widen when compressed. The floor stays put,
+// so an existing opening gets deeper as the rim rises and shallower as it is pushed down.
 function changeHeight(c: ClayState, requested: number): boolean {
   const newH = clamp(c.height + requested, CONFIG.MIN_HEIGHT, CONFIG.MAX_HEIGHT);
   const dH = newH - c.height;
   if (dH === 0) return false;
-  c.thickness -= CONFIG.THIN_PER_HEIGHT * dH;
   const k = Math.exp(-CONFIG.RADIAL_STRAIN_PER_HEIGHT * dH);
   for (let j = 0; j < c.radii.length; j++) c.radii[j] *= k;
+  if (c.cavityDepthWorld > 0) c.cavityDepthWorld += dH;
   c.height = newH;
   return true;
 }
 
-// Pressing re-centres and compacts the clay. Works at MIN_HEIGHT too.
-function repair(c: ClayState, strengthS: number): void {
-  c.thickness += CONFIG.REPAIR_THICKNESS_PER_S * strengthS;
-  for (let j = 0; j < c.damage.length; j++) c.damage[j] -= CONFIG.REPAIR_DAMAGE_PER_S * strengthS;
+// Spreading the pinch widens and deepens the opening, but never past a wall of OPEN_MIN_WALL and a floor.
+function open(c: ClayState, spreadRatio: number): void {
+  c.cavityDepthWorld = Math.min(c.cavityDepthWorld + CONFIG.OPEN_DEPTH_PER_SPAN * spreadRatio, c.height - CONFIG.FLOOR_WORLD);
+  const limit = minRadius(c.radii, cavityStartBand(c)) - CONFIG.OPEN_MIN_WALL_WORLD;
+  c.cavityRadiusWorld = Math.max(c.cavityRadiusWorld, Math.min(c.cavityRadiusWorld + CONFIG.OPEN_RADIUS_PER_SPAN * spreadRatio, limit));
+}
+
+// Rim compression: bounded push down, smooths and strengthens the upper profile, heals damage and wobble.
+function compressRim(c: ClayState, compressWorld: number, strengthS: number): void {
+  const before = c.height;
+  changeHeight(c, -compressWorld);
+  const pushed = before - c.height;
+  c.cavityRadiusWorld = Math.max(0, c.cavityRadiusWorld - CONFIG.COMPRESS_CAVITY_SHRINK_PER_WORLD * pushed);
+  const n = c.radii.length;
+  const a = 1 - Math.exp(-CONFIG.COMPRESS_SMOOTH_PER_S * strengthS);
+  for (let j = Math.floor(n / 2); j < n; j++) {
+    const avg = (c.radii[j - 1] + c.radii[j] + c.radii[Math.min(j + 1, n - 1)]) / 3;
+    c.radii[j] += (avg - c.radii[j]) * a;
+    c.damage[j] -= CONFIG.REPAIR_DAMAGE_PER_S * strengthS;
+  }
   c.wobble *= Math.exp(-CONFIG.WOBBLE_DAMPING_PER_S * strengthS);
 }
 
@@ -154,7 +206,6 @@ function tear(c: ClayState, band: number, dtS: number): void {
   for (let j = Math.max(0, Math.floor(band - 3 * s)); j <= Math.min(c.damage.length - 1, band + 3 * s); j++) {
     c.damage[j] += CONFIG.DAMAGE_PER_S * dtS * Math.exp(-0.5 * ((j - band) / s) ** 2);
   }
-  c.thickness -= CONFIG.TEAR_THICKNESS_LOSS_PER_S * dtS;
 }
 
 // Upper band much wider than the one below: pull it in, rate-limited. Never pushes outward.
@@ -172,12 +223,12 @@ function smoothOverhang(c: ClayState, dtS: number): boolean {
   return changed;
 }
 
-// Collapse enters ONCE (one-time sag). It clears only after real pressing has made the pot sound again.
+// Collapse enters ONCE (one-time sag). It clears only after real rim compression has made the pot sound again.
 function updateCollapse(c: ClayModel): boolean {
   const maxH = maxStableHeight(c.radii);
   if (!c.collapsed) {
     const cause: CollapseCause | null =
-      c.thickness < CONFIG.MIN_THICKNESS ? 'thinWall' : c.height > maxH ? 'tooTall' : null;
+      c.cavityDepthWorld > 0 && c.thickness < CONFIG.MIN_THICKNESS ? 'thinWall' : c.height > maxH ? 'tooTall' : null;
     if (!cause) return false;
     c.collapsed = true;
     c.collapseCause = cause;
@@ -187,7 +238,7 @@ function updateCollapse(c: ClayModel): boolean {
     return true;
   }
   const sound =
-    c.thickness >= CONFIG.MIN_THICKNESS + CONFIG.RECOVERY_THICKNESS_MARGIN &&
+    (c.cavityDepthWorld === 0 || c.thickness >= CONFIG.MIN_THICKNESS + CONFIG.RECOVERY_THICKNESS_MARGIN) &&
     c.height <= maxH - CONFIG.RECOVERY_HEIGHT_MARGIN &&
     c.wobble <= CONFIG.RECOVERY_WOBBLE_MAX &&
     c.recoveryMs >= CONFIG.RECOVERY_ACTIVE_MS;
@@ -200,6 +251,7 @@ function updateCollapse(c: ClayModel): boolean {
 
 function sag(c: ClayState): void {
   c.height = Math.max(CONFIG.MIN_HEIGHT, CONFIG.SAG_HEIGHT_FACTOR * c.height);
+  c.cavityDepthWorld *= CONFIG.SAG_HEIGHT_FACTOR;
   const n = c.radii.length;
   for (let pass = 0; pass < CONFIG.SAG_SMOOTH_PASSES; pass++) {
     for (let j = Math.floor(n / 2); j < n; j++) {

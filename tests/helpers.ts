@@ -43,7 +43,8 @@ export function frame(tMs: number, left: HandFeatures | null, right: HandFeature
 export function shapeGesture(bandY: number, targetRadiusWorld: number, deforming = true): GestureState {
   return {
     gesture: 'shape', sourceFrameId: 0, capturedAtMs: 0, holdMs: 500, inputUsable: true, deforming,
-    motionStrength: 0, targetRadiusWorld, centerOffsetPalm: 0, speedPalmPerS: 0,
+    motionStrength: 0, activeTrackId: null, supportTrackId: null, activationProgress: 0,
+    targetRadiusWorld, centerOffsetPalm: 0, speedPalmPerS: 0,
     contact: {
       valid: deforming, activeBand: Math.round(bandY * 47), bandY,
       leftErrorWorld: 0, rightErrorWorld: 0, reason: null,
@@ -64,8 +65,72 @@ export function rawOpenHand(u: number, v: number): Vec3[] {
   return p;
 }
 
-export function moveGesture(gesture: 'pullUp' | 'pressDown', motionStrength = 1): GestureState {
-  return { ...shapeGesture(0.5, 1), gesture, motionStrength, targetRadiusWorld: null };
+/** A deforming one-hand action, for driving stepClay directly with an ActionDelta. */
+export function actionGesture(gesture: 'pullUp' | 'indent' | 'open' | 'compressRim', motionStrength = 1): GestureState {
+  return {
+    ...shapeGesture(0.5, 1), gesture, motionStrength, targetRadiusWorld: null,
+    activeTrackId: 2, supportTrackId: 1, activationProgress: 1,
+    contact: { valid: false, activeBand: null, bandY: null, leftErrorWorld: null, rightErrorWorld: null, reason: null },
+  };
+}
+
+const px = (x: number, y: number) => ({ x: PROJ.axisXPx + x * 180, y: PROJ.bottomYPx - y * 180 });
+const toWorld = (p: { x: number; y: number }) => ({ x: (p.x - PROJ.axisXPx) / 180, y: (PROJ.bottomYPx - p.y) / 180 });
+
+/**
+ * A hand with real landmark geometry (screen px, 100 px palm), for the v4 one-hand actions.
+ *  wall:  open palm, fingers up (a support hand or a shaping hand); (x, y) = palm
+ *  flat:  open palm, fingers sideways (lift at the base, rim compression); (x, y) = palm
+ *  thumbDown: fist with the thumb pointing down; (x, y) = THUMB TIP
+ *  pinch: thumb and index tips together (ratio 0.2); (x, y) = pinch point
+ *  spread: thumb and index apart by `ratio` palm sizes; (x, y) = midpoint of the tips
+ */
+export function poseHand(
+  pose: 'wall' | 'flat' | 'thumbDown' | 'pinch' | 'spread', x: number, y: number,
+  over: Partial<HandFeatures> & { ratio?: number } = {},
+): HandFeatures {
+  const p = px(x, y);
+  const lm = Array.from({ length: 21 }, () => ({ ...p }));
+  let palm = p;
+  let extension = { index: 1, middle: 1, ring: 1, pinky: 1 };
+  let pinchRatio = 1;
+  if (pose === 'wall') {
+    lm[0] = { x: p.x, y: p.y + 50 };
+    lm[9] = { x: p.x, y: p.y - 50 };
+  } else if (pose === 'flat') {
+    lm[0] = { x: p.x - 50, y: p.y };
+    lm[9] = { x: p.x + 50, y: p.y };
+  } else if (pose === 'thumbDown') {
+    palm = { x: p.x, y: p.y - 70 };
+    extension = { index: 0, middle: 0, ring: 0, pinky: 0 };
+    pinchRatio = 0.7;
+    lm[0] = { x: palm.x, y: palm.y - 40 };
+    lm[9] = { x: palm.x, y: palm.y + 10 };
+    lm[2] = { x: p.x, y: p.y - 45 }; // thumb knuckle straight above its tip
+    lm[4] = { ...p };
+    lm[8] = { x: palm.x + 30, y: palm.y };
+  } else {
+    pinchRatio = pose === 'pinch' ? 0.2 : over.ratio ?? 1;
+    palm = { x: p.x, y: p.y - 70 };
+    extension = { index: 0.8, middle: 0.3, ring: 0.3, pinky: 0.3 };
+    lm[0] = { x: palm.x, y: palm.y - 40 };
+    lm[9] = { x: palm.x, y: palm.y + 10 };
+    lm[2] = { x: p.x - 30, y: p.y - 40 };
+    lm[4] = { x: p.x - pinchRatio * 50, y: p.y };
+    lm[8] = { x: p.x + pinchRatio * 50, y: p.y };
+  }
+  const { ratio: _ratio, ...rest } = over;
+  const palmWorld = toWorld(palm);
+  return hand(palmWorld.x, palmWorld.y, {
+    palmPx: palm, landmarksPx: lm, extension, pinchRatio, indexTipPx: lm[8],
+    openness: (extension.index + extension.middle + extension.ring + extension.pinky) / 4,
+    ...rest,
+  });
+}
+
+/** Palm speed in palms/s and the matching world velocity (100 px palm, 180 px per world unit). */
+export function moving(vxPalm: number, vyPalm: number): Pick<HandFeatures, 'velocityPalmPerS' | 'velocityWorldPerS'> {
+  return { velocityPalmPerS: { x: vxPalm, y: vyPalm }, velocityWorldPerS: { x: (vxPalm * 100) / 180, y: (vyPalm * 100) / 180 } };
 }
 
 /** Real controller walked through loading → calibrate (hands held still) → menu. Returns the next free time. */
