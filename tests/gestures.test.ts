@@ -179,19 +179,26 @@ describe('lift (pullUp): 3 s armed hold, then a slow rise', () => {
   });
 });
 
-describe('indent: thumb down at the top centre, one shallow push', () => {
+describe('indent: thumb down at the top centre, push in (v5: deeper = thinner floor = hole)', () => {
   const thumb = (y: number, over: Partial<HandFeatures> = {}) => poseHand('thumbDown', 0, y, { trackId: 2, ...over });
+  // the thumb tip moves down at 0.3 world/s (palm speed -0.54 palm/s = -0.3 world/s)
   const pushing = (t0: number) => (t: number): [HandFeatures, HandFeatures] =>
     [SUPPORT(), thumb(1.2 - ((t - t0) / 1000) * 0.3, moving(0, -0.54))];
 
-  it('a short push makes ONE shallow indentation; holding or repeating never deepens it', () => {
+  it('a short push makes a shallow dent that follows the thumb', () => {
     const s = run(pushing(0), 600);
     expect(s.seen.some((g) => g.gesture === 'indent' && g.deforming)).toBe(true);
-    expect(s.clay.cavityDepthWorld).toBeCloseTo(CONFIG.INDENT_DEPTH_WORLD);
+    expect(s.clay.cavityDepthWorld).toBeGreaterThanOrEqual(CONFIG.INDENT_DEPTH_WORLD);
+    expect(s.clay.cavityDepthWorld).toBeLessThan(0.35);
     expect(s.clay.cavityRadiusWorld).toBeCloseTo(CONFIG.INDENT_RADIUS_WORLD);
-    // hold, release, and push again
-    const again = run(pushing(s.t + 400), 600, cont(run([SUPPORT(), hand(1.8, 0.6, { trackId: 2 })], 300, cont(s))));
-    expect(again.clay.cavityDepthWorld).toBeCloseTo(CONFIG.INDENT_DEPTH_WORLD);
+    expect(s.clay.bottomHole).toBe(false);
+  });
+
+  it('pushing on goes through the floor: a real, permanent hole', () => {
+    const s = run(pushing(0), 5000);
+    expect(s.clay.bottomHole).toBe(true);
+    expect(s.clay.collapseCause).toBe('bottomHole');
+    expect(s.clay.floorThicknessWorld).toBe(0);
   });
 
   it('without the push (just resting) nothing happens; progress shows the travel', () => {
@@ -258,12 +265,18 @@ describe('compressRim: flat hand just above the rim, brief hold, slowly down', (
     const hold = run([SUPPORT(), rimHand(1.35)], CONFIG.COMPRESS_HOLD_MS + 100, { rec: new GestureRecognizer(), clay: damaged, t: 0 });
     expect(hold.g.gesture).toBe('compressRim');
     expect(hold.g.activationProgress).toBe(1);
-    const down = run((t) => [SUPPORT(), rimHand(1.35 - ((t - hold.t) / 1000) * 0.28, moving(0, -0.5))], 2500, cont(hold));
+    const down = run((t) => [SUPPORT(), rimHand(1.35 - ((t - hold.t) / 1000) * 0.28, moving(0, -0.5))], 800, cont(hold));
     expect(down.seen.some((g) => g.deforming && g.gesture === 'compressRim')).toBe(true);
-    expect(down.clay.height).toBeLessThan(CONFIG.INIT_HEIGHT);
-    expect(CONFIG.INIT_HEIGHT - down.clay.height).toBeLessThanOrEqual(CONFIG.COMPRESS_MAX_TOTAL_WORLD + 1e-6);
+    expect(down.clay.height).toBeLessThan(CONFIG.INIT_HEIGHT - 0.1); // clearly visible
+    expect(down.clay.collapsed).toBe(false);
     expect(down.clay.damage[40]).toBeLessThan(0.8);
     expect(down.clay.damage[5]).toBeCloseTo(0.8); // lower half untouched
+  });
+
+  it('v5: keeping on pressing flattens it into a pancake', () => {
+    const hold = run([SUPPORT(), rimHand(1.35)], CONFIG.COMPRESS_HOLD_MS + 100);
+    const down = run((t) => [SUPPORT(), rimHand(1.35 - ((t - hold.t) / 1000) * 0.28, moving(0, -0.5))], 4000, cont(hold));
+    expect(down.clay.collapseCause).toBe('pancake');
   });
 
   it('moving up stops it; a hand too high is coached lower', () => {

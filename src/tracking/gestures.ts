@@ -98,10 +98,9 @@ interface Engagement {
   supportId: number;
   ms: number;
   armed: boolean;
-  travel: number;     // indent: downward thumb travel
-  done: boolean;      // indent: the one-shot happened
+  travel: number;     // indent: downward thumb travel so far (jitter guard)
+  armedMs: number;    // time since the action armed (open: stretch duration, v5)
   span: number;       // open: widest pinch ratio so far
-  compressed: number; // rim: total pushed in this engagement
   stillSinceMs: number | null;
 }
 
@@ -202,6 +201,8 @@ export class GestureRecognizer {
       deforming = act.deforming;
       motionStrength = act.motionStrength;
       if (deforming) this.delta = act.delta;
+      // the stretch clock runs while the opening is armed, moving or held (v5 over-stretch)
+      if (act.kind === 'open') this.delta = { ...this.delta, stretchMs: act.engagedMs };
     }
 
     let speed = 0;
@@ -221,6 +222,7 @@ export class GestureRecognizer {
       activeTrackId: act && g === act.kind ? act.activeId : null,
       supportTrackId: act && g === act.kind ? act.supportId : null,
       activationProgress: act && g === act.kind ? act.progress : 0,
+      engagedMs: act && g === act.kind ? act.engagedMs : 0,
       targetRadiusWorld: deforming && g === 'shape' ? c!.targetRadiusWorld : null,
       centerOffsetPalm: c?.centerOffsetPalm ?? null,
       speedPalmPerS: speed,
@@ -244,8 +246,9 @@ export class GestureRecognizer {
       const active = l.trackId === e.activeId ? l : r.trackId === e.activeId ? r : null;
       const support = active === l ? r : l;
       if (active && support.trackId === e.supportId && supportOk(support)) {
+        if (e.armed) e.armedMs += dtS * 1000; // dtS is 0 for replayed frames (update() returns early for them)
         const res = STEP[e.kind](this, e, active, clay, world, dtS, t);
-        if (res) return { ...res, kind: e.kind, activeId: e.activeId, supportId: e.supportId };
+        if (res) return { ...res, kind: e.kind, activeId: e.activeId, supportId: e.supportId, engagedMs: e.armed ? e.armedMs : 0 };
       }
       this.engagement = null;
     }
@@ -257,11 +260,11 @@ export class GestureRecognizer {
         if (kind === 'open' && clay.cavityDepthWorld <= 0) continue; // needs an indentation first
         const fresh: Engagement = {
           kind, activeId: active.trackId, supportId: support.trackId, ms: 0, armed: false,
-          travel: 0, done: false, span: active.pinchRatio, compressed: 0, stillSinceMs: null,
+          travel: 0, armedMs: 0, span: active.pinchRatio, stillSinceMs: null,
         };
         this.engagement = fresh;
         const res = STEP[kind](this, fresh, active, clay, world, 0, t);
-        if (res) return { ...res, kind, activeId: active.trackId, supportId: support.trackId };
+        if (res) return { ...res, kind, activeId: active.trackId, supportId: support.trackId, engagedMs: 0 };
         this.engagement = null;
       }
     }
@@ -403,8 +406,9 @@ interface ActionResult {
   deforming: boolean;
   motionStrength: number;
   delta: ActionDelta;
+  engagedMs: number;
 }
-type StepResult = Omit<ActionResult, 'kind' | 'activeId' | 'supportId'>;
+type StepResult = Omit<ActionResult, 'kind' | 'activeId' | 'supportId' | 'engagedMs'>;
 type World = (p: Vec2) => Vec2;
 
 const isKind = (g: Gesture): g is Kind => g === 'pullUp' || g === 'indent' || g === 'open' || g === 'compressRim';
@@ -441,7 +445,9 @@ const QUALIFIES: Record<Kind, (h: HandFeatures, clay: ClayState, world: World) =
   indent: (h, clay, world) => {
     if (!isThumbDown(h)) return false;
     const tip = world(h.landmarksPx[THUMB_TIP]);
-    return Math.abs(tip.x) <= Z.indentX && Math.abs(tip.y - clay.height) <= Z.indentY;
+    // at the top centre, or already down inside its own dent (the thumb goes in as it pushes)
+    return Math.abs(tip.x) <= Math.max(Z.indentX, clay.cavityRadiusWorld) &&
+      tip.y <= clay.height + Z.indentY && tip.y >= clay.height - clay.cavityDepthWorld - Z.indentY;
   },
   open: (h, clay, world) => isPinch(h, false) && atOpening(h, clay, world),
   compressRim: (h, clay) => allOpen(h, false) && !isPinch(h, false) && isHorizontal(h) && inRimZone(h, clay),
@@ -480,13 +486,18 @@ const STEP: Record<Kind, Step> = {
   },
 
   // one short push down with the thumb at the top centre makes ONE shallow indentation per engagement
+  // v5: after a short jitter guard every bit of downward thumb travel deepens the dent. About one phalanx
+  // is safe; pushing on thins the floor (thinFloor) and finally goes through (bottomHole).
   indent: (_rec, e, h, clay, world, dtS) => {
     if (!QUALIFIES.indent(h, clay, world)) return null;
-    if (e.done) return idle(1);
-    if (h.velocityValid) e.travel += Math.max(0, -h.velocityWorldPerS.y * dtS);
-    if (e.travel < CONFIG.INDENT_TRAVEL_WORLD) return idle(e.travel / CONFIG.INDENT_TRAVEL_WORLD);
-    e.done = true;
-    return { progress: 1, deforming: true, motionStrength: 1, delta: { ...NO_DELTA, indent: true } };
+    const down = h.velocityValid ? Math.max(0, -h.velocityWorldPerS.y * dtS) : 0;
+    if (!e.armed) {
+      e.travel += down;
+      if (e.travel < CONFIG.INDENT_TRAVEL_WORLD) return idle(e.travel / CONFIG.INDENT_TRAVEL_WORLD);
+      e.armed = true;
+    }
+    if (down <= 0) return idle(1);
+    return { progress: 1, deforming: true, motionStrength: 1, delta: { ...NO_DELTA, indentWorld: down } };
   },
 
   // pinch inside the opening, hold briefly, then SLOWLY spread: the widest span so far drives the opening
@@ -513,7 +524,7 @@ const STEP: Record<Kind, Step> = {
     };
   },
 
-  // open horizontal hand just above the rim: brief still hold, then slowly down, bounded per engagement
+  // open horizontal hand just above the rim: brief still hold, then slowly down (no cap: v5)
   compressRim: (_rec, e, h, clay, _world, dtS, t) => {
     if (!allOpen(h, true) || h.pinchRatio <= CONFIG.PINCH_ON || !isHorizontal(h) || !inRimZone(h, clay)) return null;
     const vy = vUp(h);
@@ -523,13 +534,12 @@ const STEP: Record<Kind, Step> = {
       e.armed = true;
     }
     if (vy > CONFIG.STILL_PALM_PER_S || -vy > CONFIG.COMPRESS_MAX_PALM_PER_S) return null; // up or too fast: stop
-    if (-vy < CONFIG.COMPRESS_MIN_PALM_PER_S || e.compressed >= CONFIG.COMPRESS_MAX_TOTAL_WORLD) {
+    if (-vy < CONFIG.COMPRESS_MIN_PALM_PER_S) {
       e.stillSinceMs ??= t;
       return idle(1);
     }
     e.stillSinceMs = null;
-    const push = Math.min(-h.velocityWorldPerS.y * dtS * CONFIG.COMPRESS_GAIN, CONFIG.COMPRESS_MAX_TOTAL_WORLD - e.compressed);
-    e.compressed += push;
+    const push = -h.velocityWorldPerS.y * dtS * CONFIG.COMPRESS_GAIN; // v5: no cap, sustained pressing flattens it
     return { progress: 1, deforming: true, motionStrength: -vy / CONFIG.COMPRESS_MAX_PALM_PER_S, delta: { ...NO_DELTA, compressWorld: push } };
   },
 };
