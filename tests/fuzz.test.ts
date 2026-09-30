@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CONFIG } from '../src/config';
 import { createController } from '../src/engine/controller';
 import type { AppCommand, ClayEvent, CoreController, FrameInput, HandFeatures, SessionMode } from '../src/types';
-import { hand, PROJ, rng } from './helpers';
+import { hand, moving, poseHand, PROJ, rng } from './helpers';
 
 // Random frames + random commands through the REAL controller; check invariants after every step.
 function randomHand(rand: () => number, side: -1 | 1): HandFeatures {
@@ -22,7 +22,7 @@ const STATUSES: FrameInput['status'][] = ['ready', 'ready', 'ready', 'ready', 'r
 const MODES: SessionMode[] = ['tutorial', 'free', 'commission'];
 
 function randomCommand(rand: () => number, n: number): AppCommand {
-  const gestures = [undefined, 'shape', 'pullUp', 'pressDown', 'raise'] as const;
+  const gestures = [undefined, 'shape', 'pullUp', 'indent', 'open', 'compressRim', 'raise'] as const;
   const all: AppCommand[] = [
     { type: 'modelReady' },
     { type: 'start', mode: MODES[Math.floor(rand() * 3)], sessionId: `s${n}` },
@@ -49,6 +49,7 @@ function run(seed: number, steps: number) {
   let result: unknown = null, resultJson = '';
   let sessionId: string | null = null;
   const phases = new Set<string>();
+  let cavities = 0, lifts = 0;
 
   for (let k = 0; k < steps; k++) {
     t += 10 + rand() * 60;
@@ -57,13 +58,26 @@ function run(seed: number, steps: number) {
     // mostly real hands, sometimes missing ones
     const l = rand() < 0.9 ? randomHand(rand, -1) : null;
     const r = rand() < 0.9 ? randomHand(rand, 1) : null;
-    // stretches of calm hands so calibration and menus get reached
-    const calm = (k % 400) < 60;
+    // stretches of calm hands so calibration and menus get reached, then scripted one-hand
+    // actions (support + active pose moving slowly, with noise) so lift/indent/open/rim really run
+    const phase = k % 400;
+    const calm = phase < 60;
+    const scripted = phase >= 60 && phase < 260;
+    const kind = Math.floor(k / 400) % 4;
+    const u = (phase - 60) / 200; // 0 → 1 over the stretch
+    const noise = () => (rand() - 0.5) * 0.04;
+    const active = [
+      () => poseHand('flat', noise(), u < 0.6 ? noise() : (u - 0.6) * 0.8, { trackId: 2, ...moving(noise(), u < 0.6 ? 0 : 0.5) }),
+      () => poseHand('thumbDown', noise(), 1.25 - u * 0.3, { trackId: 2, ...moving(0, -0.5) }),
+      () => poseHand('spread', noise(), 1.15, { trackId: 2, ratio: 0.2 + Math.max(0, u - 0.2) * 1.2 }),
+      () => poseHand('flat', noise(), 1.35 - u * 0.3, { trackId: 2, ...moving(0, u < 0.3 ? 0 : -0.4) }),
+    ][kind];
     const frame: FrameInput = {
       frameId: k, epoch, tMs: t, receivedAtMs: t + (rand() < 0.02 ? 500 : 5),
       dtSampleS: rand() < 0.01 ? 3 : 0.033,
-      status: calm ? 'ready' : l && r ? STATUSES[Math.floor(rand() * STATUSES.length)] : l || r ? 'oneHand' : 'noHands',
-      screenLeft: calm ? hand(-1, 0.6) : l, screenRight: calm ? hand(1, 0.6) : r,
+      status: calm || scripted ? 'ready' : l && r ? STATUSES[Math.floor(rand() * STATUSES.length)] : l || r ? 'oneHand' : 'noHands',
+      screenLeft: calm ? hand(-1, 0.6) : scripted ? poseHand('wall', -1 + noise(), 0.6, { trackId: 1 }) : l,
+      screenRight: calm ? hand(1, 0.6) : scripted ? active() : r,
     };
     core.observe(frame);
     const s = core.tick(t + rand() * 10);
@@ -71,12 +85,15 @@ function run(seed: number, steps: number) {
     // clay invariants
     if (s.clay) {
       const c = s.clay;
-      const minR = Math.min(...c.radii);
       const ok = c.radii.every((x) => Number.isFinite(x) && x >= CONFIG.MIN_R - 1e-6 && x <= CONFIG.MAX_R + 1e-6) &&
         c.damage.every((d) => d >= 0 && d <= 1) &&
         c.height >= CONFIG.MIN_HEIGHT && c.height <= CONFIG.MAX_HEIGHT &&
-        c.thickness >= CONFIG.THICKNESS_FLOOR && c.thickness <= minR - CONFIG.MIN_INNER_RADIUS + 1e-6 &&
+        Number.isFinite(c.thickness) && c.thickness >= CONFIG.THICKNESS_FLOOR - 1e-6 &&
+        (c.cavityDepthWorld === 0) === (c.cavityRadiusWorld === 0) &&
+        c.cavityDepthWorld <= c.height - CONFIG.FLOOR_WORLD + 1e-6 &&
         c.wobble >= 0 && c.wobble <= 1;
+      if (c.cavityDepthWorld > 0) cavities++;
+      if (c.height > CONFIG.INIT_HEIGHT + 0.05) lifts++;
       if (!ok) expect.fail(`clay invariant broken at step ${k}: ${JSON.stringify({ ...c, radii: [...c.radii], damage: [...c.damage] })}`);
     }
 
@@ -121,14 +138,15 @@ function run(seed: number, steps: number) {
     if (s.hint && !Number.isFinite(s.hint.expiresAtMs)) expect.fail('hint without a finite expiry');
     phases.add(s.phase);
   }
-  return phases;
+  return { phases, cavities, lifts };
 }
 
 describe('fuzz: random frames and commands through the real controller', () => {
   for (const seed of [1, 2, 3, 4, 5]) {
     it(`seed ${seed}: invariants hold for 20000 steps`, () => {
-      const phases = run(seed, 20000);
+      const { phases, cavities, lifts } = run(seed, 20000);
       expect(phases.has('studio') || phases.has('tutorial')).toBe(true); // the fuzz actually reached shaping
+      expect(cavities + lifts).toBeGreaterThan(0); // the one-hand actions really ran through the controller
     }, 30_000);
   }
 });
