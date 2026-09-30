@@ -509,3 +509,20 @@ describe('widen (v8.2): fingertip inside the opening pushes the wall out, like a
     expect(fast.seen.some((g) => g.nearMiss?.reason === 'widenTooFast')).toBe(true);
   });
 });
+
+describe('indent speed check vs webcam thumb-tip jitter', () => {
+  const press = (jitterPx: number, worldPerS: number, ms: number, dist = 0.2) => {
+    const r = rng(3);
+    return run((t) => [SUPPORT(), poseHand('thumbDown', 0, 1.25 - Math.min(dist, (t / 1000) * worldPerS) + ((r() * 2 - 1) * jitterPx) / 180, { trackId: 2 })],
+      ms, { rec: new GestureRecognizer(), clay: createClay(), t: 0 });
+  };
+  it('±5 px jitter on a slow press neither rejects it nor loses the depth', () => {
+    const s = press(5, 0.08, 3000);
+    expect(s.seen.some((g) => g.nearMiss?.reason === 'indentTooFast')).toBe(false);
+    expect(s.clay.cavityDepthWorld).toBeGreaterThan(0.13);
+  });
+  it('a genuinely fast push is still rejected', () => {
+    const s = press(0, 1.5, 600, 0.3); // 1.5 world/s ≈ 2.7 palm/s for 200 ms
+    expect(s.seen.some((g) => g.nearMiss?.reason === 'indentTooFast')).toBe(true);
+  });
+});

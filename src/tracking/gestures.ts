@@ -109,7 +109,9 @@ interface Engagement {
   started: boolean;   // ratchet: motion has passed the jitter deadband once; from then on every bit counts
   pauseSinceMs: number | null; // lift: start of the current run of glitchy frames (v7 grace)
   lastMs: number;     // time of the last step, to rebase after an observation gap
+  speed: number;      // indent: thumb-tip push speed smoothed over ~TIP_SPEED_TAU_MS (raw tips jitter)
 }
+const TIP_SPEED_TAU_MS = 100;
 
 export class GestureRecognizer {
   /** Clay change measured on the last update, for stepClay(). */
@@ -318,7 +320,7 @@ export class GestureRecognizer {
         if ((kind === 'open' || kind === 'widen') && clay.cavityDepthWorld <= 0) continue; // needs an indentation first
         const fresh: Engagement = {
           kind, activeId: active.trackId, supportId: support.trackId, ms: 0, armed: false,
-          travel: 0, armedMs: 0, span: active.pinchRatio, stillSinceMs: null, topY: NaN, lastY: NaN, started: false, pauseSinceMs: null, lastMs: t,
+          travel: 0, armedMs: 0, span: active.pinchRatio, stillSinceMs: null, topY: NaN, lastY: NaN, started: false, pauseSinceMs: null, lastMs: t, speed: 0,
         };
         this.engagement = fresh;
         const res = STEP[kind](this, fresh, active, clay, world, 0, t);
@@ -621,7 +623,11 @@ const STEP: Record<Kind, Step> = {
     e.lastMs = t;
     e.lastY = tipY;
     if (Number.isNaN(e.topY)) e.topY = Math.min(tipY, clay.height - clay.cavityDepthWorld); // contact
-    const speed = !gap && dtS > 0 && Number.isFinite(prevY) ? (prevY - tipY) / dtS : 0;
+    // raw thumb-tip landmarks jitter ±3–5 px per frame (~3 palm/s frame to frame, alternating), so a single-frame
+    // speed kept rejecting slow presses; ~100 ms of smoothing averages that out while a real fast push still shows
+    const raw = !gap && dtS > 0 && Number.isFinite(prevY) ? (prevY - tipY) / dtS : 0;
+    const a = gap ? 1 : dtS * 1000 / (TIP_SPEED_TAU_MS + dtS * 1000);
+    const speed = e.speed += (raw - e.speed) * a;
     const maxSpeed = CONFIG.INDENT_MAX_PALM_PER_S * Z.palmW;
     if (speed > maxSpeed) {
       rec.latch({ intended: 'indent', reason: 'indentTooFast', handTrackId: h.trackId, params: {} }, t);
