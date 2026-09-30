@@ -2,7 +2,7 @@ import {
   ACESFilmicToneMapping, BoxGeometry, CylinderGeometry, DirectionalLight, HemisphereLight, Mesh, MeshStandardMaterial,
   OrthographicCamera, PerspectiveCamera, Scene, SRGBColorSpace, WebGLRenderer, TorusGeometry,
   IcosahedronGeometry, InstancedMesh, Object3D, Spherical, Vector3,
-  PMREMGenerator, PCFSoftShadowMap, type WebGLRenderTarget,
+  PMREMGenerator, PCFShadowMap, type WebGLRenderTarget,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
@@ -49,7 +49,7 @@ export function createScene(parent: HTMLElement) {
     renderer.outputColorSpace = SRGBColorSpace;
     renderer.toneMapping = ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1;
-    renderer.shadowMap.enabled = true; renderer.shadowMap.type = PCFSoftShadowMap;
+    renderer.shadowMap.enabled = true; renderer.shadowMap.type = PCFShadowMap;
   } catch { useFallback(); }
   canvas.addEventListener('webglcontextlost', useFallback);
   const scene = new Scene();

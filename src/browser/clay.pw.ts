@@ -3,7 +3,9 @@ import { test, expect } from '@playwright/test';
 test('clay surface visibly travels while the silhouette stays fixed and reduced motion stops it', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
-  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  page.on('console', message => {
+    if (message.type() === 'error' || (message.type() === 'warning' && message.text().startsWith('THREE.'))) errors.push(message.text());
+  });
   await page.goto('/?dev=1&mock=1');
   await page.locator('[data-action="free"]').click(); await page.mouse.move(0, 0);
   const canvas = page.getByTestId('pot-canvas'); await expect(canvas).toBeVisible();
