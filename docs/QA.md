@@ -4,6 +4,14 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ## Automated checks
 
+### V7.0 release integration (30 September 17:21)
+
+- Integrated A's V7 `f9a60c9` and V6 `967c248`; **288/288 unit/integration tests pass**, including all previously failing V6/V7 cases. Typecheck/build pass; existing bundle-size warning only. Production excludes mock/debug hooks.
+- Added storage checks for schema-2/3 pancakes at .24 and local tear persistence. Reviewed new speed-hint translations. Replaced the broad rounded dent-depth assertion with the actual lesson tolerance <=.025.
+- Fixed outdated outward-widening advice and .65 mock pancake. README and V7.0 footer now reflect release behavior.
+- **12 Chromium checks pass:** layout/export, two finish/storage variants, both studio locks, terminal restart, Free Done, geometry lessons, palm retry, damage presentation, dwell/HUD, and real-core camera-order/geometry integration. Pancake screenshot inspected; distinct flat geometry and disabled Done are visible.
+- No remaining automated regression failures. All assistant hand inputs are synthetic. Physical camera retest remains required; model still does not conserve clay volume exactly.
+
 ### Lift stability clarification (30 September, after V7 handoff)
 
 - User confirms current placement is acceptable; do not tighten the accepted base zone/pose. Changed the y=.25 rejection case to a preservation control; it passes in both modes/roles.

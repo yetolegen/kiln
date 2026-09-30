@@ -14,15 +14,15 @@ Wait for the hand model, click «Начать» once and allow the camera. Hold 
 
 V5.1 fixes camera/render timestamp ordering that could reset dwell and lesson confirmation, and puts the cursor ring above the buttons. The camera footer shows the version; small cyan dots mark tracked palm centres.
 
-**V5 interaction:** A's recognizer, cavity and damage model are integrated with palm navigation and geometry-led lessons. The controls below replace the former two-pinch lift and two-fist press. Automated synthetic tests cover both hand roles; physical-camera recognition and T22 still need human verification. See [GESTURES_V5.md](docs/GESTURES_V5.md).
+**V7.0 interaction:** stable lift with the same accepted placement, continuous thumb-tip depth, outward release, slow vertical pressure, terminal damage and protected studio controls are integrated with geometry-led lessons. Automated synthetic tests cover both hand roles; physical-camera recognition and T22 still need human verification. See [GESTURES_V7.md](docs/GESTURES_V7.md) and [GESTURES_V6.md](docs/GESTURES_V6.md).
 
 ## Current controls
 
 | Action | Gesture |
 |---|---|
-| Shape | Open both palms at opposite side walls, at the same height; move them in/out |
+| Shape | Open both palms at opposite side walls, at the same height; move inward to narrow. Moving either palm outward releases the stroke. Leave contact before starting another stroke |
 | Lift | One open hand horizontal near the base; other hand supports a wall. Hold still for 3 seconds until the ring fills, then rise very slowly |
-| Initial indentation | Support a wall; point the other thumb downward at the top centre and push slightly. Continuing too deeply thins and perforates the floor |
+| Initial indentation | Support a wall; point the other thumb downward at the top centre and insert slowly. Depth follows the thumb tip, including thumb bending with a stationary palm. Continuing too deeply thins and perforates the floor |
 | Widen/deepen | Support a wall; pinch thumb/index inside the dent, hold briefly, then gradually spread the fingers |
 | Compress/smooth rim | Support a wall; hold the other open hand horizontal just above the rim for 0.5 seconds, then lower it slowly. Repairs recoverable damage; continued pressing can flatten the pot |
 | Finish | Select «Готово» with palm dwell or click, then choose glaze and fire. Raised hands do not finish the pot |
@@ -30,11 +30,11 @@ V5.1 fixes camera/render timestamp ordering that could reset dwell and lesson co
 
 These are basic shaping plus exactly four additional pottery functions. Either hand can act while the other supports; keep those roles throughout one action. The gold ring shows activation and green marks support. Moving too early/fast or losing support cancels activation.
 
-**Pending studio update:** Done/restart now disable during active sculpting and return after clear disengagement; terminal damage leaves restart available. This frontend change is not deployed yet. Under-base lift corrections and the new 20%-height pancake / 10%-wall rupture rules await A's core implementation; see [V7 handoff](docs/GESTURES_V7.md).
+**Studio controls:** Done/restart disable during contact or active gesture arming and return after 400 ms of clear disengagement. Navigation remains available. Terminal damage leaves restart available and Done disabled. Small lift-pose fluctuations pause progress for up to 250 ms instead of erasing it; questionable frames never deform clay. Genuine departure, tracking/support loss and changed hand roles still cancel the action.
 
 **Geometry-led lessons:** every phase shows a cyan transparent target, including a dotted cavity cross-section. The amber section shows actual cavity depth. Completion requires the correct action to produce a matching height, full outer profile, cavity radius and depth. Goals lock when each step begins; a gesture alone cannot pass. The shape freezes briefly at the target, then releasing the action advances. After compression in step 5 is validated, step 6 displays «Обучение окончено» immediately. No additional gesture is needed. Overshoot or damage stops progression with corrective feedback and a palm-selectable Try Again button, which restarts the entire attempt. The same five pottery actions are tested in Free Mode and commissions with either hand assignment.
 
-**Damage in every shaping mode:** a ceiling at roughly 75% of the space above the pot base limits height. Thumb penetration beyond a palm-scaled safe depth warns of a thin floor; further pushing makes a through-hole. Holding an engaged opening for 7 seconds starts thinning the walls, and 10 seconds tears them. Continuing downward rim compression warns below height 0.9 and flattens the pot at 0.7 game units. Perforation, torn walls and pancakes require restart. The camera infers movement; it does not measure physical pressure.
+**Damage in every shaping mode:** a ceiling at roughly 75% of the space above the pot base limits height. Thumb penetration beyond a palm-scaled safe depth warns of a thin floor; further pushing makes a through-hole. Holding an engaged opening for 7 seconds starts thinning the walls, and 10 seconds tears them. A wall reaching 10% of its original normalized thickness tears locally without sagging. Downward compression warns below height 0.4 and becomes a terminal pancake at 20% of initial height (0.24 game units); the cavity closes. Perforation, torn walls and pancakes freeze further sculpting and require restart. The camera infers movement; it does not measure physical pressure. The model does not conserve clay volume exactly.
 
 Rim compression was selected from [Clayground's wheel tutorial](https://www.clayground.net/post/beginnings-on-the-wheel-part-1-how-to-center-open-your-clay). A horizontal hand above the rim is distinguishable from a base lift, thumb-down indentation and pinch-spread opening. This camera mapping is a game adaptation.
 

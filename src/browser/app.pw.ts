@@ -337,7 +337,7 @@ test('B2 loads the real model, starts a mirrored camera, and resizes', async ({ 
   await expect(start).toBeEnabled({ timeout: 50_000 });
   await start.click();
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'calibrate', { timeout: 20_000 });
-  await expect(page.locator('footer')).toContainText('V5.3');
+  await expect(page.locator('footer')).toContainText('V7.0');
   const video = page.locator('video');
   await expect(video).toBeVisible();
   expect(await video.evaluate((element: HTMLVideoElement) => ({

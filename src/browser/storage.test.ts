@@ -1,6 +1,7 @@
 import { expect, it, vi } from 'vitest';
 import { createGalleryStore, GALLERY_KEY, isSessionResult, MAX_POTS } from './storage';
 import { MockCore } from '../dev/mockCore';
+import { CONFIG } from '../config';
 
 function result(id = 'one', score = 82) {
   const core = new MockCore(); core.key('8', 0);
@@ -46,6 +47,28 @@ it('round trips a real cavity and rejects impossible floors, walls and derived t
   expect(store.save(pot)).toBe(true);
   expect(createGalleryStore(() => backend).list()[0]).toEqual(pot);
   for (const patch of [{ cavityRadiusWorld: 0 }, { cavityRadiusWorld: 2 }, { cavityDepthWorld: pot.height }, { cavityDepthWorld: -1 }, { thickness: .02 }]) expect(isSessionResult({ ...pot, ...patch })).toBe(false);
+});
+
+it.each([2, 3])('retains a 20-percent pancake in schema %i through loading and saving', (schemaVersion) => {
+  const core = new MockCore(); core.key('n', 0); core.key('8', 0);
+  const pot = core.tick(0).result!;
+  expect(pot.height).toBe(CONFIG.INIT_HEIGHT * .2);
+  const old = { ...pot, schemaVersion, ...(schemaVersion === 2 ? { floorThicknessWorld: undefined, bottomHole: undefined } : {}) };
+  const backend = storage(JSON.stringify({ schemaVersion, pots: [old] }));
+  const loaded = createGalleryStore(() => backend).list()[0];
+  expect(loaded).toMatchObject({ schemaVersion: 3, height: .24, cavityDepthWorld: 0, cavityRadiusWorld: 0, floorThicknessWorld: .24, collapsed: true });
+  const saved = storage(); expect(createGalleryStore(() => saved).save(loaded)).toBe(true);
+  expect(createGalleryStore(() => saved).list()[0]).toEqual(loaded);
+});
+
+it('preserves a local torn wall without turning it into a flattened pot on reload', () => {
+  const core = new MockCore(); core.key('i', 0); core.key('o', 0); core.key('8', 0);
+  const pot = core.tick(0).result!;
+  pot.collapsed = true; pot.damage[32] = .8;
+  const backend = storage(); expect(createGalleryStore(() => backend).save(pot)).toBe(true);
+  const loaded = createGalleryStore(() => backend).list()[0];
+  expect(loaded.height).toBe(pot.height); expect(loaded.damage[32]).toBe(.8); expect(loaded.damage[0]).toBe(0);
+  expect(loaded.cavityRadiusWorld).toBe(pot.cavityRadiusWorld);
 });
 it('saves once, copies snapshots, and keeps working in memory after quota or access failure', () => {
   const backend = storage(), store = createGalleryStore(() => backend), pot = result();

@@ -95,7 +95,7 @@ export class MockCore implements CoreController {
       case 'c': this.issue('collapse', nowMs); this.clay.collapsed = this.active.has('collapse'); this.clay.collapseCause = this.clay.collapsed ? 'thinWall' : null; break;
       case 'b': this.clay.bottomHole = true; this.clay.cavityRadiusWorld = .4; this.clay.cavityDepthWorld = this.clay.height; this.clay.collapsed = true; this.clay.collapseCause = 'bottomHole'; this.issue('collapse', nowMs); break;
       case 'e': this.issue('overStretch', nowMs); break;
-      case 'n': this.clay.height = .65; this.clay.cavityRadiusWorld = this.clay.cavityDepthWorld = 0; this.clay.collapsed = true; this.clay.collapseCause = 'pancake'; this.issue('collapse', nowMs); break;
+      case 'n': this.clay.height = CONFIG.PANCAKE_HEIGHT_WORLD; this.clay.cavityRadiusWorld = this.clay.cavityDepthWorld = 0; this.clay.collapsed = true; this.clay.collapseCause = 'pancake'; this.issue('collapse', nowMs); break;
       case 'arrowleft': case 'arrowright': {
         const sign = key.toLowerCase() === 'arrowleft' ? -1 : 1;
         for (let i = 0; i < this.clay.radii.length; i++) this.clay.radii[i] = Math.max(CONFIG.MIN_R, Math.min(CONFIG.MAX_R, this.clay.radii[i] + sign * .12 * Math.exp(-(((i - 24) / 8) ** 2))));

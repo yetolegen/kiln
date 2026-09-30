@@ -68,7 +68,7 @@ it.each([1, 2])('integrates v4 lessons with active track %i, one-hand dwell, com
   const lifted = core.tick(now).clay!.height;
   action((s) => poseHand('thumbDown', 0, lifted - Math.min(s * .3, .12), moving(0, -.54)), 1100);
   expect(tutorial.status).toBe('matched'); release(); expect(tutorial.step).toBe(3);
-  expect(core.tick(now).clay!.cavityDepthWorld).toBeCloseTo(.12, 1); // v6: continuous dent, frozen within the lesson tolerance
+  expect(Math.abs(core.tick(now).clay!.cavityDepthWorld - .12)).toBeLessThanOrEqual(.025); // actual first-dent lesson tolerance
   action(() => poseHand('pinch', 0, lifted - .05), 400);
   action((s) => poseHand('spread', 0, lifted - .05, { ratio: .2 + s }), 1100);
   expect(tutorial.status).toBe('matched'); release(); expect(tutorial.step).toBe(4);
