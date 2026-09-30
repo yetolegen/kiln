@@ -57,6 +57,8 @@ Open the local URL printed by Vite. `?dev=1` enables A's tracking debug panel on
 
 Frontend fixtures: `?dev=1&mock=1` skips camera/model loading. Keys 0–9 select loading/permission/calibrate/menu/tutorial/studio/glaze/firing/result/gallery; S/U/I/O/D simulate shape/lift/indent/open/rim compression, Escape releases, F finishes, T/W/C toggle tear/wobble/collapse, X toggles hand loss, arrows change the middle radius. Mouse movement simulates the cursor: H selects palm-centre mode, P selects index-pointing mode. Fixture action keys apply immediately; they do not exercise recognition or physical hold timing. These fixtures are never included in production.
 
+V5 failure fixtures: B perforates the floor, E toggles the over-stretch warning, N creates a pancake. They are display fixtures; real-controller tests separately exercise the actual gesture/damage pipeline.
+
 The camera uses a mirrored, centered cover crop with an ideal front-camera resolution of 1280×720 and a 640×480 fallback. It never requests the microphone. Resize/orientation changes reset tracker and core together. Audio and speech unlock in the Start click and remain optional. Camera permission requires HTTPS or localhost; see [getUserMedia](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia).
 
 ```sh

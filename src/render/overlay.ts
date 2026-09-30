@@ -32,7 +32,7 @@ export function createOverlay(parent: HTMLElement) {
           const y = p.bottomYPx - c.maxHeightWorld * scale;
           ctx.strokeStyle = '#e6aa7480'; ctx.fillStyle = '#e6aa74'; ctx.lineWidth = 1; ctx.setLineDash([3, 7]);
           ctx.beginPath(); ctx.moveTo(p.axisXPx - 1.6 * scale, y); ctx.lineTo(p.axisXPx + 1.6 * scale, y); ctx.stroke();
-          ctx.font = '11px system-ui'; ctx.fillText('Предел высоты', p.axisXPx - 1.6 * scale, y - 7);
+          ctx.font = '11px system-ui'; ctx.fillText('Предел высоты', Math.max(8, p.axisXPx - 1.6 * scale - ctx.measureText('Предел высоты').width - 8), y - 7);
         }
         if (c.bottomHole) {
           const r = c.cavityRadiusWorld * scale, top = p.bottomYPx - c.height * scale;
@@ -42,7 +42,11 @@ export function createOverlay(parent: HTMLElement) {
           }
           ctx.setLineDash([]); ctx.beginPath(); ctx.moveTo(p.axisXPx, p.bottomYPx - 18); ctx.lineTo(p.axisXPx, p.bottomYPx + 10);
           ctx.moveTo(p.axisXPx - 5, p.bottomYPx + 4); ctx.lineTo(p.axisXPx, p.bottomYPx + 10); ctx.lineTo(p.axisXPx + 5, p.bottomYPx + 4); ctx.stroke();
-          if (snapshot.phase === 'studio') { ctx.font = '12px system-ui'; ctx.fillText('Дно пробито · разрез', p.axisXPx - r - 20, top - 16); }
+          if (snapshot.phase === 'studio') {
+            const label = 'Дно пробито · разрез', x = p.axisXPx - r - 20, y = top - 16;
+            ctx.font = '12px system-ui'; ctx.fillStyle = '#211d19eb'; ctx.fillRect(x - 4, y - 14, ctx.measureText(label).width + 8, 20);
+            ctx.fillStyle = '#ffb6a5'; ctx.fillText(label, x, y);
+          }
         }
         ctx.setLineDash([]);
       }

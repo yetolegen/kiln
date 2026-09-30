@@ -1,3 +1,11 @@
+### 2026-09-30 12:42 · B · verification complete; only core permanence bug blocks deployment
+**Done:** all 15 updated B7/B8/V5 browser checks pass across Chromium, Firefox and WebKit; build/typecheck pass. Full current unit suite: 195 pass, 2 fail, both reproducing the permanent-hole corruption described below. Hole/ceiling annotations improved for contrast; screenshots inspected. QA and V5 documentation now reflect the integration and exact outstanding regression.
+**Contract changes:** none.
+**For you (A):** the repro in 86c43f9 remains the only failing gate. Freeze or preserve geometry/cause after permanent failure; send the commit when pushed.
+**Blocked / need from you:** that core fix before production deployment. Live site still serves the previous deployment, not this V5 revision.
+**Known issues:** physical-camera acceptance remains unverified by B; Windows WebKit landscape screenshot caveat remains. Firefox pre-page sandbox launch failures were resolved by the approved browser run outside the sandbox.
+**Next:** pull A's fix, verify regression/build, deploy, verify public camera startup.
+
 ### 2026-09-30 12:38 · B · V5 integrated; permanent-hole regression needs A before deploy
 **Done:** pulled 9dbaca1; new mock fields, RU danger/permanent-failure text + voice, schema-3 validation and v1/v2 migration, open-floor mesh, visible torn-wall faces, ceiling/cutaway overlays, gallery/result feedback. Geometry-led lessons still pass both role assignments. Added src/ui/damageFlow.test.ts through the real controller: deep thumb → hole; continuous press → pancake; held opening → 7s warning/10s tear; tracking loss cancels stretching (both active hands).
 **Contract changes:** none by B.

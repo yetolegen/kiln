@@ -4,6 +4,16 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ## Automated checks
 
+### V5 core integration (30 September 12:40, deployment held)
+
+- Pulled A's 9dbaca1. Typecheck/build pass. B integrated the new clay/gesture fields, danger and permanent-failure coaching, schema-3 migration/validation, actual perforated mesh, damaged-wall gaps, ceiling line and explanatory cutaway. Legacy v1/v2 pots and scores are retained. Saved holes must have a zero floor, full-height cavity and collapsed state; inconsistent records are rejected.
+- 193 tests passed before the deeper permanent-failure regression. Added four real-controller tests for both active-hand assignments: deep-thumb hole, prolonged compression/pancake, 7-second stretching warning/10-second tear, and tracking-loss cancellation of the stretch clock. The extended tests exposed the core bug below (2 fail/2 pass); this is a deployment gate, not waived.
+- Updated Chromium lesson/failed-step/palm/result/storage/damage browser checks: 5 pass. Corresponding Firefox/WebKit checks: 10 pass outside the sandbox. Firefox repeatedly failed before opening a page inside the sandbox (`browserContext.newPage` internal `_page` error); the approved run outside it passed. The earlier full 34-pass/2-skip matrix remains separate from these 15 V5 checks.
+- Browser fixture bug fixed: the new test moved its cursor away before menu dwell completed. It now awaits the actual studio phase and restart effect. This was a test setup error, not an application failure.
+- **Confirmed A-core blocker:** puncture the floor, then keep pressing the rim for 4 seconds. Both hand assignments produce `bottomHole: true`, `cavityRadiusWorld: 0`, `cavityDepthWorld: 0.6`, `height: 0.6`, `collapseCause: pancake`. Permanent failures still deform and overwrite their cause. This is invalid geometry/storage. Reproduction is committed in `src/ui/damageFlow.test.ts` and the newest B handoff; A was asked to fix it before deployment.
+- All gesture evidence above is synthetic. The screenshots verify UI/geometry display, not camera recognition of real hands.
+- Final local gate at 12:42: **195 passed, 2 failed** (both the permanent-hole regression), build/typecheck pass. All 15 updated browser checks pass. Production deployment is held until A fixes the core regression; V5 is not yet live.
+
 ### Geometry-led lesson revision (V5 frontend, 30 September 12:00)
 
 - 182 unit/integration tests pass; production build and typecheck pass. Both active-hand roles reach actual geometry targets through A's real controller. Unchanged/tiny geometry changes cannot pass; overshoot, damage, wrong profile, lost tracking, replayed input, release and whole-attempt restart are covered.
@@ -11,7 +21,7 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 - Browser counts: Chromium 12 passed; Firefox 11 passed/1 camera skip; WebKit 11 passed/1 camera skip. The WebKit visual caveat below still applies. A first Firefox launch failed inside Playwright before a page opened; the subsequent full matrix passed without application changes for that error.
 - New bugs found/fixed: index-only UI did not accept the requested palm centre; tiny old lesson deltas disabled deformation prematurely; no target profile or cavity-depth guide; no latched failure/retry; mock activation incorrectly reset after tutorial freeze; failure card overflowed a 390px landscape viewport. Irreversible target overshoot now fails immediately outside the accepted tolerance, rather than leaving an uncorrectable stage active. Displayed 90% cannot be rounded up from a failing geometry score.
 - The cyan target locks on phase entry. Height, every outer-profile band, cavity radius and cavity depth must all be in tolerance; recognizing a gesture or changing just one dimension is insufficient. Clay freezes at an accepted target and requires release to advance. Retry resets the whole attempt; compression is step 5, final review/raise is step 6.
-- **Not implemented yet:** A-owned V5 all-mode height failure, excessive thumb depth/perforation, ~7s stretching damage, sustained-pressure pancake and their result-schema/render adapters. Detailed handoff: [GESTURES_V5.md](GESTURES_V5.md). Current core remains v4. No new physical-camera acceptance or fabricated landmark measurements.
+- **Status at this earlier checkpoint:** A-owned V5 core mechanics were pending. They subsequently arrived as 9dbaca1; see the integration section above for the remaining regression. No new physical-camera acceptance or fabricated landmark measurements.
 
 ### Previous deployed revision
 
