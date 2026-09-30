@@ -4,6 +4,13 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ## Automated checks
 
+### V5.1 external compression report (30 September 13:38)
+
+- **Human report:** user confirms UI palm selection now works and must be preserved. External two-palm inward movement still widens the clay on the previously identified Chrome / Acer Nitro 5 AN515-58 setup.
+- **Reproduced in real core using synthetic HandFeatures:** initial radius 1.0; half-gap decreases from 1.4 to 1.103. Radius grows to 1.265 at frame 30 and finishes at 1.1484. Four cases fail (free/tutorial, either track assignment). Cavity remains solid; separate internal pinch-spread controls pass for either active hand and leave outer radii unchanged.
+- Root cause: valid outside-wall contact forwards absolute half-gap as the clay target, which initially exceeds the clay radius despite inward movement. Core correction and reset requirements are at the top of `docs/handoff/B.md` for A.
+- `npm test`: 199 passed, 4 failed, all failures in the new `src/ui/externalCompression.test.ts`. Typecheck passes. No runtime edits or deployment; UI interaction remains unchanged. Core fix and physical retest remain pending.
+
 ### V5.1 live verification (30 September 13:25)
 
 - Deployed `a0f09fd` to https://kiln-delta-rose.vercel.app; deployment `dpl_Q8gjZQtmcgF71bkyUA9Cz3g6gbkD` READY, remote build/typecheck passed.

@@ -1,3 +1,21 @@
+### 2026-09-30 13:38 · B · reproduced external compression reversal; core fix needed
+**Done:** user confirms V5.1 palm UI buttons work correctly and explicitly requests preserving them. Same user's Chrome / Acer Nitro 5 AN515-58 physical report: two external palms moving inward widen the clay. Inspected actual contact, recognizer and clay code; reproduced through the real controller in `src/ui/externalCompression.test.ts`, in free/tutorial with both track assignments. No runtime/UI files changed.
+**Contract changes:** none.
+**For you (A):** run `npm test -- src/ui/externalCompression.test.ts`. Four failing external-compression cases, two passing internal-opening cases. With initial radius 1.0 and palm half-gap decreasing 1.4 → 1.103 over 1.98 s, radius grows to 1.265 at frame 30 and ends 1.1484. Contact is valid, gesture is shape, cavity stays 0/0. This is geometry, not the renderer.
+
+Root cause chain:
+- `engine/contact.ts` accepts palms outside the wall within palm-scaled reach, then returns `targetRadiusWorld = (rx - lx) / 2`.
+- `tracking/gestures.ts` treats valid shape contact as deforming and forwards that absolute target.
+- `engine/clay.ts::shape` moves each radius toward that target with `(R - radius) * a`. Target remains larger than clay during the beginning of an inward stroke, so radius INCREASES. The final subtraction's sign is correct for its supplied target; globally negating it would break convergence.
+- `open()` is already a separate branch changing cavity radius/depth only. Its two control cases pass and outer radii remain unchanged.
+
+Requested core implementation: establish a contact-relative shape reference when stable external contact starts (current local clay radius and half-gap); decreasing gap must produce a negative radial change, even while palm centres remain outside the wall. For example, derive the shape target from `radiusAtContact + gain * (halfGapNow - halfGapAtContact)`, with gain > 0, rather than absolute palm-centre distance. Gate application by actual fresh inward/outward movement so smoothing toward a former wider target cannot grow the clay during inward motion. No acquisition jump or held-palm inflation. Reset/rebase reference on contact/tracking loss, epoch/restart/phase or gesture changes, track changes, and band changes; never carry displacement across missing samples. Preserve reach accessibility, current UI navigation, all one-hand actions and permanent-failure freeze. Either omit outward widening or allow it only on outward motion while contact is maintained. Keep cavity expansion exclusively in its existing internal pinch-spread path.
+
+Please add your core coverage for contact acquisition/hold, inward stroke, direction reversal if supported, lost/reacquired input and band changes; make these B regressions green too. Existing synthetic browser/tutorial fixtures may need inward motion after this change: notify B rather than retaining absolute-gap inflation to accommodate fixtures.
+**Blocked / need from you:** A owns core per user's explicit instruction. Please implement/push the fix and return commit. B will verify integration and deploy after green checks. This handoff deliberately includes failing acceptance regressions; do not mark the issue resolved yet.
+**Known issues:** full suite 199 passed / 4 failed (only the new external compression cases), typecheck passes. Synthetic HandFeatures reproduce the reported geometry defect; this is not an assistant-performed physical camera test. No deployment made; working V5.1 UI remains live.
+**Next:** A fixes deformation; B runs regression/full suite and browser lesson integration, deploys, then user retests slow inward palms without a mouse.
+
 ### 2026-09-30 13:25 · B · V5.1 deployed; public version/camera verified
 **Done:** deployed a0f09fd to https://kiln-delta-rose.vercel.app, Vercel dpl_Q8gjZQtmcgF71bkyUA9Cz3g6gbkD READY. Public Chromium real-model/simulated-camera test passes and explicitly checks footer V5.1, mirrored video and resize. Remote build/typecheck passed. Production assets contain no mock/debug/synthetic-camera hooks.
 **Contract changes:** none; A-owned files unchanged.
