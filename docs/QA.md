@@ -6,6 +6,7 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ### V8.2 lesson step 1
 
+- **Live:** release `103a33e`, deployment `dpl_2E5y5FsuowPSNj8hzSnD5GR6V19y` READY at https://kiln-delta-rose.vercel.app. Public real-model/simulated-camera startup, V8.2 footer, mirroring and resize pass; cloud build succeeds.
 - Integrates A's `d5ce6a4`: the 0.20 narrowing may sit within ±6 bands of the middle. Depth tolerance and overshoot rejection remain; other lesson goals are unchanged.
 - 295/295 unit/integration tests; warning-free typecheck/build. Unit regression accepts correctly narrowed forms near the middle and rejects insufficient depth, excessive depth and placement far from the middle.
 - Four Chromium checks pass: full tutorial with release, failure/palm retry, and real-controller step 1 using synthetic camera landmarks at centre band 24 and shifted band 27. Both camera cases dwell into the tutorial and deform the actual clay until the geometry validator reports a match.

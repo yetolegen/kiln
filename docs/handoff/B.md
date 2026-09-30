@@ -1,3 +1,7 @@
+### 2026-09-30 · B · V8.2 LIVE; lesson step 1 verified
+**Deployed:** release `103a33e`, including A's `d5ce6a4`, is READY at https://kiln-delta-rose.vercel.app. Deployment `dpl_2E5y5FsuowPSNj8hzSnD5GR6V19y`. Public Chromium real-model/simulated-camera smoke passes V8.2 footer, camera mirroring and resize. Local step 1 passes at centre and shifted hand heights through the actual controller; no physical-hand claim.
+**Next:** user refreshes for V8.2 and retries «Сузьте середину». All 295 unit/integration tests, four local browser checks, production build and public startup check pass. No outstanding code request to A.
+
 ### 2026-09-30 · B · V8.2 step-1 tolerance verified; preparing deployment
 **Done:** pulled A's `d5ce6a4` and reviewed the top of A's handoff. Step 1 accepts the same 0.20 narrowing within ±6 bands of the middle; depth/overshoot limits and the drawn target remain unchanged. Footer and public smoke now identify V8.2. No core or palm-UI edits.
 **Verification:** 295/295 unit/integration, warning-free typecheck/build, four Chromium checks pass. Browser camera fixture now checks both band 24 and band 27 through the real feature extractor, controller, deformation and tutorial validator; both reach the matched state. Existing full tutorial/release and failure/palm-retry checks pass. No new bugs found.
