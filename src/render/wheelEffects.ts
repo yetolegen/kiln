@@ -12,6 +12,7 @@ export class WheelEffects {
   private frame = '';
   private next = 0;
   private seed = 0;
+  private speed = 0;
 
   update(snapshot: EngineSnapshot, now: number, reduced: boolean, inspecting: boolean): void {
     const dt = this.lastMs ? Math.max(0, Math.min(.05, (now - this.lastMs) / 1000)) : 0;
@@ -20,7 +21,11 @@ export class WheelEffects {
     const permanent = ['wallTorn', 'bottomHole', 'pancake'].includes(clay?.collapseCause ?? '');
     const shaping = ['studio', 'tutorial'].includes(snapshot.phase);
     if (reduced || inspecting || !shaping || permanent) this.life.fill(0);
-    if (!reduced && !inspecting && !permanent && snapshot.phase !== 'firing') this.angle = (this.angle + dt * (shaping ? 1.1 : .28)) % (Math.PI * 2);
+    if (reduced || inspecting || permanent || snapshot.phase === 'firing') this.speed = 0;
+    else {
+      this.speed += ((shaping ? 3.2 : .48) - this.speed) * (1 - Math.exp(-dt * 4));
+      this.angle = (this.angle + dt * this.speed) % (Math.PI * 2);
+    }
     for (let i = 0; i < this.capacity; i++) {
       if (this.life[i] <= 0) continue;
       this.life[i] -= dt;

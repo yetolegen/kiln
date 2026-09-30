@@ -4,6 +4,14 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ## Automated checks
 
+### V8.1 clay appearance and spin
+
+- 294/294 unit/integration tests and warning-free typecheck/build. The rotation test preserves mesh vertices and underlying clay dimensions; texture maps are deterministic and exactly seamless.
+- Six final Chromium checks pass: changing front-wall pixels while the pot rotates, stationary pixels under reduced motion, inspection/return, touch drag/pinch, rim-origin tear, WebGL fallback, finishing/export/gallery with and without storage. Four initial V8 checks also passed during development.
+- Fixed excessive environment brightness and a one-byte texture-wrap mismatch found during verification. Reviewed raw clay, two rotation angles, hollow clay, jade glaze and torn-wall screenshots.
+- The new material uses baked pigment, relief and roughness maps with a subtle wet layer, studio reflections and self/contact shadows. Core geometry and gesture logic are unchanged. Effects stop for reduced motion, inspection and terminal damage.
+- Browser inputs are synthetic. Physical GPU performance and physical-hand behavior are not certified by these checks.
+
 ### V8.0 design and inspection release
 
 - **Live:** code `3e1fb16`, deployment `dpl_FJcpgxbjC4EFRvGNdsNTKvvoAMYU`, production alias https://kiln-delta-rose.vercel.app. Public Chromium real-model/simulated-camera startup, V8.0 version, mirrored video and resize pass. Cloud build has neither the bundle-size nor Node major-upgrade warning; Node is pinned to the tested 24.x runtime.

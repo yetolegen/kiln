@@ -2,8 +2,10 @@ import {
   ACESFilmicToneMapping, BoxGeometry, CylinderGeometry, DirectionalLight, HemisphereLight, Mesh, MeshStandardMaterial,
   OrthographicCamera, PerspectiveCamera, Scene, SRGBColorSpace, WebGLRenderer, TorusGeometry,
   IcosahedronGeometry, InstancedMesh, Object3D, Spherical, Vector3,
+  PMREMGenerator, PCFSoftShadowMap, type WebGLRenderTarget,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import type { ClayState, EngineSnapshot, ProjectionParams } from '../types';
 import { createPotView, rimTearBottom } from './pot';
 import { WheelEffects } from './wheelEffects';
@@ -46,32 +48,45 @@ export function createScene(parent: HTMLElement) {
     renderer.setClearColor(0, 0);
     renderer.outputColorSpace = SRGBColorSpace;
     renderer.toneMapping = ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.4;
+    renderer.toneMappingExposure = 1;
+    renderer.shadowMap.enabled = true; renderer.shadowMap.type = PCFSoftShadowMap;
   } catch { useFallback(); }
   canvas.addEventListener('webglcontextlost', useFallback);
   const scene = new Scene();
+  scene.environmentIntensity = .45;
+  let studioLight: WebGLRenderTarget | null = null;
+  if (renderer) {
+    const room = new RoomEnvironment(), pmrem = new PMREMGenerator(renderer);
+    try { studioLight = pmrem.fromScene(room, .08, .1, 100, { size: 128 }); scene.environment = studioLight.texture; }
+    catch { /* Direct lighting remains available if the environment allocation fails. */ }
+    finally { room.dispose(); pmrem.dispose(); }
+  }
   const camera = new OrthographicCamera(-1, 1, 1, -1, .1, 100);
   const inspectionCamera = new PerspectiveCamera(38, 1, .01, 100);
   let controls: OrbitControls | null = null, inspecting = false;
   let inspectionDistance = 8;
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   const pot = createPotView();
-  scene.add(pot.group, new HemisphereLight('#f1ede4', '#28392e', 2));
-  const key = new DirectionalLight('#ffe2c3', 3.1);
+  scene.add(pot.group, new HemisphereLight('#f1ede4', '#28392e', 1.1));
+  const key = new DirectionalLight('#fff2e4', 2.6);
   key.position.set(-3, 5, 6);
+  key.castShadow = true; key.shadow.mapSize.set(1024, 1024);
+  Object.assign(key.shadow.camera, { left: -3, right: 3, top: 4, bottom: -2, near: .1, far: 16 });
+  key.shadow.bias = -.0004; key.shadow.normalBias = .018;
   scene.add(key);
-  const rim = new DirectionalLight('#c4ddd0', 2);
+  const rim = new DirectionalLight('#c4ddd0', 1.3);
   rim.position.set(4, 2, -3);
   scene.add(rim);
   const inspectionFill = new DirectionalLight('#f3e6d4', 2.3);
   inspectionFill.visible = false; scene.add(inspectionFill, inspectionFill.target);
   const wheelGeometry = new CylinderGeometry(1.75, 1.8, .13, 64);
-  const wheelMaterial = new MeshStandardMaterial({ color: '#706857', roughness: .55, metalness: .3 });
+  const wheelMaterial = new MeshStandardMaterial({ color: '#5c655e', roughness: .48, metalness: .55 });
   const wheel = new Mesh(wheelGeometry, wheelMaterial);
   wheel.position.y = -.065;
+  wheel.receiveShadow = true;
   scene.add(wheel);
   const grooveGeometry = new TorusGeometry(1, .009, 4, 96);
-  const grooveMaterial = new MeshStandardMaterial({ color: '#b0a58d', roughness: .6, metalness: .25 });
+  const grooveMaterial = new MeshStandardMaterial({ color: '#91998b', roughness: .6, metalness: .45 });
   for (const radius of [1.3, 1.48, 1.68]) {
     const groove = new Mesh(grooveGeometry, grooveMaterial);
     groove.rotation.x = Math.PI / 2; groove.position.y = .068; groove.scale.setScalar(radius); wheel.add(groove);
@@ -80,6 +95,13 @@ export function createScene(parent: HTMLElement) {
   for (let i = 0; i < 8; i++) {
     const mark = new Mesh(markGeometry, grooveMaterial), angle = i * Math.PI / 4;
     mark.position.set(Math.sin(angle) * 1.57, .068, Math.cos(angle) * 1.57); mark.rotation.y = angle + Math.PI / 2; wheel.add(mark);
+  }
+  const slipGeometry = new TorusGeometry(1, .018, 5, 32, Math.PI * .7);
+  const slipMaterial = new MeshStandardMaterial({ color: '#b9825e', roughness: .6 });
+  for (let i = 0; i < 3; i++) {
+    const slip = new Mesh(slipGeometry, slipMaterial);
+    slip.rotation.set(Math.PI / 2, 0, i * 2.1); slip.position.y = .074;
+    slip.scale.set(1.22 + i * .19, 1.22 + i * .19, .35); wheel.add(slip);
   }
   const effects = new WheelEffects();
   const dropGeometry = new IcosahedronGeometry(.023, 0);
@@ -147,8 +169,11 @@ export function createScene(parent: HTMLElement) {
     setSurface(nextColor: string, gloss = 0, glow = 0): void {
       color = nextColor;
       pot.material.color.set(color);
-      pot.material.roughness = .85 - gloss * .65;
-      pot.material.metalness = gloss * .08;
+      pot.material.roughness = .6 - gloss * .28;
+      pot.material.metalness = 0;
+      pot.material.bumpScale = .018 - gloss * .012;
+      pot.material.clearcoat = .22 + gloss * .6;
+      pot.material.clearcoatRoughness = .4 - gloss * .2;
       pot.material.emissive.set('#ff640b');
       pot.material.emissiveIntensity = glow;
     },
@@ -210,8 +235,9 @@ export function createScene(parent: HTMLElement) {
     },
     dispose(): void {
       canvas.removeEventListener('webglcontextlost', useFallback);
-      controls?.dispose(); renderer?.dispose(); pot.dispose(); wheelGeometry.dispose(); wheelMaterial.dispose();
+      controls?.dispose(); studioLight?.dispose(); key.shadow.dispose(); renderer?.dispose(); pot.dispose(); wheelGeometry.dispose(); wheelMaterial.dispose();
       grooveGeometry.dispose(); grooveMaterial.dispose(); markGeometry.dispose(); dropGeometry.dispose(); dropMaterial.dispose();
+      slipGeometry.dispose(); slipMaterial.dispose();
       canvas.remove(); fallback.remove();
     },
   };

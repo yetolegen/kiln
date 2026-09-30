@@ -26,3 +26,15 @@ it.each(['reduced', 'inspection', 'damage', 'firing'])('stops splatter during %s
   fx.update(s, 133, reason === 'reduced', reason === 'inspection');
   expect(fx.life.every(v => v <= 0)).toBe(true);
 });
+
+it('visibly turns an idle studio pot and freezes immediately for inspection or reduced motion', () => {
+  const fx = new WheelEffects(), s = sample(); s.gesture = null;
+  for (let now = 100; now <= 1100; now += 16) fx.update(s, now, false, false);
+  expect(fx.angle).toBeGreaterThan(2);
+  const angle = fx.angle;
+  for (let now = 1116; now <= 1300; now += 16) fx.update(s, now, false, true);
+  expect(fx.angle).toBe(angle);
+  fx.update(s, 1316, true, false); expect(fx.angle).toBe(angle);
+  fx.update(s, 1332, false, false); expect(fx.angle).toBeGreaterThan(angle);
+  expect(fx.angle - angle).toBeLessThan(.02); // gentle restart, no jump
+});

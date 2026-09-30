@@ -1,5 +1,6 @@
-import { DoubleSide, Float32BufferAttribute, Group, LatheGeometry, Mesh, MeshBasicMaterial, MeshStandardMaterial, TorusGeometry, Vector2 } from 'three';
+import { DoubleSide, Float32BufferAttribute, Group, LatheGeometry, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, TorusGeometry, Vector2 } from 'three';
 import type { ClayState } from '../types';
+import { createClaySurface } from './claySurface';
 
 export function fillProfile(clay: ClayState, points: Vector2[]): void {
   const n = clay.radii.length;
@@ -32,14 +33,17 @@ export function rimTearBottom(clay: ClayState): number | null {
 
 export function createPotView() {
   const group = new Group();
-  const material = new MeshStandardMaterial({ color: '#c88963', roughness: .72, metalness: 0, vertexColors: true, side: DoubleSide });
+  const surface = createClaySurface();
+  const material = new MeshPhysicalMaterial({ color: '#b9825e', roughness: .6, metalness: 0, vertexColors: true, side: DoubleSide,
+    map: surface.map, bumpMap: surface.bumpMap, bumpScale: .018, roughnessMap: surface.roughnessMap,
+    clearcoat: .22, clearcoatRoughness: .4, envMapIntensity: .7 });
   const ringGeometry = new TorusGeometry(1, .009, 6, 64);
   const ringMaterial = new MeshBasicMaterial({ color: '#ffe0a2', transparent: true, opacity: .8 });
   const ring = new Mesh(ringGeometry, ringMaterial);
   ring.rotation.x = Math.PI / 2;
   group.add(ring);
   const points: Vector2[] = [];
-  let mesh: Mesh<LatheGeometry, MeshStandardMaterial> | null = null;
+  let mesh: Mesh<LatheGeometry, MeshPhysicalMaterial> | null = null;
   let intactIndices = new Uint32Array();
   let revision = -1;
   let radii: Float32Array | null = null;
@@ -55,6 +59,7 @@ export function createPotView() {
           const geometry = new LatheGeometry(points, segments);
           geometry.setAttribute('color', new Float32BufferAttribute(new Float32Array(geometry.getAttribute('position').count * 3), 3));
           mesh = new Mesh(geometry, material);
+          mesh.castShadow = mesh.receiveShadow = true;
           intactIndices = Uint32Array.from(geometry.getIndex()!.array);
           group.add(mesh);
         }
@@ -68,8 +73,7 @@ export function createPotView() {
             positions.setXYZ(index, points[j].x * Math.sin(angle), points[j].y, points[j].x * Math.cos(angle));
             const b = Math.round(points[j].y / clay.height * (clay.damage.length - 1));
             const damage = clay.damage[b] ?? 0;
-            const grain = .965 + .018 * Math.sin(points[j].y * 96) + .015 * Math.sin(angle * 3 + points[j].y * 4);
-            const shade = grain * (1 - damage * (.45 + .25 * Math.sin(angle * 7) ** 2));
+            const shade = 1 - damage * (.45 + .25 * Math.sin(angle * 7) ** 2);
             colors.setXYZ(index, shade, shade * (1 - damage * .15), shade * (1 - damage * .2));
           }
         }
@@ -109,6 +113,6 @@ export function createPotView() {
       group.rotation.y = rotation;
       group.rotation.z = reducedMotion ? 0 : Math.sin(nowMs * .012) * clay.wobble * .022;
     },
-    dispose(): void { mesh?.geometry.dispose(); material.dispose(); ringGeometry.dispose(); ringMaterial.dispose(); },
+    dispose(): void { mesh?.geometry.dispose(); material.dispose(); surface.dispose(); ringGeometry.dispose(); ringMaterial.dispose(); },
   };
 }

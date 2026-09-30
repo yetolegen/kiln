@@ -73,6 +73,20 @@ it('20 percent pancake uses actual flat geometry without the rupture effect', ()
   view.dispose();
 });
 
+it('surface rotation reuses the mesh and leaves the actual clay dimensions untouched', () => {
+  const clay = createClay(), view = createPotView(), radii = Array.from(clay.radii);
+  view.update(clay, null, 0, 0);
+  const mesh = view.group.children.find(child => child instanceof Mesh && child.geometry instanceof LatheGeometry) as Mesh<LatheGeometry>;
+  const positions = Array.from(mesh.geometry.getAttribute('position').array), geometry = mesh.geometry;
+  const texture = view.material.map;
+  view.update(clay, null, 500, Math.PI / 2);
+  expect(view.group.rotation.y).toBe(Math.PI / 2);
+  expect(mesh.geometry).toBe(geometry); expect(view.material.map).toBe(texture);
+  expect(Array.from(mesh.geometry.getAttribute('position').array)).toEqual(positions);
+  expect(Array.from(clay.radii)).toEqual(radii); expect(clay.height).toBe(CONFIG.INIT_HEIGHT);
+  view.dispose();
+});
+
 it.each([[0, 0], [.12, .12], [.6, 1]])('renders explicit cavity radius %f / depth %f without changing the clay', (radius, depth) => {
   const clay = new MockCore().tick(0).clay!;
   const original = Array.from(clay.radii);
