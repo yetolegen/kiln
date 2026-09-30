@@ -36,9 +36,10 @@ for (const mode of ['free', 'commission'] as const) for (const id of [1, 2]) {
     const f = fixture(mode, id);
     const tilted = (deg: number) => {
       const h = poseHand('flat', 0, -.15), a = deg * Math.PI / 180;
-      h.landmarksPx[0] = { x: h.palmPx.x - 50 * Math.cos(a), y: h.palmPx.y - 50 * Math.sin(a) };
-      h.landmarksPx[9] = { x: h.palmPx.x + 50 * Math.cos(a), y: h.palmPx.y + 50 * Math.sin(a) };
-      return h;
+      const landmarks = h.landmarksPx.map((p) => ({ ...p }));
+      landmarks[0] = { x: h.palmPx.x - 50 * Math.cos(a), y: h.palmPx.y - 50 * Math.sin(a) };
+      landmarks[9] = { x: h.palmPx.x + 50 * Math.cos(a), y: h.palmPx.y + 50 * Math.sin(a) };
+      return { ...h, landmarksPx: landmarks };
     };
     for (let i = 0; i < 65; i++) f.feed(tilted(48));
     const before = f.core.tick(f.now()).clay!.height;
