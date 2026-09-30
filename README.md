@@ -14,6 +14,10 @@ Wait for the hand model, click «Начать» once and allow the camera. Hold 
 
 V5.1 fixes camera/render timestamp ordering that could reset dwell and lesson confirmation, and puts the cursor ring above the buttons. The camera footer shows the version; small cyan dots mark tracked palm centres.
 
+**V9.0 atelier:** an original dusk workshop backdrop inspired by the user's reference, warm wood and brass controls, parchment lesson cards, pottery icons and a wheel pedestal. The clay, cyan targets, hands, spinning and free inspection remain live layers above the scenery. [Artwork, saved asset and generation prompt](docs/WORKSHOP_ART.md).
+
+**Damage notice:** actual tears, collapsed forms, perforated bottoms and pancakes display **«Глина испортилась, начните заново»**, a cause and the restart instruction. The banner stays visible through tracking loss and expired hints and clears with a fresh or repaired form. Existing recoverable/terminal physics are unchanged; warnings alone do not mark a pot as spoiled.
+
 **V8.1 clay:** uneven slip marks, fine throwing grooves, damp highlights, cavity/contact shadows and visible wheel smears make rotation readable. The material stays attached to the mesh as it spins; core shape and gesture behavior stay the same. Reduced motion and inspection freeze decorative rotation. The tested update preserves A's debug pass.
 
 **V8.0 workshop:** mineral green studio, clear lesson and action panels, warm clay, a visibly spinning wheel, bounded clay splatter during valid shaping, and free 3D vessel inspection. The [final Word design proposal](docs/KILN%20Frontend%20Design%20Final.docx) includes the approved rim-origin tearing, wheel effects and unrestricted viewing direction. Includes A's latest V7.2 visible-edge contact and jitter fixes through `67516c6`; working palm dwell is preserved. Automated synthetic tests cover both hand roles; physical-camera recognition and T22 still need human verification. See [GESTURES_V7.md](docs/GESTURES_V7.md) and [GESTURES_V6.md](docs/GESTURES_V6.md).
@@ -105,6 +109,6 @@ Windows Playwright WebKit can omit the pot from landscape screenshots after a re
 
 Vite + vanilla TypeScript, Three.js, MediaPipe Tasks Vision, Vitest and Playwright. Audio uses Web Audio. MediaPipe is pinned in `package.json`; its WASM CDN version must match exactly. `engine/`, `tracking/`, config and shared types belong to A; browser/render/UI/audio and this README top belong to B.
 
-Assets: procedural Three.js/Canvas pots and SVG hand diagrams; locally synthesized sounds; no stock audio, textures or custom-trained hand model. The hand landmarker is the pretrained MediaPipe model. The project builds on the repository's existing core code and the libraries above.
+Assets: procedural Three.js/Canvas pots and SVG hand/action diagrams; locally synthesized sounds; original AI-generated workshop scenery in `public/workshop-dusk.png` (see the art notes above); no stock audio or custom-trained hand model. The hand landmarker is the pretrained MediaPipe model. The project builds on the repository's existing core code and the libraries above.
 
 Kiln - hackathon case solution

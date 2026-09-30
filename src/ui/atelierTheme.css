@@ -1,0 +1,77 @@
+/* Dusk atelier: decorative scenery stays behind the calibrated interaction planes. */
+:root { --canvas: #201a25; --panel: #302319; --edge: #846345; --ink: #f6ecd8; --muted: #d0bea4; --sage: #dfbd7d; --clay: #c68e62; --target: #8dd9dd; background: var(--canvas); }
+.workshop { background: linear-gradient(90deg, #19121cdf, #23172266 60%, #21151d88), url('/workshop-dusk.png') center / cover fixed; }
+.workshop--camera { background: transparent; }
+.camera-viewport { background: #201a25 url('/workshop-dusk.png') center / cover; }
+.camera-video { opacity: .10; }
+.camera-viewport::after { background: linear-gradient(90deg, #16111a99, #23181d12 42%, #19121b44), linear-gradient(0deg, #17101977, transparent 32%); }
+.workshop[data-preview='true'] .camera-video, .workshop[data-phase='calibrate'] .camera-video { opacity: .8; }
+.workshop[data-preview='true'] .camera-viewport::after { background: #1a12284d; }
+.workshop__header { border-color: #dfbd7d38; }
+.wordmark { color: #f2d99d; text-shadow: 0 2px 12px #1b0d09; letter-spacing: .18em; }
+.workshop__label { color: #dfc495; }
+h1, .workshop--camera h1 { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; letter-spacing: -.025em; text-shadow: 0 3px 24px #120d11; }
+.workshop__description { text-shadow: 0 2px 8px #100d12; }
+footer { text-shadow: 0 1px 8px #100d12; }
+.workshop__status { background: #2b1d17f5; border-color: var(--edge); }
+.start-button { color: #2d2119; background: linear-gradient(120deg, #f1d7a1, #cfaa69); box-shadow: 0 5px 0 #74522f, 0 12px 30px #100b1644; border-radius: 8px; }
+.start-button:hover { background: #f2daad; }
+.dwell-button { border: 1px solid #a08056; border-radius: 8px; background: linear-gradient(110deg, #493325f5, #302019fa); color: #f3e5cb; box-shadow: inset 0 0 0 3px #d6b8800b, inset 0 1px #efd09933, 0 4px 0 #1b120e99, 0 7px 16px #0e08132b; }
+.dwell-button:hover { border-color: #e3c691; background: linear-gradient(110deg, #604532, #3f2c20); }
+.dwell-button.is-dwelling { border-color: #f5d694; box-shadow: inset 0 0 0 2px #f5d69455, 0 0 22px #d8a85635; }
+.dwell-button::after { background: #efcd86; }
+.dwell-button:disabled { opacity: .42; }
+.action-icon { display: inline-block; width: 22px; height: 22px; margin-right: 10px; vertical-align: -5px; color: #ddbc7b; pointer-events: none; }
+[data-action='done'], [data-action='fire'], [data-action='view-close'] { background: linear-gradient(120deg, #e8ca8c, #cfa462); color: #2d2118; border-color: #f5dcab; }
+[data-action='done'] .action-icon, [data-action='fire'] .action-icon, [data-action='view-close'] .action-icon { color: inherit; }
+[data-action='done']:hover, [data-action='fire']:hover, [data-action='view-close']:hover { background: #f0d59f; }
+.workshop[data-phase='menu'] .phase-actions > .dwell-button:not(.sound-toggle):not(.camera-toggle) { display: grid; grid-template-columns: 38px 1fr; column-gap: 14px; align-items: center; min-height: 92px; text-align: left; }
+.workshop[data-phase='menu'] .action-icon { grid-row: 1 / 3; width: 32px; height: 32px; margin: 0; }
+.workshop[data-phase='menu'] .phase-actions strong { font: 22px/1.25 Georgia, serif; }
+.workshop[data-phase='menu'] .phase-actions small { grid-column: 2; color: #d1bfa3; }
+.workshop[data-phase='menu'] [data-action='tutorial'] { background: linear-gradient(110deg, #665032f5, #3b2b1ffa); border-color: #d3ad6a; }
+.sound-toggle, .camera-toggle { background: #2a1d19ec; border-color: #95744e; box-shadow: none; }
+.tutorial-card, .result-summary { background: radial-gradient(ellipse at 8% 8%, #fff0c680, transparent 55%), linear-gradient(115deg, #ead6ae, #d9bd8b); color: #35291f; border: 1px solid #ba925d; border-radius: 7px; box-shadow: inset 0 0 0 5px #79592d0c, 0 8px 32px #0c071a66; }
+.tutorial-card > span { color: #7c5835; }
+.tutorial-card h2 { color: #3b291d; }
+.tutorial-card p { color: #513d2a; }
+.tutorial-card .tutorial-feedback { color: #67401e; border-color: #93764970; }
+.tutorial-card .tutorial-match { color: #255d5c; font-weight: 600; }
+.tutorial-card[data-state='matched'] { border-color: #4e8571; box-shadow: inset 0 0 0 2px #4e857155, 0 8px 32px #0c071a66; }
+.tutorial-card[data-state='failed'] { border-color: #9c4231; }
+.tutorial-card[data-state='failed'] .tutorial-feedback { color: #842f25; }
+.tutorial-card[data-state='failed'] :is(progress, .tutorial-match) { display: none; }
+.tutorial-card progress { accent-color: #41716a; }
+.ghost-hands { color: #765532; }
+.ghost-hands svg { stroke: #765532; filter: none; }
+.hud__hint { background: linear-gradient(115deg, #3e2c20f8, #291e1afa); border-color: #a58252; border-radius: 7px; color: #f7e7c7; box-shadow: 0 5px 20px #10091955; }
+.hud__hint[data-severity='warn'] { border-color: #ecc381; color: #f6dca8; }
+.hud__hint[data-severity='error'] { background: linear-gradient(115deg, #582b26fa, #361c1afa); border: 2px solid #e39a7f; color: #ffe6d2; }
+.workshop[data-damaged='true'] [data-action='restart'] { border-color: #f5bc85; background: #783f2b; color: #fff1d9; }
+.workshop[data-phase='studio'][data-damaged='true'] .workshop__description { display: none; }
+.hud__gesture, .hud__tracking { background: #30221ce8; color: #efd4a1; border-color: #8b6b48; border-radius: 7px; box-shadow: 0 3px 12px #10081855; }
+.glaze-jar { background: radial-gradient(ellipse at 50% 33%, var(--glaze) 0 23%, #cfb787 24% 25%, transparent 26%), linear-gradient(110deg, #4c3629, #2e211b); }
+.glaze-jar:hover { background: radial-gradient(ellipse at 50% 33%, var(--glaze) 0 23%, #eed4a4 24% 25%, transparent 26%), #59412e; }
+.glaze-jar[aria-pressed='true'] { border-color: #f3d394; box-shadow: inset 0 0 0 2px #f3d39455, 0 0 26px #dda75133; }
+.result-score { color: #775230; }
+.result-summary > span, .result-tracking, .storage-status { color: #6a5137; }
+.gallery-card { background: #33231cf5; border-color: #987349; border-radius: 8px; box-shadow: 0 7px 25px #0f091744; }
+.gallery-card h2 { color: #ebd2a5; }
+.gallery-card p, .gallery-count { color: #ccb794; }
+.inspection { background: radial-gradient(ellipse at 50% 52%, #201a2840, #150f20ee); }
+.inspection__header h2 { color: #f3dbab; }
+.inspection__header p { color: #d5c0a1; }
+.workshop[data-inspecting='true'] .camera-viewport { background: radial-gradient(ellipse at 50% 50%, #49384b, #19121f 75%); }
+@media (max-width: 600px) {
+  .workshop[data-phase='menu'] .phase-actions > .dwell-button:not(.sound-toggle):not(.camera-toggle) { min-height: 78px; grid-template-columns: 30px 1fr; column-gap: 10px; }
+  .workshop[data-phase='menu'] .action-icon { width: 27px; height: 27px; }
+  .workshop[data-phase='menu'] .phase-actions strong { font-size: 20px; }
+  .camera-viewport { background-position: 58% center; }
+  .action-icon { width: 18px; height: 18px; margin-right: 6px; vertical-align: -4px; }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .workshop:is([data-phase='studio'], [data-phase='tutorial']) .phase-actions .action-icon { display: none; }
+  .workshop[data-phase='menu'] .phase-actions > .dwell-button:not(.sound-toggle):not(.camera-toggle) { min-height: 62px; grid-template-columns: 24px 1fr; column-gap: 8px; }
+  .workshop[data-phase='menu'] .action-icon { width: 23px; height: 23px; }
+  .workshop[data-phase='menu'] .phase-actions strong { font-size: 16px; }
+}

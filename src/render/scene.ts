@@ -1,7 +1,7 @@
 import {
   ACESFilmicToneMapping, BoxGeometry, CylinderGeometry, DirectionalLight, HemisphereLight, Mesh, MeshStandardMaterial,
   OrthographicCamera, PerspectiveCamera, Scene, SRGBColorSpace, WebGLRenderer, TorusGeometry,
-  IcosahedronGeometry, InstancedMesh, Object3D, Spherical, Vector3,
+  IcosahedronGeometry, InstancedMesh, Object3D, Spherical, Vector3, Group,
   PMREMGenerator, PCFShadowMap, type WebGLRenderTarget,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -74,19 +74,27 @@ export function createScene(parent: HTMLElement) {
   Object.assign(key.shadow.camera, { left: -3, right: 3, top: 4, bottom: -2, near: .1, far: 16 });
   key.shadow.bias = -.0004; key.shadow.normalBias = .018;
   scene.add(key);
-  const rim = new DirectionalLight('#c4ddd0', 1.3);
+  const rim = new DirectionalLight('#c9c3ed', 1.3);
   rim.position.set(4, 2, -3);
   scene.add(rim);
   const inspectionFill = new DirectionalLight('#f3e6d4', 2.3);
   inspectionFill.visible = false; scene.add(inspectionFill, inspectionFill.target);
   const wheelGeometry = new CylinderGeometry(1.75, 1.8, .13, 64);
-  const wheelMaterial = new MeshStandardMaterial({ color: '#5c655e', roughness: .48, metalness: .55 });
+  const wheelMaterial = new MeshStandardMaterial({ color: '#aa8b61', roughness: .78, metalness: .12 });
   const wheel = new Mesh(wheelGeometry, wheelMaterial);
   wheel.position.y = -.065;
   wheel.receiveShadow = true;
   scene.add(wheel);
+  const stand = new Group();
+  const spindleGeometry = new CylinderGeometry(.13, .21, .65, 24);
+  const baseGeometry = new CylinderGeometry(.88, 1.14, .16, 48);
+  const standMaterial = new MeshStandardMaterial({ color: '#4a3526', roughness: .6, metalness: .25 });
+  const spindle = new Mesh(spindleGeometry, standMaterial), base = new Mesh(baseGeometry, standMaterial);
+  spindle.position.y = -.43; base.position.y = -.77;
+  spindle.castShadow = true; base.receiveShadow = true;
+  stand.add(spindle, base); scene.add(stand);
   const grooveGeometry = new TorusGeometry(1, .009, 4, 96);
-  const grooveMaterial = new MeshStandardMaterial({ color: '#91998b', roughness: .6, metalness: .45 });
+  const grooveMaterial = new MeshStandardMaterial({ color: '#755837', roughness: .75, metalness: .15 });
   for (const radius of [1.3, 1.48, 1.68]) {
     const groove = new Mesh(grooveGeometry, grooveMaterial);
     groove.rotation.x = Math.PI / 2; groove.position.y = .068; groove.scale.setScalar(radius); wheel.add(groove);
@@ -183,6 +191,7 @@ export function createScene(parent: HTMLElement) {
       const visible = !['loading', 'permission', 'calibrate', 'gallery'].includes(snapshot.phase);
       pot.group.visible = visible && !!snapshot.clay;
       wheel.visible = visible && !inspecting;
+      stand.visible = wheel.visible;
       effects.update(snapshot, nowMs, reduced.matches, inspecting);
       if (snapshot.clay && visible) pot.update(snapshot.clay, inspecting ? null : snapshot.hint?.band ?? snapshot.gesture?.contact.activeBand ?? null, nowMs, effects.angle, reduced.matches || inspecting);
       wheel.rotation.y = effects.angle;
@@ -238,6 +247,7 @@ export function createScene(parent: HTMLElement) {
       controls?.dispose(); studioLight?.dispose(); key.shadow.dispose(); renderer?.dispose(); pot.dispose(); wheelGeometry.dispose(); wheelMaterial.dispose();
       grooveGeometry.dispose(); grooveMaterial.dispose(); markGeometry.dispose(); dropGeometry.dispose(); dropMaterial.dispose();
       slipGeometry.dispose(); slipMaterial.dispose();
+      spindleGeometry.dispose(); baseGeometry.dispose(); standMaterial.dispose();
       canvas.remove(); fallback.remove();
     },
   };

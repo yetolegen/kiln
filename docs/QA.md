@@ -4,8 +4,17 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ## Automated checks
 
+### V9.0 reference-inspired atelier and damage feedback
+
+- Includes A's debugging through `3644e7f`: stabilized thumb/spread/widen speed checks and separated downward-index widening from flat-palm rim compression. B's changes are presentation, tests and assets only.
+- 307/307 unit/integration and warning-free typecheck/build. Damage presentation tests cover all three sculpting modes, bottom holes, pancakes, collapse and tears; warning-only states stay distinct. Notices persist without hints/input and clear on restart.
+- Twenty distinct Chromium feature checks pass across verification runs. Final eight rerun on the combined tree cover real-model/simulated-camera startup, palm menu/retry, all lesson steps, central/shifted real-controller narrowing, portrait/landscape export, artwork and damage layouts. Other passing checks cover pixel-visible rotation/reduced motion, free viewing/touch, rim tears, glaze/fire/export/gallery (including blocked storage), and shaping/widening button locks in both studio modes.
+- Visual QA found and fixed pale parchment instructions, short-landscape button wrapping, offscreen failed-lesson retry, and shaping advice remaining after spoilage. Final desktop, tablet, portrait and landscape screenshots reviewed. Browser-only inputs, no physical hands/device performance claim.
+- Original static backdrop: `public/workshop-dusk.png`; its full built-in generation prompt and source provenance are in `docs/WORKSHOP_ART.md`. Existing real clay, hand overlays, target silhouettes and inspection remain separate interactive layers.
+
 ### V8.3 inside-wall widening
 
+- Deployed `ee0f93a` as `dpl_53hui5KbdFgZ2aMufSjysJGWnTnk`; public V8.3 camera/model/version/resize check passed before starting the next frontend phase.
 - Integrates A's `5a361a7`, including storage compatibility and corrective Russian advice. The new action is available in free/commission; existing six-step lesson unchanged.
 - 298/298 unit/integration, warning-free typecheck/build. Real-controller flows cover six actions with both hand roles in both modes, local outer widening with unchanged cavity/base, and fired-pot saving/reloading with `widen` statistics.
 - Eight Chromium checks pass: shaping and widening both keep Done/restart/menu locked until release in both modes; responsive controls/export, the full lesson and centre/shifted step-1 camera fixtures pass.

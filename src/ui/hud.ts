@@ -1,6 +1,7 @@
 import { CONFIG } from '../config';
 import { gestureText, hintText, ru } from '../i18n';
 import type { EngineSnapshot, Hint } from '../types';
+import { clayDamageReason } from './clayDamage';
 
 export function createHud(parent: HTMLElement, onLayoutChange: () => void = () => {}) {
   const hud = document.createElement('aside');
@@ -30,6 +31,7 @@ export function createHud(parent: HTMLElement, onLayoutChange: () => void = () =
   window.addEventListener('resize', layout);
   layout();
   let lastHint: Hint | null | undefined;
+  let lastDamage: ReturnType<typeof clayDamageReason> | undefined;
   let lastGesture = '', lastTracking = '';
   return {
     update(snapshot: EngineSnapshot, nowMs: number, activeHint: Hint | null = snapshot.hint): void {
@@ -42,11 +44,16 @@ export function createHud(parent: HTMLElement, onLayoutChange: () => void = () =
       const status = snapshot.input && nowMs - snapshot.input.tMs <= CONFIG.MAX_INPUT_AGE_MS ? snapshot.input.status : 'stale';
       const label = pointer ? 'Указатель готов' : ru.tracking[status];
       if (label !== lastTracking) { tracking.textContent = label; lastTracking = label; }
-      if (activeHint !== lastHint) {
+      const damage = clayDamageReason(snapshot);
+      if (activeHint !== lastHint || damage !== lastDamage) {
         lastHint = activeHint;
-        banner.hidden = !lastHint || (snapshot.phase === 'tutorial' && typeof lastHint.params.instruction === 'string' && lastHint.params.banner !== 'true');
-        banner.textContent = lastHint ? hintText(lastHint) : '';
-        banner.dataset.severity = lastHint?.severity ?? 'info';
+        lastDamage = damage;
+        parent.dataset.damaged = String(!!damage);
+        banner.hidden = !damage && (!lastHint || (snapshot.phase === 'tutorial' && typeof lastHint.params.instruction === 'string' && lastHint.params.banner !== 'true'));
+        const message = damage ? `${ru.claySpoiled}. ${ru.damage[damage]} Уберите руки от глины и выберите «Начать сначала».` : lastHint ? hintText(lastHint) : '';
+        if (banner.textContent !== message) banner.textContent = message;
+        banner.dataset.severity = damage ? 'error' : lastHint?.severity ?? 'info';
+        banner.setAttribute('role', damage ? 'alert' : 'status');
         layout();
       }
     },

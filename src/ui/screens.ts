@@ -3,6 +3,7 @@ import type { AppCommand, AppPhase, EngineSnapshot } from '../types';
 import type { DwellRegion } from './dwell';
 import { CONFIG } from '../config';
 import { SculptingLock, isDestroyed } from './sculptingLock';
+import { actionIcon } from './icons';
 
 /** Buttons that end or leave the current shaping session: locked while sculpting, slower to dwell. */
 const SESSION_ACTIONS = ['done', 'restart', 'menu', 'inspect'];
@@ -98,6 +99,7 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
   function addAction(id: string, label: string, run: () => void, parent: HTMLElement = actions): HTMLButtonElement {
     const button = document.createElement('button');
     button.type = 'button'; button.className = 'dwell-button'; button.textContent = label; button.dataset.action = id;
+    button.insertAdjacentHTML('afterbegin', actionIcon(id));
     const guarded = () => { if (!button.disabled && button.isConnected) run(); };
     button.addEventListener('click', guarded);
     entries.push({ id, element: button, run: guarded }); parent.append(button);
@@ -119,6 +121,7 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
         const name = document.createElement('strong'); name.textContent = entry.element.textContent;
         const note = document.createElement('small'); note.textContent = descriptions[entry.id];
         entry.element.replaceChildren(name, note);
+        entry.element.insertAdjacentHTML('afterbegin', actionIcon(entry.id));
       }
     } else if (snapshot.phase === 'studio' || snapshot.phase === 'tutorial') {
       if (snapshot.phase === 'studio') addAction('done', 'Готово', () => dispatch({ type: 'finishShaping' }));

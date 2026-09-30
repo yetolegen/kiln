@@ -17,6 +17,7 @@ import { createInspection } from './ui/inspection';
 import type { AppPhase, CoreController, EngineSnapshot, ProjectionParams } from './types';
 import './ui/styles.css';
 import './ui/workshopTheme.css';
+import './ui/atelierTheme.css';
 
 const root = document.querySelector<HTMLDivElement>('#app');
 if (!root) throw new Error('KILN app root is missing.');
