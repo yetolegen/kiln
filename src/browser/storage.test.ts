@@ -12,12 +12,27 @@ function storage(raw: string | null = null) {
 }
 it('validates persisted profiles, finite stats and schema while retaining valid records', () => {
   const valid = result(); expect(isSessionResult(valid)).toBe(true);
-  const invalid = [ { ...valid, schemaVersion: 2 }, { ...valid, height: Infinity }, { ...valid, finalProfile: [1] },
+  const invalid = [ { ...valid, schemaVersion: 3 }, { ...valid, height: Infinity }, { ...valid, finalProfile: [1] },
     { ...valid, damage: Array(48).fill(-1) }, { ...valid, thickness: 3 }, { ...valid, completedAtIso: 'yesterday' },
     { ...valid, stats: { ...valid.stats, durationMs: -1 } }, { ...valid, stats: { ...valid.stats, similarity: { ...valid.stats.similarity, score: 101 } } } ];
   for (const item of invalid) expect(isSessionResult(item)).toBe(false);
   const backend = storage(JSON.stringify([null, ...invalid, valid, valid]));
   expect(createGalleryStore(() => backend).list()).toHaveLength(1);
+});
+it('migrates schema 1 pots as solid, preserves scores and drops retired gesture names', () => {
+  const old = { ...result(), schemaVersion: 1, thickness: .25, cavityRadiusWorld: undefined, cavityDepthWorld: undefined };
+  Object.assign(old.stats.gestureMs, { pressDown: 4000 });
+  const store = createGalleryStore(() => storage(JSON.stringify({ schemaVersion: 1, pots: [old], bestScores: { 'vase@1': 95 } })));
+  expect(store.list()[0]).toMatchObject({ schemaVersion: 2, cavityRadiusWorld: 0, cavityDepthWorld: 0, thickness: 1 });
+  expect(store.list()[0].stats.gestureMs).not.toHaveProperty('pressDown');
+  expect(store.best('vase@1')).toBe(95);
+});
+it('round trips a real cavity and rejects impossible floors, walls and derived thickness', () => {
+  const core = new MockCore(); core.key('i', 0); core.key('o', 0); core.key('8', 0);
+  const pot = core.tick(0).result!, backend = storage(), store = createGalleryStore(() => backend);
+  expect(store.save(pot)).toBe(true);
+  expect(createGalleryStore(() => backend).list()[0]).toEqual(pot);
+  for (const patch of [{ cavityRadiusWorld: 0 }, { cavityRadiusWorld: 2 }, { cavityDepthWorld: pot.height }, { cavityDepthWorld: -1 }, { thickness: .02 }]) expect(isSessionResult({ ...pot, ...patch })).toBe(false);
 });
 it('saves once, copies snapshots, and keeps working in memory after quota or access failure', () => {
   const backend = storage(), store = createGalleryStore(() => backend), pot = result();

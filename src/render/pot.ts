@@ -5,15 +5,15 @@ export function fillProfile(clay: ClayState, points: Vector2[]): void {
   const n = clay.radii.length;
   while (points.length < n * 2 + 2) points.push(new Vector2());
   points.length = n * 2 + 2;
-  const floor = Math.min(clay.thickness, clay.height * .25);
+  const hollow = clay.cavityRadiusWorld > 0 && clay.cavityDepthWorld > 0;
+  const floor = hollow ? clay.height - clay.cavityDepthWorld : clay.height;
   points[0].set(.001, 0);
   for (let i = 0; i < n; i++) points[i + 1].set(clay.radii[i], clay.height * i / (n - 1));
   for (let i = 0; i < n; i++) {
     const y = clay.height - (clay.height - floor) * i / (n - 1);
-    const band = y / clay.height * (n - 1);
-    const lo = Math.floor(band), hi = Math.min(n - 1, lo + 1);
-    const r = clay.radii[lo] + (clay.radii[hi] - clay.radii[lo]) * (band - lo);
-    points[n + 1 + i].set(Math.max(.02, r - clay.thickness), y);
+    // Fixed point count allows solid → shallow dent → deep opening without reallocating geometry.
+    const r = hollow ? clay.cavityRadiusWorld : clay.radii[n - 1] * (1 - i / (n - 1));
+    points[n + 1 + i].set(Math.max(.001, r), y);
   }
   points[points.length - 1].set(.001, floor);
 }

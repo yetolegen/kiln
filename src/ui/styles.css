@@ -143,18 +143,20 @@ progress { display: block; width: min(240px, 80vw); height: 8px; margin: 20px 0;
 .ghost-hands { display: flex; justify-content: center; gap: 40px; height: 70px; padding: 8px 0; }
 .ghost-hands svg { width: 44px; fill: #e5ba7b15; stroke: #eccb9c; stroke-width: 2; stroke-linecap: round; animation: ghost-drift 2s ease-in-out infinite alternate; }
 .ghost-hands svg + svg { scale: -1 1; }
-[data-demo='pinch'] .ghost-hands svg, [data-demo='raise'] .ghost-hands svg { animation-name: ghost-up; }
-[data-demo='fist'] .ghost-hands svg { animation-name: ghost-down; }
-[data-demo='fast'] .ghost-hands svg { animation-duration: .3s; }
+[data-demo='raise'] .ghost-hands svg, [data-demo='lift'] .ghost-hands svg + svg { animation-name: ghost-up; }
+[data-demo='rim'] .ghost-hands svg + svg, [data-demo='indent'] .ghost-hands svg + svg { animation-name: ghost-down; }
+[data-demo='lift'] .ghost-hands svg:first-child, [data-demo='rim'] .ghost-hands svg:first-child, [data-demo='indent'] .ghost-hands svg:first-child, [data-demo='open'] .ghost-hands svg:first-child { animation: none; stroke: #9ee3c4; }
+[data-demo='open'] .ghost-hands svg + svg { animation: ghost-spread 2s ease-in-out infinite alternate; }
+@keyframes ghost-spread { from { transform: scaleX(.75); } to { transform: scaleX(1.2); } }
 @keyframes ghost-drift { to { translate: 10px 0; } }
 @keyframes ghost-up { from { translate: 0 6px; } to { translate: 0 -6px; } }
 @keyframes ghost-down { from { translate: 0 -6px; } to { translate: 0 6px; } }
 @media (prefers-reduced-motion: reduce) { .ghost-hands svg { animation: none; } }
 @media (max-width: 600px) {
-  .tutorial-card { left: 16px; top: 280px; width: calc(100% - 32px); padding: 14px; }
-  .tutorial-card h2 { font-size: 22px; }
-  .tutorial-card p { font-size: 12px; }
-  .ghost-hands { height: 54px; }
+  .tutorial-card { left: 16px; top: 255px; width: calc(100% - 32px); padding: 12px; }
+  .tutorial-card h2 { font-size: 20px; margin: 8px 0; }
+  .tutorial-card p { font-size: 12px; line-height: 1.4; }
+  .ghost-hands { height: 34px; }
   .workshop[data-phase='tutorial'] .hud__hint { top: auto; bottom: 125px; }
 }
 @media (max-width: 600px) { .sound-toggle { top: auto; bottom: 8px; right: 12px; z-index: 4; } }
@@ -189,11 +191,14 @@ progress { display: block; width: min(240px, 80vw); height: 8px; margin: 20px 0;
   .sound-toggle { top: 60px; right: 16px; bottom: auto; }
   .hud { left: 24px; right: auto; bottom: 28px; }
   .hud__hint { top: auto; bottom: 76px; left: 24px; transform: none; width: 41%; padding: 8px; font-size: 11px; }
-  .tutorial-card { top: 184px; left: 24px; width: 41%; padding: 10px; }
-  .tutorial-card h2 { font-size: 20px; margin: 6px 0; }
-  .tutorial-card p { font-size: 11px; }
-  .ghost-hands { height: 36px; }
-  .workshop[data-phase='tutorial'] .hud { display: none; }
+  .tutorial-card { top: 162px; left: 24px; width: 43%; padding: 8px; }
+  .tutorial-card h2 { font-size: 18px; margin: 4px 0; }
+  .tutorial-card p { font-size: 10px; line-height: 1.25; }
+  .tutorial-card .tutorial-feedback { margin-top: 6px; padding-top: 6px; font-size: 10px; }
+  .tutorial-card progress { margin-top: 6px; }
+  .ghost-hands { height: 22px; padding: 4px 0; }
+  .workshop[data-phase='tutorial'] .hud__gesture, .workshop[data-phase='tutorial'] .hud__tracking { display: none; }
+  .workshop[data-phase='tutorial'] .hud__hint { top: 110px; bottom: auto; left: 52%; width: 45%; }
   .result-summary { top: 190px; left: 24px; width: 41%; padding: 10px; }
   .result-summary p { font-size: 10px; margin: 4px 0; }
   .result-score { display: inline; font-size: 26px; margin-right: 8px; }

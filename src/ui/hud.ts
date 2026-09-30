@@ -25,7 +25,7 @@ export function createHud(parent: HTMLElement) {
       if (label !== lastTracking) { tracking.textContent = label; lastTracking = label; }
       if (activeHint !== lastHint) {
         lastHint = activeHint;
-        banner.hidden = !lastHint;
+        banner.hidden = !lastHint || (snapshot.phase === 'tutorial' && typeof lastHint.params.instruction === 'string');
         banner.textContent = lastHint ? hintText(lastHint) : '';
         banner.dataset.severity = lastHint?.severity ?? 'info';
       }

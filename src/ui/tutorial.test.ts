@@ -25,28 +25,38 @@ it('explains the missing lesson condition rather than leaving step one silent', 
   expect(lessonFeedback(accepted, 0, 0)).toContain('отслеживания');
 });
 
-it('requires fresh accepted gestures, calm contact, a real tear begin, then its end', () => {
+it('completes exactly the five pottery actions and then finishes', () => {
   const f = fixture();
   f.hold('s'); expect(f.script.step).toBe(1);
   f.hold('s'); expect(f.script.step).toBe(1);
   f.hold('u'); expect(f.script.step).toBe(2);
-  f.hold('d'); expect(f.script.step).toBe(3);
-  f.key('s'); f.key('t'); f.tick(); expect(f.script.step).toBe(3);
-  f.key('t'); f.tick(); f.hold('s');
-  f.key('t'); f.tick(); expect(f.script.step).toBe(4);
-  f.hold('s'); expect(f.script.step).toBe(4);
-  f.key('t'); f.tick(); f.hold('s'); expect(f.script.step).toBe(5);
+  f.hold('i'); expect(f.script.step).toBe(3);
+  f.hold('o'); expect(f.script.step).toBe(4);
+  f.hold('d'); expect(f.script.step).toBe(5);
   f.key('f'); expect(f.tick().phase).toBe('menu');
 });
 
-it('does not progress with replayed observations, lost hands, or a tear end alone', () => {
-  const f = fixture(); f.key('s'); const snapshot = f.tick();
+it('does not accept a deforming flag without a matching shape change, replayed input, or lost hands', () => {
+  const f = fixture(); const snapshot = f.tick();
+  snapshot.gesture!.gesture = 'shape'; snapshot.gesture!.deforming = true;
   for (let t = f.now(); t < f.now() + 2000; t += 10) f.script.update(snapshot, t);
   expect(f.script.step).toBe(0);
-  f.hold('s'); f.hold('u'); f.hold('d'); f.hold('s');
-  f.key('t'); f.tick(); expect(f.script.step).toBe(4);
-  f.key('x'); f.key('t'); f.hold('s'); expect(f.script.step).toBe(4);
-  f.key('x'); f.hold('s'); expect(f.script.step).toBe(5);
+  f.key('x'); f.hold('s'); expect(f.script.step).toBe(0);
+  f.key('x'); f.hold('s'); expect(f.script.step).toBe(1);
+  f.hold('s'); expect(f.script.step).toBe(1); expect(f.script.waitingRelease).toBe(true);
+  f.key('x'); f.tick(); expect(f.script.waitingRelease).toBe(true);
+  f.key('x'); f.hold('Escape'); expect(f.script.waitingRelease).toBe(false);
   f.core.dispatch({ type: 'restart', newSessionId: 'lesson-2' }, f.now()); f.tick();
   expect(f.script.step).toBe(0);
+});
+
+it('requires both width and depth to increase when opening', () => {
+  const f = fixture(); f.hold('s'); f.hold('u'); f.hold('i');
+  const snap = f.tick(); snap.gesture!.gesture = 'open'; snap.gesture!.deforming = true;
+  snap.clay!.cavityRadiusWorld += .1;
+  snap.input!.frameId++; snap.gesture!.sourceFrameId = snap.input!.frameId;
+  f.script.update(snap, f.now()); expect(f.script.step).toBe(3);
+  snap.clay!.cavityDepthWorld += .1;
+  snap.input!.frameId++; snap.gesture!.sourceFrameId = snap.input!.frameId;
+  f.script.update(snap, f.now()); expect(f.script.step).toBe(4);
 });

@@ -10,7 +10,7 @@ const EMPTY: readonly ClayEvent[] = [];
 const HAND_POINTS = [[0, 35], [-20, 15], [-35, 0], [-48, -12], [-58, -25], [-25, -10], [-28, -35], [-29, -55], [-30, -75], [0, -15], [0, -42], [0, -68], [0, -88], [23, -10], [25, -37], [27, -59], [29, -78], [40, 0], [45, -22], [49, -42], [52, -56]];
 const makeClay = (): ClayState => ({
   revision: 1, radii: Float32Array.from({ length: CONFIG.N_BANDS }, (_, i) => 1 + .12 * Math.sin(i / 47 * Math.PI)),
-  height: 1.6, thickness: .25, wobble: 0, damage: new Float32Array(CONFIG.N_BANDS),
+  height: 1.6, thickness: 1, cavityRadiusWorld: 0, cavityDepthWorld: 0, wobble: 0, damage: new Float32Array(CONFIG.N_BANDS),
   collapsed: false, collapseCause: null, touching: false, activeBand: null,
 });
 
@@ -39,7 +39,7 @@ export class MockCore implements CoreController {
   private hintIssue: ClayEvent | undefined;
 
   private newStats(sessionId: string, mode: SessionStats['mode']): SessionStats {
-    return { sessionId, mode, durationMs: 32_000, activeMs: 24_000, executionEpisodes: {}, trackingEpisodes: {}, gestureMs: { shape: 12_000, pullUp: 8_000, pressDown: 4_000 },
+    return { sessionId, mode, durationMs: 32_000, activeMs: 24_000, executionEpisodes: {}, trackingEpisodes: {}, gestureMs: { shape: 12_000, pullUp: 8_000, compressRim: 4_000 },
       ...(mode === 'commission' ? { targetId: 'vase@1', similarity: { score: 82, radialError: .12, heightError: .17, worstBand: 25, signedRadiusDeltaWorld: .2, signedHeightDeltaWorld: -.2 } } : {}),
     };
   }
@@ -74,9 +74,12 @@ export class MockCore implements CoreController {
       return;
     }
     switch (key.toLowerCase()) {
-      case 's': this.gestureName = 'shape'; break;
+      case 's': this.gestureName = 'shape'; this.clay.radii[24] -= .025; break;
       case 'u': this.gestureName = 'pullUp'; this.clay.height = Math.min(CONFIG.MAX_HEIGHT, this.clay.height + .2); break;
-      case 'd': this.gestureName = 'pressDown'; this.clay.height = Math.max(CONFIG.MIN_HEIGHT, this.clay.height - .2); this.clay.damage.fill(0); this.clay.collapsed = false; this.clay.collapseCause = null; this.clay.wobble = 0; break;
+      case 'i': this.gestureName = 'indent'; this.clay.cavityRadiusWorld ||= CONFIG.INDENT_RADIUS_WORLD; this.clay.cavityDepthWorld ||= CONFIG.INDENT_DEPTH_WORLD; break;
+      case 'o': this.gestureName = 'open'; if (this.clay.cavityDepthWorld > 0) { this.clay.cavityRadiusWorld = Math.min(.7, this.clay.cavityRadiusWorld + .2); this.clay.cavityDepthWorld = Math.min(this.clay.height - CONFIG.FLOOR_WORLD, this.clay.cavityDepthWorld + .3); } break;
+      case 'd': this.gestureName = 'compressRim'; this.clay.height = Math.max(CONFIG.MIN_HEIGHT, this.clay.height - .2); this.clay.damage.fill(0); this.clay.collapsed = false; this.clay.collapseCause = null; this.clay.wobble = 0; break;
+      case 'escape': this.gestureName = 'none'; break;
       case 'f':
         this.gestureName = 'raise';
         if (this.phase === 'tutorial' && this.expected === 'raise') this.phase = 'menu';
@@ -93,6 +96,9 @@ export class MockCore implements CoreController {
         break;
       }
     }
+    this.clay.cavityDepthWorld = Math.min(this.clay.cavityDepthWorld, this.clay.height - CONFIG.FLOOR_WORLD);
+    const first = this.clay.cavityDepthWorld > 0 ? Math.floor((1 - this.clay.cavityDepthWorld / this.clay.height) * (CONFIG.N_BANDS - 1)) : 0;
+    this.clay.thickness = Math.min(...this.clay.radii.slice(first)) - this.clay.cavityRadiusWorld;
     this.clay.revision++;
   }
 
@@ -117,8 +123,9 @@ export class MockCore implements CoreController {
   }
 
   private finalize(): SessionResult {
-    return { schemaVersion: 1, id: this.stats.sessionId, completedAtIso: new Date().toISOString(), stats: structuredClone(this.stats),
+    return { schemaVersion: 2, id: this.stats.sessionId, completedAtIso: new Date().toISOString(), stats: structuredClone(this.stats),
       finalProfile: Array.from(this.clay.radii), height: this.clay.height, thickness: this.clay.thickness,
+      cavityRadiusWorld: this.clay.cavityRadiusWorld, cavityDepthWorld: this.clay.cavityDepthWorld,
       damage: Array.from(this.clay.damage), collapsed: this.clay.collapsed, glazeId: this.glazeId ?? 'amber' };
   }
 
@@ -131,11 +138,14 @@ export class MockCore implements CoreController {
       const pointing = this.gestureName === 'point';
       this.input = { frameId: ++this.frame, epoch: this.epoch, tMs: nowMs, receivedAtMs: nowMs, dtSampleS,
         status: this.lost ? 'noHands' : pointing ? 'oneHand' : 'ready', screenLeft: this.lost ? null : this.hand(-1), screenRight: this.lost || pointing ? null : this.hand(1) };
-      this.clay.touching = !this.lost && ['studio', 'tutorial'].includes(this.phase) && ['shape', 'pullUp', 'pressDown'].includes(this.gestureName);
+      this.clay.touching = !this.lost && ['studio', 'tutorial'].includes(this.phase) && ['shape', 'pullUp', 'indent', 'open', 'compressRim'].includes(this.gestureName);
       this.clay.activeBand = this.clay.touching ? 24 : null;
       this.gesture = {
         gesture: this.lost ? 'none' : this.gestureName, sourceFrameId: this.frame, capturedAtMs: nowMs,
         holdMs: 600, inputUsable: !this.lost && !pointing, deforming: this.clay.touching, motionStrength: .7, targetRadiusWorld: 1.1,
+        activeTrackId: this.clay.touching && this.gestureName !== 'shape' ? 1 : null,
+        supportTrackId: this.clay.touching && this.gestureName !== 'shape' ? 3 : null,
+        activationProgress: this.clay.touching ? 1 : 0,
         centerOffsetPalm: this.clay.wobble * .5, speedPalmPerS: this.active.has('tear') ? 12 : 1,
         contact: { valid: this.clay.touching, activeBand: this.clay.activeBand, bandY: .5, leftErrorWorld: 0, rightErrorWorld: 0, reason: null },
         cursorPx: !this.lost && this.gestureName === 'point' ? this.cursor : null, nearMiss: null,
@@ -160,7 +170,7 @@ export function installMockCore() {
   const core = new MockCore();
   const badge = document.createElement('aside');
   badge.dataset.testid = 'mock-badge';
-  badge.textContent = 'KILN_DEV_MOCK · 0–9 phases · S/U/D gestures · F finish · T/W/C issues · X hands · ←/→ shape · mouse points';
+  badge.textContent = 'KILN_DEV_MOCK · 0–9 phases · S/U/I/O/D actions · Esc release · F finish · T/W/C issues · X hands · ←/→ shape · mouse points';
   badge.style.cssText = 'position:fixed;bottom:8px;left:8px;right:8px;z-index:9999;padding:8px;background:#191919;color:#9f9;font:11px monospace;pointer-events:none';
   document.body.append(badge);
   const key = (event: KeyboardEvent) => {

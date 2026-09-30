@@ -1,6 +1,7 @@
 import { expect, it, vi } from 'vitest';
 import { createVoicePlayer } from './voice';
 import type { Hint } from '../types';
+import { hintText } from '../i18n';
 
 const hint = (): Hint => ({ id: 'tear', params: {}, priority: 50, expiresAtMs: 4000, severity: 'warn', speak: true });
 function fixture() {
@@ -24,4 +25,13 @@ it('survives unavailable and throwing speech APIs', () => {
   expect(() => createVoicePlayer(undefined).update(hint())).not.toThrow();
   const f = fixture(); f.load(); f.synth.speak.mockImplementation(() => { throw new Error('blocked'); });
   expect(() => f.voice.update(hint())).not.toThrow();
+});
+it('speaks the same v4 technique and tracking feedback as the banner, once per hint', () => {
+  const f = fixture(); f.load();
+  for (const id of ['noSupport', 'liftTooFast', 'thumbNotOnTop', 'pinchFirst', 'spreadTooFast', 'trackingUncertain'] as const) {
+    const message: Hint = { ...hint(), id, params: { side: 'right', interrupted: 'true' } };
+    f.voice.update(message); f.voice.update(message);
+    expect(f.synth.speak).toHaveBeenLastCalledWith(expect.objectContaining({ text: hintText(message) }));
+  }
+  expect(f.synth.speak).toHaveBeenCalledTimes(6);
 });

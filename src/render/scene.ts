@@ -149,9 +149,11 @@ function drawFallback(ctx: CanvasRenderingContext2D, clay: ClayState, p: Project
   const r = clay.radii[clay.radii.length - 1] * scale;
   ctx.fillStyle = color;
   ctx.beginPath(); ctx.ellipse(x, bottom - clay.height * scale, r, r * .15, 0, 0, Math.PI * 2); ctx.fill();
-  const inner = Math.max(1, r - clay.thickness * scale);
-  ctx.fillStyle = '#493024';
-  ctx.beginPath(); ctx.ellipse(x, bottom - clay.height * scale, inner, inner * .15, 0, 0, Math.PI * 2); ctx.fill();
+  if (clay.cavityRadiusWorld > 0 && clay.cavityDepthWorld > 0) {
+    const inner = clay.cavityRadiusWorld * scale;
+    ctx.fillStyle = `rgba(49, 28, 18, ${Math.min(.95, .35 + clay.cavityDepthWorld / clay.height)})`;
+    ctx.beginPath(); ctx.ellipse(x, bottom - clay.height * scale, inner, inner * .15, 0, 0, Math.PI * 2); ctx.fill();
+  }
   ctx.lineWidth = 2;
   for (let i = 0; i < clay.damage.length; i++) {
     if (clay.damage[i] < .05) continue;

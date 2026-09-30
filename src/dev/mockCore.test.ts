@@ -44,3 +44,12 @@ it('delivers simulated issue events together with a new observation', () => {
   expect(core.tick(40).events[0]).toMatchObject({ type: 'tear', phase: 'begin' });
   expect(core.tick(50).events).toHaveLength(0);
 });
+
+it('references actual hand tracks for the activation and support overlays', () => {
+  const core = new MockCore();
+  core.updateProjection(cameraProjection({ videoWidth: 1280, videoHeight: 720 }, { width: 1000, height: 800 }, 1));
+  core.key('5', 0); core.key('u', 0);
+  const snapshot = core.tick(40);
+  expect(snapshot.gesture!.activeTrackId).toBe(snapshot.input!.screenLeft!.trackId);
+  expect(snapshot.gesture!.supportTrackId).toBe(snapshot.input!.screenRight!.trackId);
+});

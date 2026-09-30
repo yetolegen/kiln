@@ -20,7 +20,10 @@ export function renderGallery(parent: HTMLElement, pots: readonly SessionResult[
       ctx.closePath(); ctx.fill();
       const radius = pot.finalProfile.at(-1)! * scale;
       ctx.fillStyle = glazeColor(pot.glazeId); ctx.beginPath(); ctx.ellipse(center, bottom - pot.height * scale, radius, radius * .15, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#4d3c2d'; ctx.beginPath(); ctx.ellipse(center, bottom - pot.height * scale, Math.max(1, radius - pot.thickness * scale), Math.max(1, radius - pot.thickness * scale) * .15, 0, 0, Math.PI * 2); ctx.fill();
+      if (pot.cavityRadiusWorld > 0 && pot.cavityDepthWorld > 0) {
+        ctx.fillStyle = `rgba(49, 28, 18, ${Math.min(.95, .35 + pot.cavityDepthWorld / pot.height)})`;
+        ctx.beginPath(); ctx.ellipse(center, bottom - pot.height * scale, pot.cavityRadiusWorld * scale, pot.cavityRadiusWorld * scale * .15, 0, 0, Math.PI * 2); ctx.fill();
+      }
     }
     const title = document.createElement('h2'); title.textContent = pot.stats.mode === 'commission' ? 'Ваза по образцу' : 'Свободная форма';
     const date = document.createElement('p'); date.textContent = new Date(pot.completedAtIso).toLocaleDateString('ru-RU');

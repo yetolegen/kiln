@@ -1,12 +1,12 @@
 import { expect, it } from 'vitest';
 import { createController } from '../engine/controller';
-import { hand, frame, toMenu } from '../../tests/helpers';
+import { hand, frame, moving, poseHand, toMenu } from '../../tests/helpers';
 import { TutorialScript } from './tutorial';
 import { DwellController } from './dwell';
 import { createGalleryStore } from '../browser/storage';
 import type { AppCommand, HandFeatures } from '../types';
 
-it('integrates real recognition, tutorial, dwell, commission, firing and storage', () => {
+it.each([1, 2])('integrates v4 lessons with active track %i, one-hand dwell, commission, firing and storage', (activeId) => {
   const core = createController({ nowIso: () => '2026-09-29T18:00:00.000Z' });
   let now = toMenu(core);
   const tutorial = new TutorialScript((command) => core.dispatch(command, now));
@@ -28,14 +28,28 @@ it('integrates real recognition, tutorial, dwell, commission, firing and storage
   }
   expect(select({ type: 'start', mode: 'tutorial', sessionId: 'lesson' }).phase).toBe('tutorial');
   feed(hand(-.9, .5), hand(.9, .5), 1000); expect(tutorial.step).toBe(1);
-  const pinch = { pinchRatio: .1, velocityPalmPerS: { x: 0, y: 1 }, velocityWorldPerS: { x: 0, y: 1 } };
-  feed(hand(-.9, .5, pinch), hand(.9, .5, pinch), 1000); expect(tutorial.step).toBe(2);
-  const fist = { extension: { index: 0, middle: 0, ring: 0, pinky: 0 }, velocityPalmPerS: { x: 0, y: -1 }, velocityWorldPerS: { x: 0, y: -1 } };
-  feed(hand(-.9, .5, fist), hand(.9, .5, fist), 1000); expect(tutorial.step).toBe(3);
-  feed(hand(-.9, .5), hand(.9, .5), 600);
-  const fast = { velocityPalmPerS: { x: 9, y: 0 } };
-  feed(hand(-.9, .5, fast), hand(.9, .5, fast), 600); expect(tutorial.step).toBe(4);
-  feed(hand(-.9, .5), hand(.9, .5), 1300); expect(tutorial.step).toBe(5);
+  function action(makeHand: (elapsed: number) => HandFeatures, ms: number) {
+    const start = now;
+    while (now < start + ms) {
+      const support = poseHand('wall', activeId === 1 ? 1 : -1, .6, { trackId: activeId === 1 ? 2 : 1 });
+      const active = { ...makeHand((now - start) / 1000), trackId: activeId };
+      feed(activeId === 1 ? active : support, activeId === 1 ? support : active, 33);
+    }
+  }
+  action(() => poseHand('flat', 0, 0), 3300);
+  expect(core.tick(now).gesture!.activationProgress).toBe(1);
+  action((s) => poseHand('flat', 0, s * 50 / 180, moving(0, .5)), 500);
+  expect(tutorial.step).toBe(2);
+  const lifted = core.tick(now).clay!.height;
+  action((s) => poseHand('thumbDown', 0, lifted - s * .3, moving(0, -.54)), 600);
+  expect(tutorial.step).toBe(3);
+  expect(core.tick(now).clay!.cavityDepthWorld).toBeCloseTo(.12);
+  action(() => poseHand('pinch', 0, lifted - .05), 400);
+  action((s) => poseHand('spread', 0, lifted - .05, { ratio: .2 + s }), 600);
+  expect(tutorial.step).toBe(4);
+  action(() => poseHand('flat', 0, lifted + .1), 800);
+  action((s) => poseHand('flat', 0, lifted + .1 - s * 50 / 180, moving(0, -.5)), 500);
+  expect(tutorial.step).toBe(5);
   let top = core.tick(now).clay!.height + .4;
   expect(feed(hand(-1, top), hand(1, top), 2000).phase).toBe('menu');
   expect(select({ type: 'start', mode: 'commission', sessionId: 'commission', targetId: 'vase@1' }).phase).toBe('studio');

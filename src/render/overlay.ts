@@ -57,6 +57,23 @@ export function createOverlay(parent: HTMLElement) {
       }
       ctx.shadowBlur = 0; ctx.globalAlpha = 1;
       if (!input || nowMs < input.tMs || nowMs - input.tMs > CONFIG.MAX_INPUT_AGE_MS) return;
+      const action = snapshot.gesture;
+      if (input.status === 'ready' && action?.inputUsable && action.sourceFrameId === input.frameId && ['studio', 'tutorial'].includes(snapshot.phase)) {
+        for (const hand of [input.screenLeft, input.screenRight]) {
+          if (!hand) continue;
+          const active = hand.trackId === action.activeTrackId, support = hand.trackId === action.supportTrackId;
+          if (!active && !support) continue;
+          const { x, y } = hand.palmPx;
+          ctx.strokeStyle = support ? '#9ee3c4' : '#ffffff66'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(x, y, 32, 0, Math.PI * 2); ctx.stroke();
+          if (active) {
+            ctx.strokeStyle = '#ffe0a2'; ctx.lineWidth = 5;
+            ctx.beginPath(); ctx.arc(x, y, 32, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * action.activationProgress); ctx.stroke();
+          }
+          ctx.fillStyle = support ? '#9ee3c4' : '#ffe0a2'; ctx.font = '12px system-ui';
+          ctx.fillText(support ? 'Опора' : action.activationProgress >= 1 ? 'Медленно' : `${Math.round(action.activationProgress * 100)}%`, x - 22, y + 50);
+        }
+      }
       const cursor = ['ready', 'oneHand'].includes(input.status) && snapshot.gesture?.sourceFrameId === input.frameId ? snapshot.gesture.cursorPx : null;
       if (cursor) {
         ctx.fillStyle = '#fff5db'; ctx.beginPath(); ctx.arc(cursor.x, cursor.y, 6, 0, Math.PI * 2); ctx.fill();

@@ -23,7 +23,9 @@ try {
   await page.locator('[data-action="commission"]').click(); await page.mouse.move(0, 0); await capture();
   await page.keyboard.press('s'); await page.keyboard.press('ArrowLeft'); await capture();
   await page.keyboard.press('u'); await capture();
-  await page.keyboard.press('u'); await capture();
+  await page.keyboard.press('i'); await capture();
+  await page.keyboard.press('o'); await page.keyboard.press('o'); await capture();
+  await page.keyboard.press('d'); await capture();
   await page.keyboard.press('w'); await capture();
   await page.keyboard.press('w'); await page.keyboard.press('f'); await capture();
   await page.locator('[data-action="glaze-jade"]').click(); await page.mouse.move(0, 0); await capture();

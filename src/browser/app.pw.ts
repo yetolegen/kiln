@@ -11,9 +11,24 @@ test('B10 retains a fading visual briefly while lost tracking pauses the control
   // Free mode prevents a commission outline from contributing pixels to this check.
   await page.keyboard.press('3'); await page.locator('[data-action="free"]').click(); await page.mouse.move(0, 0); await page.keyboard.press('s');
   await expect.poll(pixels).toBeGreaterThan(0);
-  await page.keyboard.press('x');
+  const retained = await page.evaluate(async () => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'x' }));
+    return new Promise<number>((resolve) => {
+      const deadline = performance.now() + 3000;
+      const sample = () => {
+        if (document.querySelector('.hud__hint')?.textContent?.includes('Отслеживание потеряно')) {
+          const canvas = document.querySelector<HTMLCanvasElement>('.overlay-canvas')!;
+          const data = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data;
+          let count = 0; for (let i = 3; i < data.length; i += 4) if (data[i]) count++;
+          resolve(count);
+        } else if (performance.now() >= deadline) resolve(-1);
+        else requestAnimationFrame(sample);
+      };
+      requestAnimationFrame(sample);
+    });
+  });
+  expect(retained).toBeGreaterThan(0);
   await expect(page.locator('.hud__hint')).toContainText('Отслеживание потеряно');
-  expect(await pixels()).toBeGreaterThan(0);
   await expect.poll(pixels).toBe(0);
   await page.keyboard.press('x'); await expect.poll(pixels).toBeGreaterThan(0);
 });
@@ -78,21 +93,30 @@ for (const blockedStorage of [false, true]) test(`B8 finishes a pot, exports PNG
   expect(errors).toEqual([]);
 });
 
-test('B7 tutorial follows gestures and a complete tear episode', async ({ page }) => {
+test('B7 tutorial completes shaping and all four v4 actions', async ({ page }) => {
   await page.goto('/?dev=1&mock=1');
   await page.locator('[data-action="tutorial"]').hover();
   const lesson = page.locator('.tutorial-card');
   await expect(lesson).toHaveAttribute('data-step', '0');
   await page.keyboard.press('s'); await expect(lesson).toHaveAttribute('data-step', '1');
   await page.keyboard.press('u'); await expect(lesson).toHaveAttribute('data-step', '2');
-  await page.keyboard.press('d'); await expect(lesson).toHaveAttribute('data-step', '3');
+  await page.keyboard.press('i'); await expect(lesson).toHaveAttribute('data-step', '3');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.mouse.move(0, 0);
-  await page.keyboard.press('s');
-  await expect(lesson.locator('progress')).toHaveJSProperty('value', 1);
+  await page.keyboard.press('Escape');
+  await expect(lesson.locator('h2')).toHaveText('Раскройте углубление');
   await page.screenshot({ path: 'test-results/b7-tutorial-phone.png' });
-  await page.keyboard.press('t'); await expect(lesson).toHaveAttribute('data-step', '4');
-  await page.keyboard.press('t'); await expect(lesson).toHaveAttribute('data-step', '5');
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.keyboard.press('x');
+  await expect(page.locator('.hud__hint')).toBeVisible();
+  await expect(page.locator('.hud__hint')).toContainText('Отслеживание потеряно');
+  const panel = await lesson.boundingBox(); expect(panel!.y + panel!.height).toBeLessThanOrEqual(390);
+  await page.screenshot({ path: 'test-results/b7-tutorial-landscape.png' });
+  await page.keyboard.press('x');
+  await page.keyboard.press('w'); await expect(page.locator('.hud__hint')).toContainText('Смести');
+  await expect(page.locator('.hud__hint')).toBeVisible(); await page.keyboard.press('w');
+  await page.keyboard.press('o'); await expect(lesson).toHaveAttribute('data-step', '4');
+  await page.keyboard.press('d'); await expect(lesson).toHaveAttribute('data-step', '5');
   await page.keyboard.press('f'); await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'menu');
 });
 
