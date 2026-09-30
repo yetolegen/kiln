@@ -1,7 +1,7 @@
 import { createScreens, type StartupState } from './ui/screens';
 import { CameraSession, cameraProblem, cameraProjection } from './browser/camera';
 import { connectTracking, loadTracker } from './browser/tracking';
-import { HandTracker, HandTrackerError } from './tracking/handTracker';
+import type { HandTracker } from './tracking/handTracker';
 import { createController } from './engine/controller';
 import { createSoundPlayer, unlockSound } from './audio/sound';
 import { createScene } from './render/scene';
@@ -13,8 +13,10 @@ import { LessonHints } from './ui/lessonHints';
 import { createTutorial } from './ui/tutorial';
 import { createFinishing } from './ui/finishing';
 import { createKiln } from './render/kiln';
+import { createInspection } from './ui/inspection';
 import type { AppPhase, CoreController, EngineSnapshot, ProjectionParams } from './types';
 import './ui/styles.css';
+import './ui/workshopTheme.css';
 
 const root = document.querySelector<HTMLDivElement>('#app');
 if (!root) throw new Error('KILN app root is missing.');
@@ -34,7 +36,7 @@ const sound = createSoundPlayer();
 let muted = false;
 const screens = createScreens(root, () => { void start(); }, (command) => core.dispatch(command, performance.now()), () => {
   muted = !muted; sound.setMuted(muted); return muted;
-});
+}, () => inspection.enter());
 const dwell = new DwellController();
 const hud = createHud(screens.page, screens.refreshTargets);
 const presentationHint = new PresentationHint();
@@ -42,6 +44,7 @@ const lessonHints = new LessonHints();
 const tutorial = createTutorial(screens.page, (command) => core.dispatch(command, performance.now()),
   (parent) => screens.addAction('lesson-retry', 'Попробовать снова · с первого шага', () => core.dispatch({ type: 'restart', newSessionId: crypto.randomUUID() }, performance.now()), parent), screens.refreshTargets);
 const scene = createScene(screens.viewport);
+const inspection = createInspection(screens, scene, core, () => { dwell.reset(); project(true); });
 const kiln = createKiln(screens.viewport, scene.setSurface);
 const finishing = createFinishing(screens, (command) => core.dispatch(command, performance.now()), scene.exportPng);
 const overlay = createOverlay(screens.viewport, screens.page);
@@ -67,13 +70,18 @@ function failCamera(problem: NonNullable<StartupState['error']>): void {
 
 function prepareModel(): Promise<void> {
   if (modelLoading) return modelLoading;
-  const request = loadTracker(() => HandTracker.create()).then((loaded) => {
+  let failedStage: 'wasm' | 'model' = 'model';
+  const request = loadTracker(async () => {
+    const { HandTracker, HandTrackerError } = await import('./tracking/handTracker');
+    try { return await HandTracker.create(); }
+    catch (error) { if (error instanceof HandTrackerError) failedStage = error.stage; throw error; }
+  }).then((loaded) => {
     if (disposed) { loaded.close(); return; }
     tracker = loaded;
     tracking = connectTracking(core, loaded, screens.video);
     core.dispatch({ type: 'modelReady' }, performance.now());
-  }).catch((error: unknown) => {
-    state.error = error instanceof HandTrackerError ? error.stage : 'model';
+  }).catch(() => {
+    state.error = failedStage;
   }).finally(() => { modelLoading = null; });
   modelLoading = request;
   return request;
@@ -93,6 +101,7 @@ function project(force = false): void {
   screens.refreshTargets();
   if (mockMode) { core.resetInput(revision); core.updateProjection(next); }
   else tracking?.resume(next, performance.now());
+  if (inspection.active) core.setPaused(true, performance.now());
 }
 
 async function start(): Promise<void> {
@@ -149,14 +158,15 @@ function render(): void {
   const snapshot = core.tick(nowMs);
   if (snapshot.phase !== layoutPhase) { layoutPhase = snapshot.phase; project(); }
   screens.update(snapshot, state, nowMs);
+  inspection.update(snapshot, state.cameraActive && !state.error);
   finishing.update(snapshot, state.cameraActive && !state.error);
-  const lessonHint = tutorial.update(snapshot, nowMs);
+  const lessonHint = inspection.active ? null : tutorial.update(snapshot, nowMs);
   screens.setTutorialCompleted(tutorial.status === 'completed');
   const coreHint = lessonHints.update(snapshot, tutorial.goal?.step ?? null, presentationHint.update(snapshot, nowMs));
   const activeHint = snapshot.phase === 'tutorial' && tutorial.status === 'completed' ? lessonHint :
     lessonHint?.severity === 'error' && coreHint?.id !== 'trackingUncertain' ? lessonHint : coreHint ?? lessonHint;
   hud.update(snapshot, nowMs, activeHint);
-  sound.update(snapshot, !document.hidden && state.cameraActive);
+  sound.update(snapshot, !document.hidden && state.cameraActive && !inspection.active);
   const selected = dwell.update(snapshot, nowMs, screens.targets, screens.revision);
   screens.showDwell(dwell.activeId, dwell.progress);
   if (selected) screens.activate(selected);
@@ -179,6 +189,7 @@ function dispose(): void {
   pageHide();
   tracker?.close();
   debug?.destroy();
+  inspection.destroy();
   scene.dispose();
   kiln.destroy();
   overlay.dispose();

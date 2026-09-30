@@ -39,7 +39,7 @@ it('removes faces for a torn cavity wall and restores intact topology for an und
   expect(Array.from(mesh.geometry.getIndex()!.array)).toEqual(intact); view.dispose();
 });
 
-it('localized wall rupture removes only damaged wall faces without lowering the mesh', () => {
+it('a weak middle band tears continuously from the rim without lowering the mesh', () => {
   const clay = createClay(), view = createPotView();
   clay.cavityRadiusWorld = .9; clay.cavityDepthWorld = .8;
   view.update(clay, null, 0);
@@ -52,9 +52,13 @@ it('localized wall rupture removes only damaged wall faces without lowering the 
   expect(torn.some((v, i) => v !== intact[i])).toBe(true);
   expect(Array.from(mesh.geometry.getAttribute('position').array)).toEqual(positions);
   const p = mesh.geometry.getAttribute('position');
-  for (let i = 0; i < torn.length; i += 3) {
-    if (torn[i] !== intact[i]) expect(Math.round(p.getY(intact[i]) / clay.height * 47)).toBe(32);
+  const removed = new Set<number>();
+  for (let i = 0; i < torn.length; i += 3) if (torn[i] !== intact[i]) {
+    const band = Math.round(p.getY(intact[i]) / clay.height * 47);
+    expect(band).toBeGreaterThanOrEqual(30);
+    removed.add(band);
   }
+  for (let band = 32; band <= 47; band++) expect(removed.has(band)).toBe(true);
   view.dispose();
 });
 

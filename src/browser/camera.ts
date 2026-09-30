@@ -130,10 +130,12 @@ export function cameraProjection(
   }
   const landscape = height < 500 && width > height;
   const phoneResult = width <= 600 && phase === 'result';
+  const display = ['menu', 'glaze', 'result'].includes(phase);
+  const axis = landscape ? .74 : width >= 1000 ? display ? .7 : .56 : width > 600 ? .66 : .5;
   return {
     revision, videoWidth: video.videoWidth, videoHeight: video.videoHeight,
     viewportWidth: width, viewportHeight: height, fit: 'cover', mirrored: true,
-    axisXPx: width * (landscape ? .74 : .5), bottomYPx: height * (phoneResult ? .65 : .8),
+    axisXPx: width * axis, bottomYPx: height * (phoneResult ? .65 : .8),
     pixelsPerWorldUnit: landscape ? Math.min(width * .43 / 3.8, height * .64 / CONFIG.MAX_HEIGHT) : Math.min(width / 5, height * (phoneResult ? .24 : .48) / CONFIG.MAX_HEIGHT),
   };
 }

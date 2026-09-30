@@ -93,10 +93,15 @@ describe('camera permission and lifecycle', () => {
 describe('projection from actual layout', () => {
   it.each([[1440, 900], [390, 844], [844, 390]])('fits the maximum pot at %i by %i', (width, height) => {
     const p = cameraProjection({ videoWidth: 640, videoHeight: 480 }, { width, height }, 7);
-    expect(p).toMatchObject({ revision: 7, fit: 'cover', mirrored: true, axisXPx: width * (height < 500 && width > height ? .74 : .5), bottomYPx: height * .8 });
+    expect(p).toMatchObject({ revision: 7, fit: 'cover', mirrored: true, bottomYPx: height * .8 });
     expect(p.bottomYPx - 3.2 * p.pixelsPerWorldUnit).toBeGreaterThanOrEqual(height * .15);
     expect(p.axisXPx - 1.6 * p.pixelsPerWorldUnit).toBeGreaterThan(0);
     expect(p.axisXPx + 1.6 * p.pixelsPerWorldUnit).toBeLessThan(width);
+  });
+  it('leaves the medium-screen lesson rail clear of both clay walls', () => {
+    const p = cameraProjection({ videoWidth: 1280, videoHeight: 720 }, { width: 800, height: 900 }, 1, 'tutorial');
+    expect(p.axisXPx - 1.6 * p.pixelsPerWorldUnit).toBeGreaterThan(248);
+    expect(p.axisXPx + 1.6 * p.pixelsPerWorldUnit).toBeLessThan(800);
   });
   it('rejects a not-yet-running video', () => {
     expect(() => cameraProjection({ videoWidth: 0, videoHeight: 0 }, { width: 390, height: 844 }, 1)).toThrow();

@@ -14,7 +14,11 @@ Wait for the hand model, click «Начать» once and allow the camera. Hold 
 
 V5.1 fixes camera/render timestamp ordering that could reset dwell and lesson confirmation, and puts the cursor ring above the buttons. The camera footer shows the version; small cyan dots mark tracked palm centres.
 
-**V7.0 interaction:** stable lift with the same accepted placement, continuous thumb-tip depth, outward release, slow vertical pressure, terminal damage and protected studio controls are integrated with geometry-led lessons. Automated synthetic tests cover both hand roles; physical-camera recognition and T22 still need human verification. See [GESTURES_V7.md](docs/GESTURES_V7.md) and [GESTURES_V6.md](docs/GESTURES_V6.md).
+**V8.0 workshop:** mineral green studio, clear lesson and action panels, warm clay, a visibly spinning wheel, bounded clay splatter during valid shaping, and free 3D vessel inspection. The [final Word design proposal](docs/KILN%20Frontend%20Design%20Final.docx) includes the approved rim-origin tearing, wheel effects and unrestricted viewing direction. Includes A's latest V7.2 visible-edge contact and jitter fixes through `67516c6`; working palm dwell is preserved. Automated synthetic tests cover both hand roles; physical-camera recognition and T22 still need human verification. See [GESTURES_V7.md](docs/GESTURES_V7.md) and [GESTURES_V6.md](docs/GESTURES_V6.md).
+
+**View the vessel freely:** select «Осмотреть в 3D» after releasing the clay. Drag with the mouse or one finger to rotate through any side, above or underneath; use the wheel or pinch to zoom. Arrow buttons/keys rotate, +/− zoom, and 0 resets the view. «Вернуться к сосуду» or Escape restores the calibrated shaping camera. Clay manipulation and tutorial progression pause during inspection. The same inspection is available in glazing and results. WebGL is required for 3D inspection; shaping keeps its 2D fallback.
+
+Wheel and pot share one rotation angle. Droplets are visual only and emit from fresh, valid deformation frames. Inspection and reduced-motion preferences stop these effects. Wall rupture opens from the rim down to the weak band through the outer wall, lip and inner wall; height is preserved. Bottom perforation and terminal pancakes retain their different geometry.
 
 ## Current controls
 
@@ -30,7 +34,7 @@ V5.1 fixes camera/render timestamp ordering that could reset dwell and lesson co
 
 These are basic shaping plus exactly four additional pottery functions. Either hand can act while the other supports; keep those roles throughout one action. The gold ring shows activation and green marks support. Moving too early/fast or losing support cancels activation.
 
-**Studio controls:** Done/restart disable during contact or active gesture arming and return after 400 ms of clear disengagement. Navigation remains available. Terminal damage leaves restart available and Done disabled. Small lift-pose fluctuations pause progress for up to 250 ms instead of erasing it; questionable frames never deform clay. Genuine departure, tracking/support loss and changed hand roles still cancel the action.
+**Studio controls:** Done/restart/menu/inspection hide and disable during contact or active gesture arming and return after 400 ms of clear disengagement. Session controls use a deliberate 1.8-second dwell; menu selection remains 0.9 seconds. Terminal damage leaves restart and inspection available and Done disabled. Small lift-pose fluctuations pause progress for up to 250 ms instead of erasing it; questionable frames never deform clay. Genuine departure, tracking/support loss and changed hand roles still cancel the action.
 
 **Geometry-led lessons:** every phase shows a cyan transparent target, including a dotted cavity cross-section. The amber section shows actual cavity depth. Completion requires the correct action to produce a matching height, full outer profile, cavity radius and depth. Goals lock when each step begins; a gesture alone cannot pass. The shape freezes briefly at the target, then releasing the action advances. After compression in step 5 is validated, step 6 displays «Обучение окончено» immediately. No additional gesture is needed. Overshoot or damage stops progression with corrective feedback and a palm-selectable Try Again button, which restarts the entire attempt. The same five pottery actions are tested in Free Mode and commissions with either hand assignment.
 
@@ -63,7 +67,7 @@ Frontend fixtures: `?dev=1&mock=1` skips camera/model loading. Keys 0–9 select
 
 V5 failure fixtures: B perforates the floor, E toggles the over-stretch warning, N creates a pancake. They are display fixtures; real-controller tests separately exercise the actual gesture/damage pipeline.
 
-The camera uses a mirrored, centered cover crop with an ideal front-camera resolution of 1280×720 and a 640×480 fallback. It never requests the microphone. Resize/orientation changes reset tracker and core together. Audio and speech unlock in the Start click and remain optional. Camera permission requires HTTPS or localhost; see [getUserMedia](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia).
+The camera uses a mirrored, centered cover crop with an ideal front-camera resolution of 1280×720 and a 640×480 fallback. It never requests the microphone. Resize/orientation changes reset tracker and core together. Optional sound unlocks in the Start click. Camera permission requires HTTPS or localhost; see [getUserMedia](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia).
 
 ```sh
 npm run build   # TypeScript check + production bundle in dist/
@@ -71,6 +75,8 @@ npm test        # core and frontend unit/integration tests
 npm run test:browser # Playwright Chromium, Firefox, WebKit (install browsers first)
 npm run preview
 ```
+
+The production build loads hand tracking asynchronously and splits Three.js core/renderer into independently cached chunks using Vite's supported `rolldownOptions.output.codeSplitting`. The 500 KB warning threshold is unchanged; V8's largest minified JavaScript chunk is about 352 KB. See [Vite production chunking](https://vite.dev/guide/build.html#chunking-strategy).
 
 ## Deploy
 

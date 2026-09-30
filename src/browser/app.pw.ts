@@ -333,13 +333,17 @@ test('B3 mock changes phases without loading a model or camera', async ({ page }
 test('B2 loads the real model, starts a mirrored camera, and resizes', async ({ page, browserName }) => {
   test.skip(browserName !== 'chromium', 'This fake-camera setup is Chromium-specific; physical camera is not exercised.');
   const errors: string[] = [];
+  const startupErrors: string[] = [];
+  page.on('requestfailed', request => startupErrors.push(`${request.url()}: ${request.failure()?.errorText}`));
+  page.on('console', message => { if (message.type() === 'error') startupErrors.push(message.text()); });
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
   const start = page.getByRole('button', { name: 'Начать', exact: true });
   await expect(start).toBeEnabled({ timeout: 50_000 });
   await start.click();
-  await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'calibrate', { timeout: 20_000 });
-  await expect(page.locator('footer')).toContainText('V7.1');
+  try { await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'calibrate', { timeout: 20_000 }); }
+  catch (error) { throw new Error(`Camera startup failed: ${startupErrors.join('\n')}`, { cause: error }); }
+  await expect(page.locator('footer')).toContainText('V8.0');
   const video = page.locator('video');
   await expect(video).toBeVisible();
   expect(await video.evaluate((element: HTMLVideoElement) => ({

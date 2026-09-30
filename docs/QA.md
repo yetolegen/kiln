@@ -4,6 +4,18 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ## Automated checks
 
+### V8.0 design and inspection release
+
+- Final proposal: 13-page Word document, all pages rendered and visually reviewed. Adds free rotation/zoom including the underside, paused shaping during inspection, rim-origin rupture, shared wheel spin and bounded splatter. Document is committed in `docs/`.
+- 291/291 unit/integration tests and typecheck/build pass. Tests cover continuous rim-to-weak-band mesh openings, unchanged height, particle freshness/limits and pauses, core projection, lessons and existing interaction/damage gates.
+- 22/22 Chromium browser checks pass. New cases verify mouse drag, real dispatched touch drag/pinch, below-base view, reset and exit, UI lock, reduced motion, duplicate-control cleanup, preserved glaze selection and responsive tablet layout. Existing palm navigation, tutorials, finishing, export and storage checks remain green.
+- Actual production bundle passes real MediaPipe loading and simulated-camera startup/mirroring/resize. An initial CDN request failed with sandbox `ERR_NETWORK_ACCESS_DENIED`; rerun with network access passes.
+- Found and fixed during review: dark underside, duplicate finishing controls after inspection, stale inspector buttons after phase changes, old centered-axis test fixture, and a WebKit shortcut-before-ready test race.
+- User-requested build warning fixed by asynchronous tracker loading and Three.js core/renderer chunks. Largest minified chunk falls from about 850 KB to 352 KB; default 500 KB threshold is unchanged. The production build emits no chunk-size warning and contains no dev mock/debug tools.
+- Firefox Playwright failed before application load at `browserContext.newPage` with `_page` undefined. This is not a successful Firefox verification. Existing Windows WebKit landscape capture behavior still does not establish physical Safari support.
+- WebKit V8 checks: 3/3 applicable tests pass (rotation, layouts, inspection/finishing lifecycle); Chromium-specific CDP touch test is skipped there.
+- No real hands or physical touch device were tested by the assistant. User retest remains required for recognition quality; rotation tests use browser-generated pointer/touch input.
+
 ### V7.0 production verification (30 September)
 
 - `b0f7ca4` deployed to https://kiln-delta-rose.vercel.app; deployment `dpl_8eoEkAJCUJwn2dBayNLxA2r7dErx` READY.

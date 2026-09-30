@@ -1,9 +1,12 @@
 import {
-  ACESFilmicToneMapping, CylinderGeometry, DirectionalLight, HemisphereLight, Mesh, MeshStandardMaterial,
-  OrthographicCamera, Scene, SRGBColorSpace, WebGLRenderer,
+  ACESFilmicToneMapping, BoxGeometry, CylinderGeometry, DirectionalLight, HemisphereLight, Mesh, MeshStandardMaterial,
+  OrthographicCamera, PerspectiveCamera, Scene, SRGBColorSpace, WebGLRenderer, TorusGeometry,
+  IcosahedronGeometry, InstancedMesh, Object3D, Spherical, Vector3,
 } from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { ClayState, EngineSnapshot, ProjectionParams } from '../types';
-import { createPotView } from './pot';
+import { createPotView, rimTearBottom } from './pot';
+import { WheelEffects } from './wheelEffects';
 
 const TILT = Math.PI / 12;
 
@@ -48,30 +51,94 @@ export function createScene(parent: HTMLElement) {
   canvas.addEventListener('webglcontextlost', useFallback);
   const scene = new Scene();
   const camera = new OrthographicCamera(-1, 1, 1, -1, .1, 100);
+  const inspectionCamera = new PerspectiveCamera(38, 1, .01, 100);
+  let controls: OrbitControls | null = null, inspecting = false;
+  let inspectionDistance = 8;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   const pot = createPotView();
-  scene.add(pot.group, new HemisphereLight('#ffe7c8', '#39271e', 2.6));
-  const key = new DirectionalLight('#ffe2c3', 4);
+  scene.add(pot.group, new HemisphereLight('#f1ede4', '#28392e', 2));
+  const key = new DirectionalLight('#ffe2c3', 3.1);
   key.position.set(-3, 5, 6);
   scene.add(key);
   const rim = new DirectionalLight('#c4ddd0', 2);
   rim.position.set(4, 2, -3);
   scene.add(rim);
+  const inspectionFill = new DirectionalLight('#f3e6d4', 2.3);
+  inspectionFill.visible = false; scene.add(inspectionFill, inspectionFill.target);
   const wheelGeometry = new CylinderGeometry(1.75, 1.8, .13, 64);
-  const wheelMaterial = new MeshStandardMaterial({ color: '#70513c', roughness: .7 });
+  const wheelMaterial = new MeshStandardMaterial({ color: '#706857', roughness: .55, metalness: .3 });
   const wheel = new Mesh(wheelGeometry, wheelMaterial);
   wheel.position.y = -.065;
   scene.add(wheel);
+  const grooveGeometry = new TorusGeometry(1, .009, 4, 96);
+  const grooveMaterial = new MeshStandardMaterial({ color: '#b0a58d', roughness: .6, metalness: .25 });
+  for (const radius of [1.3, 1.48, 1.68]) {
+    const groove = new Mesh(grooveGeometry, grooveMaterial);
+    groove.rotation.x = Math.PI / 2; groove.position.y = .068; groove.scale.setScalar(radius); wheel.add(groove);
+  }
+  const markGeometry = new BoxGeometry(.16, .004, .018);
+  for (let i = 0; i < 8; i++) {
+    const mark = new Mesh(markGeometry, grooveMaterial), angle = i * Math.PI / 4;
+    mark.position.set(Math.sin(angle) * 1.57, .068, Math.cos(angle) * 1.57); mark.rotation.y = angle + Math.PI / 2; wheel.add(mark);
+  }
+  const effects = new WheelEffects();
+  const dropGeometry = new IcosahedronGeometry(.023, 0);
+  const dropMaterial = new MeshStandardMaterial({ color: '#c88963', roughness: .5 });
+  const drops = new InstancedMesh(dropGeometry, dropMaterial, effects.capacity);
+  drops.frustumCulled = false; scene.add(drops);
+  const particle = new Object3D();
   let projection: ProjectionParams | null = null;
   let lastSnapshot: EngineSnapshot | null = null;
   let color = '#b9825e';
   let dpr = 1;
+  const activeCamera = () => inspecting ? inspectionCamera : camera;
+
+  function inspectionView(action: string): void {
+    if (!controls) return;
+    const delta = inspectionCamera.position.clone().sub(controls.target);
+    const spherical = new Spherical().setFromVector3(delta);
+    if (action === 'left') spherical.theta -= Math.PI / 8;
+    if (action === 'right') spherical.theta += Math.PI / 8;
+    if (action === 'up') spherical.phi -= Math.PI / 8;
+    if (action === 'down') spherical.phi += Math.PI / 8;
+    if (action === 'closer') spherical.radius *= .8;
+    if (action === 'farther') spherical.radius *= 1.25;
+    if (action === 'top') { spherical.phi = .02; spherical.theta = 0; }
+    if (action === 'bottom') { spherical.phi = Math.PI - .02; spherical.theta = 0; }
+    if (action === 'reset') { spherical.phi = Math.PI / 2 - .3; spherical.theta = 0; spherical.radius = inspectionDistance; }
+    spherical.phi = Math.max(.01, Math.min(Math.PI - .01, spherical.phi));
+    spherical.radius = Math.max(controls.minDistance, Math.min(controls.maxDistance, spherical.radius));
+    inspectionCamera.position.copy(new Vector3().setFromSpherical(spherical).add(controls.target));
+    controls.update();
+  }
 
   return {
     canvas,
+    get supportsInspection(): boolean { return !canvas.hidden && renderer !== null; },
+    inspectionView,
+    setInspection(active: boolean, surface?: HTMLElement): void {
+      inspecting = active && !canvas.hidden && renderer !== null;
+      if (!controls && surface) {
+        controls = new OrbitControls(inspectionCamera, surface);
+        controls.enablePan = false; controls.enableDamping = false;
+      }
+      if (controls) {
+        controls.enabled = inspecting;
+        if (inspecting && lastSnapshot?.clay && projection) {
+          const clay = lastSnapshot.clay;
+          controls.target.set(0, clay.height / 2, 0);
+          const radius = Math.hypot(Math.max(...clay.radii), clay.height / 2);
+          inspectionDistance = radius / Math.sin(19 * Math.PI / 180) / Math.min(1, projection.viewportWidth / projection.viewportHeight) * 1.25;
+          controls.minDistance = radius * 1.3; controls.maxDistance = inspectionDistance * 2.5;
+          inspectionView('reset');
+        }
+      }
+    },
     setProjection(p: ProjectionParams): void {
       projection = p;
       dpr = Math.min(window.devicePixelRatio || 1, 2);
       configureCamera(camera, p);
+      inspectionCamera.aspect = p.viewportWidth / p.viewportHeight; inspectionCamera.updateProjectionMatrix();
       renderer?.setPixelRatio(dpr);
       renderer?.setSize(p.viewportWidth, p.viewportHeight, false);
       fallback.width = Math.round(p.viewportWidth * dpr);
@@ -90,11 +157,30 @@ export function createScene(parent: HTMLElement) {
       lastSnapshot = snapshot;
       const visible = !['loading', 'permission', 'calibrate', 'gallery'].includes(snapshot.phase);
       pot.group.visible = visible && !!snapshot.clay;
-      wheel.visible = visible;
-      if (snapshot.clay && visible) pot.update(snapshot.clay, snapshot.hint?.band ?? snapshot.gesture?.contact.activeBand ?? null, nowMs);
-      wheel.rotation.y = nowMs * .0002;
+      wheel.visible = visible && !inspecting;
+      effects.update(snapshot, nowMs, reduced.matches, inspecting);
+      if (snapshot.clay && visible) pot.update(snapshot.clay, inspecting ? null : snapshot.hint?.band ?? snapshot.gesture?.contact.activeBand ?? null, nowMs, effects.angle, reduced.matches || inspecting);
+      wheel.rotation.y = effects.angle;
+      let activeParticles = 0;
+      for (let i = 0; i < effects.capacity; i++) {
+        if (effects.life[i] > 0) activeParticles++;
+        const j = i * 3;
+        particle.position.set(effects.positions[j], effects.positions[j + 1], effects.positions[j + 2]);
+        particle.scale.setScalar(Math.max(0, Math.min(1, effects.life[i] * 5)));
+        particle.updateMatrix(); drops.setMatrixAt(i, particle.matrix);
+      }
+      drops.instanceMatrix.needsUpdate = true; drops.visible = visible && !inspecting;
+      canvas.dataset.spinning = String(!reduced.matches && !inspecting && snapshot.phase !== 'firing' && !['wallTorn', 'bottomHole', 'pancake'].includes(snapshot.clay?.collapseCause ?? ''));
+      canvas.dataset.particles = String(activeParticles);
+      inspectionFill.visible = inspecting;
+      if (inspecting) {
+        const p = inspectionCamera.position;
+        const view = `${p.x.toFixed(2)},${p.y.toFixed(2)},${p.z.toFixed(2)}`;
+        if (canvas.dataset.view !== view) canvas.dataset.view = view;
+        inspectionFill.position.copy(p); inspectionFill.target.position.copy(controls!.target);
+      }
       if (!canvas.hidden && renderer) {
-        try { renderer.render(scene, camera); } catch { useFallback(); }
+        try { renderer.render(scene, activeCamera()); } catch { useFallback(); }
       }
       if (!fallback.hidden && context) {
         context.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -105,7 +191,7 @@ export function createScene(parent: HTMLElement) {
     async exportPng(): Promise<Blob | null> {
       try {
         if (!lastSnapshot || !projection) return null;
-        if (!canvas.hidden && renderer) renderer.render(scene, camera);
+        if (!canvas.hidden && renderer) renderer.render(scene, activeCamera());
         const source = canvas.hidden ? fallback : canvas;
         const picture = document.createElement('canvas'); picture.width = 1200; picture.height = 1200;
         const ctx = picture.getContext('2d'); if (!ctx || !lastSnapshot.clay) return null;
@@ -124,7 +210,8 @@ export function createScene(parent: HTMLElement) {
     },
     dispose(): void {
       canvas.removeEventListener('webglcontextlost', useFallback);
-      renderer?.dispose(); pot.dispose(); wheelGeometry.dispose(); wheelMaterial.dispose();
+      controls?.dispose(); renderer?.dispose(); pot.dispose(); wheelGeometry.dispose(); wheelMaterial.dispose();
+      grooveGeometry.dispose(); grooveMaterial.dispose(); markGeometry.dispose(); dropGeometry.dispose(); dropMaterial.dispose();
       canvas.remove(); fallback.remove();
     },
   };
@@ -160,11 +247,20 @@ function drawFallback(ctx: CanvasRenderingContext2D, clay: ClayState, p: Project
     }
   }
   ctx.lineWidth = 2;
-  for (let i = 0; i < clay.damage.length; i++) {
+  const tearBottom = rimTearBottom(clay);
+  if (tearBottom !== null) {
+    ctx.fillStyle = '#191e1c'; ctx.beginPath();
+    const top = bottom - clay.height * scale, end = bottom - tearBottom * scale;
+    ctx.moveTo(x + 8, top - 2);
+    for (let y = top; y <= end; y += 4) ctx.lineTo(x + 8 + Math.sin((y - top) * .1) * 3, y);
+    for (let y = end; y >= top; y -= 4) ctx.lineTo(x + 20 + Math.sin((y - top) * .1) * 3, y);
+    ctx.closePath(); ctx.fill();
+  }
+  for (let i = 0; i < clay.damage.length && tearBottom === null; i++) {
     if (clay.damage[i] < .05) continue;
     const y = bottom - clay.height * i / (clay.damage.length - 1) * scale;
-    ctx.globalAlpha = clay.damage[i]; ctx.strokeStyle = '#49291c';
-    ctx.beginPath(); ctx.moveTo(x - 12, y - 7); ctx.lineTo(x + 2, y); ctx.lineTo(x - 4, y + 8); ctx.stroke();
+    ctx.globalAlpha = clay.damage[i] * .4; ctx.strokeStyle = '#e29672';
+    ctx.beginPath(); ctx.ellipse(x, y, clay.radii[i] * scale, clay.radii[i] * scale * .1, 0, 0, Math.PI * 2); ctx.stroke();
   }
   ctx.globalAlpha = 1;
   if (band !== null) {

@@ -1,4 +1,4 @@
-import { Float32BufferAttribute, Group, LatheGeometry, Mesh, MeshBasicMaterial, MeshStandardMaterial, TorusGeometry, Vector2 } from 'three';
+import { DoubleSide, Float32BufferAttribute, Group, LatheGeometry, Mesh, MeshBasicMaterial, MeshStandardMaterial, TorusGeometry, Vector2 } from 'three';
 import type { ClayState } from '../types';
 
 export function fillProfile(clay: ClayState, points: Vector2[]): void {
@@ -19,9 +19,20 @@ export function fillProfile(clay: ClayState, points: Vector2[]): void {
   points[points.length - 1].set(clay.bottomHole ? clay.cavityRadiusWorld : .001, floor);
 }
 
+/** Every wall opening is connected to the rim, even if its weakest band is lower down. */
+export function rimTearBottom(clay: ClayState): number | null {
+  if (clay.cavityDepthWorld <= 0 || clay.bottomHole || clay.collapseCause === 'pancake') return null;
+  const floor = clay.height - clay.cavityDepthWorld;
+  for (let b = 0; b < clay.damage.length; b++) {
+    const y = b / (clay.damage.length - 1) * clay.height;
+    if (y >= floor && clay.damage[b] >= .65) return Math.max(floor + .01, y - clay.height / (clay.damage.length - 1));
+  }
+  return null;
+}
+
 export function createPotView() {
   const group = new Group();
-  const material = new MeshStandardMaterial({ color: '#b9825e', roughness: .85, metalness: 0, vertexColors: true });
+  const material = new MeshStandardMaterial({ color: '#c88963', roughness: .72, metalness: 0, vertexColors: true, side: DoubleSide });
   const ringGeometry = new TorusGeometry(1, .009, 6, 64);
   const ringMaterial = new MeshBasicMaterial({ color: '#ffe0a2', transparent: true, opacity: .8 });
   const ring = new Mesh(ringGeometry, ringMaterial);
@@ -36,7 +47,7 @@ export function createPotView() {
 
   return {
     group, material,
-    update(clay: ClayState, band: number | null, nowMs: number): void {
+    update(clay: ClayState, band: number | null, nowMs: number, rotation = nowMs * .00016, reducedMotion = false): void {
       if (revision !== clay.revision || radii !== clay.radii) {
         fillProfile(clay, points);
         if (!mesh || mesh.geometry.parameters.points.length !== points.length) {
@@ -57,22 +68,22 @@ export function createPotView() {
             positions.setXYZ(index, points[j].x * Math.sin(angle), points[j].y, points[j].x * Math.cos(angle));
             const b = Math.round(points[j].y / clay.height * (clay.damage.length - 1));
             const damage = clay.damage[b] ?? 0;
-            const shade = 1 - damage * (.45 + .25 * Math.sin(angle * 7) ** 2);
+            const grain = .965 + .018 * Math.sin(points[j].y * 96) + .015 * Math.sin(angle * 3 + points[j].y * 4);
+            const shade = grain * (1 - damage * (.45 + .25 * Math.sin(angle * 7) ** 2));
             colors.setXYZ(index, shade, shade * (1 - damage * .15), shade * (1 - damage * .2));
           }
         }
         positions.needsUpdate = true;
         colors.needsUpdate = true;
         const indices = geometry.getIndex()!;
-        for (let i = 0; i < intactIndices.length; i += 3) {
-          const vertex = intactIndices[i], point = vertex % points.length;
-          const y = points[point].y, bandAt = Math.round(y / clay.height * (clay.damage.length - 1));
-          const turn = Math.floor(vertex / points.length) / segments;
-          const slit = .07 + Math.sin(bandAt * .8) * .012;
-          // Open a narrow jagged tear in damaged cavity walls; intact faces retain their original indices.
-          const torn = clay.cavityDepthWorld > 0 && y >= clay.height - clay.cavityDepthWorld &&
-            (clay.damage[bandAt] ?? 0) >= .65 && Math.abs(turn - slit) < .025;
-          for (let k = 0; k < 3; k++) indices.setX(i + k, torn ? 0 : intactIndices[i + k]);
+        const tearBottom = rimTearBottom(clay);
+        for (let i = 0; i < segments; i++) for (let j = 0; j < points.length - 1; j++) {
+          const y = Math.max(points[j].y, points[j + 1].y);
+          const slit = .075 + Math.sin(y / clay.height * 18) * .008;
+          // Remove whole quads through the outer wall, lip and inner wall, never the floor.
+          const torn = tearBottom !== null && j > 0 && j < points.length - 2 && y >= tearBottom && Math.abs((i + .5) / segments - slit) < .022;
+          const offset = (i * (points.length - 1) + j) * 6;
+          for (let k = 0; k < 6; k++) indices.setX(offset + k, torn ? 0 : intactIndices[offset + k]);
         }
         indices.needsUpdate = true;
         geometry.computeVertexNormals();
@@ -95,8 +106,8 @@ export function createPotView() {
         ring.position.y = clay.height * b / (clay.radii.length - 1);
         ring.scale.setScalar(clay.radii[b] + .025);
       }
-      group.rotation.y = nowMs * .00016;
-      group.rotation.z = Math.sin(nowMs * .012) * clay.wobble * .022;
+      group.rotation.y = rotation;
+      group.rotation.z = reducedMotion ? 0 : Math.sin(nowMs * .012) * clay.wobble * .022;
     },
     dispose(): void { mesh?.geometry.dispose(); material.dispose(); ringGeometry.dispose(); ringMaterial.dispose(); },
   };

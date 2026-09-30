@@ -5,7 +5,7 @@ import { CONFIG } from '../config';
 import { SculptingLock, isDestroyed } from './sculptingLock';
 
 /** Buttons that end or leave the current shaping session: locked while sculpting, slower to dwell. */
-const SESSION_ACTIONS = ['done', 'restart', 'menu'];
+const SESSION_ACTIONS = ['done', 'restart', 'menu', 'inspect'];
 
 export interface StartupState {
   busy: boolean;
@@ -13,7 +13,7 @@ export interface StartupState {
   error: StartupProblem | null;
 }
 
-export function createScreens(root: HTMLElement, onStart: () => void, dispatch: (command: AppCommand) => void, toggleMute: () => boolean) {
+export function createScreens(root: HTMLElement, onStart: () => void, dispatch: (command: AppCommand) => void, toggleMute: () => boolean, onInspect: () => void = () => {}) {
   const page = document.createElement('main');
   page.className = 'workshop';
   const viewport = document.createElement('div');
@@ -76,6 +76,7 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
   let lastError: StartupProblem | null | undefined;
   let lastTracking = '';
   let screenRevision = 0;
+  let contentRevision = 0;
   const entries: { id: string; element: HTMLButtonElement; run: () => void }[] = [];
   const targets: DwellRegion[] = [];
   let dwelling: HTMLButtonElement | null = null;
@@ -83,9 +84,11 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
   let muted = false;
   const sculpting = new SculptingLock();
   let controlsLocked = false, destroyed = false;
+  let inspection = false, preview = false;
   function refreshTargets(): void {
     targets.length = 0;
     for (const entry of entries) {
+      if (inspection && !entry.id.startsWith('view-')) continue;
       if (entry.element.disabled || !entry.element.isConnected || !entry.element.getClientRects().length) continue;
       const rect = entry.element.getBoundingClientRect();
       const slow = SESSION_ACTIONS.includes(entry.id) && (lastPhase === 'studio' || lastPhase === 'tutorial');
@@ -104,13 +107,19 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
   const back = () => dispatch({ type: 'backToMenu' });
   function buildActions(snapshot: EngineSnapshot, state: StartupState): void {
     entries.length = 0; targets.length = 0; actions.replaceChildren(); details.replaceChildren();
-    dwelling = null; screenRevision++;
+    dwelling = null; screenRevision++; contentRevision++;
     if (state.error || !state.cameraActive) return;
     if (snapshot.phase === 'menu') {
       addAction('tutorial', 'Научиться · урок', () => dispatch({ type: 'start', mode: 'tutorial', sessionId: newSession() }));
       addAction('commission', 'Создать вазу · по образцу', () => dispatch({ type: 'start', mode: 'commission', sessionId: newSession(), targetId: 'vase@1' }));
       addAction('free', 'Свободная форма', () => dispatch({ type: 'start', mode: 'free', sessionId: newSession() }));
       addAction('gallery', 'Моя полка', () => dispatch({ type: 'openGallery' }));
+      const descriptions: Record<string, string> = { tutorial: 'От первого касания до готовой формы', commission: 'Повторите прозрачный силуэт', free: 'Ваш замысел. Ваши движения.', gallery: 'Сохранённые работы из вашей мастерской' };
+      for (const entry of entries) {
+        const name = document.createElement('strong'); name.textContent = entry.element.textContent;
+        const note = document.createElement('small'); note.textContent = descriptions[entry.id];
+        entry.element.replaceChildren(name, note);
+      }
     } else if (snapshot.phase === 'studio' || snapshot.phase === 'tutorial') {
       if (snapshot.phase === 'studio') addAction('done', 'Готово', () => dispatch({ type: 'finishShaping' }));
       addAction('restart', 'Начать сначала', () => dispatch({ type: 'restart', newSessionId: newSession() }));
@@ -119,11 +128,18 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
       addAction('menu', 'Новый сосуд', back);
       addAction('gallery', 'Моя полка', () => dispatch({ type: 'openGallery' }));
     } else if (snapshot.phase === 'glaze' || snapshot.phase === 'gallery') addAction('menu', 'В мастерскую', back);
+    if (['studio', 'tutorial', 'glaze', 'result'].includes(snapshot.phase)) addAction('inspect', 'Осмотреть в 3D', onInspect);
     if (!['loading', 'permission', 'calibrate', 'firing'].includes(snapshot.phase)) {
       const mute = addAction('mute', muted ? 'Звук выключен' : 'Звук включён', () => {
         muted = toggleMute(); mute.textContent = muted ? 'Звук выключен' : 'Звук включён';
       });
       mute.classList.add('sound-toggle');
+      const camera = addAction('camera-preview', preview ? 'Приглушить камеру' : 'Показать камеру', () => {
+        preview = !preview; page.dataset.preview = String(preview);
+        camera.textContent = preview ? 'Приглушить камеру' : 'Показать камеру';
+        camera.setAttribute('aria-pressed', String(preview));
+      });
+      camera.classList.add('camera-toggle'); camera.setAttribute('aria-pressed', String(preview));
     }
     applySculptingLock();
     refreshTargets();
@@ -142,8 +158,17 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
   window.addEventListener('scroll', refreshTargets, { passive: true });
   return {
     video, viewport, page, details, actions, addAction, refreshTargets,
+    removeActions(prefix: string): void {
+      for (let i = entries.length - 1; i >= 0; i--) if (entries[i].id.startsWith(prefix)) { entries[i].element.remove(); entries.splice(i, 1); }
+      screenRevision++; refreshTargets();
+    },
+    setInspection(active: boolean): void {
+      inspection = active; page.dataset.inspecting = String(active); content.inert = active; header.inert = active;
+      screenRevision++; refreshTargets();
+    },
     get targets(): readonly DwellRegion[] { return targets; },
     get revision(): number { return screenRevision; },
+    get contentRevision(): number { return contentRevision; },
     setTutorialCompleted(completed: boolean): void {
       if (lastPhase !== 'tutorial' || lastError) return;
       if (title.textContent === (completed ? 'Обучение окончено' : phaseText.tutorial[0])) return;

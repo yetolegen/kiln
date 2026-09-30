@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 
 // Only the camera landmark provider is substituted. Features, controller, UI and clock are real.
 const trackerModule = `
+import { cameraProjection } from '/src/browser/camera.ts';
 export class HandTrackerError extends Error {}
 export class HandTracker {
   epoch = 0; frame = 0; last = -Infinity;
@@ -26,10 +27,11 @@ export class HandTracker {
         hands = [hand(r.x+r.width/2,r.y+r.height/2)];
       }
       if (phase === 'tutorial') {
-        const ppu = Math.min(w/5,h*.48/3.2), y = h*.8 - 1.2*24/47*ppu;
+        const projection = cameraProjection(video, { width: w, height: h }, 0, phase);
+        const ppu = projection.pixelsPerWorldUnit, y = projection.bottomYPx - 1.2*24/47*ppu;
         this.shapeStart ??= now;
         const halfGap = 1.3 - Math.min(.4, Math.max(0, now - this.shapeStart - 500) * .0002);
-        hands = [hand(w*.5-halfGap*ppu,y), hand(w*.5+halfGap*ppu,y)];
+        hands = [hand(projection.axisXPx-halfGap*ppu,y), hand(projection.axisXPx+halfGap*ppu,y)];
       }
       window.__cameraAhead = (window.__cameraAhead ?? 0) + Number(now > rafTime);
       onPacket({frameId:++this.frame,epoch:this.epoch,capturedAtMs:now,receivedAtMs:performance.now(),mediaTimeMs:now,hands});

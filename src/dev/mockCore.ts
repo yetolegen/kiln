@@ -47,7 +47,7 @@ export class MockCore implements CoreController {
   }
   observe(frame: FrameInput): void { this.input = frame; }
   resetInput(epoch: number): void { this.epoch = epoch; this.input = null; this.gesture = null; this.lastObservation = -Infinity; }
-  setPaused(paused: boolean): void { this.paused = paused; }
+  setPaused(paused: boolean): void { this.paused = paused; if (paused) { this.gesture = null; this.clay.touching = false; } }
   updateProjection(projection: ProjectionParams): void { this.projection = projection; this.clay.maxHeightWorld = Math.min(CONFIG.MAX_HEIGHT, .75 * projection.bottomYPx / projection.pixelsPerWorldUnit); }
   setCursor(x: number, y: number): void { this.cursor.x = x; this.cursor.y = y; this.gestureName = this.palmCursor ? 'none' : 'point'; }
 
@@ -69,6 +69,7 @@ export class MockCore implements CoreController {
   }
 
   key(key: string, nowMs: number): void {
+    if (this.paused && !/^[0-9hpx]$/i.test(key)) return;
     if (/^[0-9]$/.test(key)) {
       this.phase = PHASES[Number(key)];
       if (this.phase === 'firing') this.firingAt = nowMs;
@@ -139,14 +140,14 @@ export class MockCore implements CoreController {
 
   tick(nowMs: number): EngineSnapshot {
     let observed = false;
-    if (!this.paused && this.projection && nowMs - this.lastObservation >= 33) {
+    if (this.projection && nowMs - this.lastObservation >= 33) {
       observed = true;
       const dtSampleS = Number.isFinite(this.lastObservation) ? (nowMs - this.lastObservation) / 1000 : 0;
       this.lastObservation = nowMs;
       const pointing = this.gestureName === 'point';
       this.input = { frameId: ++this.frame, epoch: this.epoch, tMs: nowMs, receivedAtMs: nowMs, dtSampleS,
         status: this.lost ? 'noHands' : pointing ? 'oneHand' : 'ready', screenLeft: this.lost ? null : this.hand(-1), screenRight: this.lost || pointing ? null : this.hand(1) };
-      this.clay.touching = !this.lost && ['studio', 'tutorial'].includes(this.phase) && ['shape', 'pullUp', 'indent', 'open', 'compressRim'].includes(this.gestureName) && (this.phase !== 'tutorial' || this.expected === this.gestureName);
+      this.clay.touching = !this.paused && !this.lost && ['studio', 'tutorial'].includes(this.phase) && ['shape', 'pullUp', 'indent', 'open', 'compressRim'].includes(this.gestureName) && (this.phase !== 'tutorial' || this.expected === this.gestureName);
       this.clay.activeBand = this.clay.touching ? 24 : null;
       this.gesture = {
         gesture: this.lost ? 'none' : this.gestureName, sourceFrameId: this.frame, capturedAtMs: nowMs,
@@ -158,6 +159,7 @@ export class MockCore implements CoreController {
         contact: { valid: !this.lost && this.gestureName === 'shape', activeBand: this.clay.activeBand, bandY: .5, leftErrorWorld: 0, rightErrorWorld: 0, reason: null },
         cursorPx: !this.lost && this.gestureName === 'point' ? this.cursor : null, nearMiss: null,
       };
+      if (this.paused) this.gesture = null;
     }
     if (this.phase === 'firing' && nowMs - this.firingAt >= CONFIG.FIRING_MS) { this.phase = 'result'; this.result = this.finalize(); }
     const events = this.pending.length && (observed || !this.projection) ? this.pending : EMPTY;

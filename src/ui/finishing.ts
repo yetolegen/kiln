@@ -13,8 +13,8 @@ export function createFinishing(screens: ReturnType<typeof createScreens>, dispa
   return {
     update(snapshot: EngineSnapshot, enabled: boolean): void {
       if (snapshot.phase === 'result' && snapshot.result && snapshot.result.id !== savedId) { store.save(snapshot.result); savedId = snapshot.result.id; }
-      if (revision !== screens.revision) {
-        revision = screens.revision; confirm = null; jars = []; selectedId = null;
+      if (revision !== screens.contentRevision) {
+        revision = screens.contentRevision; confirm = null; jars = []; selectedId = null;
         if (!enabled) return;
         if (snapshot.phase === 'glaze') {
           const choices = document.createElement('div'); choices.className = 'glaze-choices'; screens.details.append(choices);
