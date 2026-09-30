@@ -23,3 +23,12 @@ it('recognizes a permanent wall rupture without relying on a transient hint and 
   expect(clayDamageReason(warning)).toBe('wallTorn');
   warning.phase = 'menu'; expect(clayDamageReason(warning)).toBeNull();
 });
+
+it('light, repairable damage from one fast stroke is not «spoiled» (the tear hint stays visible)', () => {
+  const core = new MockCore(); const s = core.tick(0);
+  const clay = { ...s.clay!, damage: new Float32Array(s.clay!.damage.length).fill(0) };
+  clay.damage[24] = .25;
+  expect(clayDamageReason({ ...s, phase: 'studio', clay })).toBeNull();
+  clay.damage[24] = .5;
+  expect(clayDamageReason({ ...s, phase: 'studio', clay })).toBe('surface');
+});
