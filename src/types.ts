@@ -128,6 +128,8 @@ export interface GestureState {
   activeTrackId: number | null;     // one-hand actions: the acting hand (persistent track id)
   supportTrackId: number | null;    // one-hand actions: the hand holding a side wall
   activationProgress: number;       // 0..1: lift 3 s hold, indent travel, open pinch acquisition, rim hold; 1 = acting
+  engagedMs: number;                // time the current one-hand action has been ARMED (open: stretch duration); 0 otherwise.
+                                    // Resets on release / tracking loss / support loss / hand switch; replayed frames add nothing
   targetRadiusWorld: number | null;
   centerOffsetPalm: number | null;
   speedPalmPerS: number;
@@ -136,14 +138,22 @@ export interface GestureState {
   nearMiss: NearMiss | null;
 }
 
-export type CollapseCause = 'thinWall' | 'tooTall';
+/**
+ * thinWall / tooTall (incl. past the screen ceiling): recoverable by rim compression.
+ * bottomHole / wallTorn / pancake (v5 failures): permanent until restart.
+ */
+export type CollapseCause = 'thinWall' | 'tooTall' | 'bottomHole' | 'wallTorn' | 'pancake';
 export interface ClayState {
   revision: number;
   radii: Float32Array;              // 48 outer radii, bottom -> top, game units
   height: number;
   thickness: number;                // DERIVED wall thickness: min(outer radius − cavity radius) over the cavity; solid pot = min radius
   cavityRadiusWorld: number;        // cylindrical opening from the top; 0/0 = solid clay (initial)
-  cavityDepthWorld: number;         // measured down from the rim; the core keeps a floor and a wall
+  cavityDepthWorld: number;         // measured down from the rim; = height when bottomHole
+  floorThicknessWorld: number;      // DERIVED: height − cavityDepth (whole height when solid); 0 = hole
+  bottomHole: boolean;              // the thumb went through the floor (collapseCause 'bottomHole'); draw an actual hole
+  safeIndentDepthWorld: number;     // ~one thumb phalanx; deeper indentation warns thinFloor
+  maxHeightWorld: number;           // screen ceiling (75 % of the space above the pot base); taller collapses
   wobble: number;                   // 0..1
   damage: Float32Array;             // 48 values in 0..1
   collapsed: boolean;
@@ -154,7 +164,10 @@ export interface ClayState {
 export type ClayEventType =
   | 'tear' | 'wobble' | 'collapse' | 'overhang' | 'tooThin'
   | 'offWheel' | 'handsTooFar' | 'oneHand' | 'noHands'
-  | 'trackingUncertain' | 'targetMismatch';
+  | 'trackingUncertain' | 'targetMismatch'
+  | 'thinFloor'      // v5: indenting past the safe depth
+  | 'overStretch'    // v5: opening stretched ≥ STRETCH_DANGER_MS; release now or the wall tears
+  | 'tooFlat';       // v5: rim compression approaching a pancake
 export type IssueCategory = 'execution' | 'tracking' | 'coaching';
 export interface ClayEvent {
   episodeId: string;
@@ -206,7 +219,7 @@ export interface SessionStats {
   similarity?: SimilarityResult;
 }
 export interface SessionResult {
-  schemaVersion: 2;                 // 2 = v4 gestures + cavity; 1 had no cavity fields (migrate as solid)
+  schemaVersion: 3;                 // 3 = v5 floor/hole; 2 = v4 cavity (migrate: floor = height − depth, no hole); 1 = solid
   id: string;
   completedAtIso: string;           // supplied by browser adapter on finalization
   stats: SessionStats;
@@ -215,6 +228,8 @@ export interface SessionResult {
   thickness: number;
   cavityRadiusWorld: number;
   cavityDepthWorld: number;
+  floorThicknessWorld: number;
+  bottomHole: boolean;
   damage: number[];
   collapsed: boolean;
   glazeId: string;

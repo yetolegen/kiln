@@ -57,8 +57,8 @@ export const CONFIG = {
   LIFT_GAIN: 1.0,                   // pot height gained per world unit the hand rises
   INDENT_TOL_X_WORLD: 0.3,          // thumb tip within this of the axis ...
   INDENT_TOL_Y_WORLD: 0.3,          // ... and of the top surface
-  INDENT_TRAVEL_WORLD: 0.08,        // downward thumb travel that makes the indentation
-  INDENT_DEPTH_WORLD: 0.12,         // the indentation is exactly this shallow, however often repeated
+  INDENT_TRAVEL_WORLD: 0.08,        // downward thumb travel before the indentation starts (jitter guard)
+  INDENT_DEPTH_WORLD: 0.12,         // first dent depth; further thumb travel keeps deepening it (v5)
   INDENT_RADIUS_WORLD: 0.12,
   OPEN_ZONE_MARGIN_WORLD: 0.25,     // pinch point within the opening + this
   OPEN_ACQUIRE_MS: 200,             // pinch held this long before spreading counts
@@ -72,11 +72,22 @@ export const CONFIG = {
   COMPRESS_HOLD_MS: 500,
   COMPRESS_MIN_PALM_PER_S: 0.1,     // armed: moving down slower than this doesn't compress
   COMPRESS_MAX_PALM_PER_S: 1.0,     // faster than this stops the action
-  COMPRESS_GAIN: 0.6,               // height removed per world unit the hand moves down
-  COMPRESS_MAX_TOTAL_WORLD: 0.3,    // per engagement
+  COMPRESS_GAIN: 1.0,               // height removed per world unit the hand moves down (no cap: v5 → pancake)
   COMPRESS_SMOOTH_PER_S: 2.0,       // upper-profile smoothing rate while compressing
   COMPRESS_CAVITY_SHRINK_PER_WORLD: 0.3, // opening narrows (wall strengthens) per unit compressed
   NEAR_MISS_LATCH_MS: 1500,         // "too fast" hints stay this long after the cancel
+
+  // v5 failure mechanics (docs/GESTURES_V5.md); game-model values, not physical measurements
+  SCREEN_HEIGHT_FRACTION: 0.75,     // pot may use 75 % of the screen space above its base; taller collapses
+  SAFE_INDENT_PALM: 0.3,            // safe indentation ≈ one thumb phalanx ≈ 0.3 palm lengths
+  SAFE_INDENT_MIN_WORLD: 0.1,
+  INDENT_GAIN: 1.0,                 // indentation depth per world unit of downward thumb travel
+  HOLE_FLOOR_WORLD: 0.02,           // floor thinner than this = through-hole
+  STRETCH_DANGER_MS: 7000,          // engaged opening this long: thin-wall danger, the wall starts thinning
+  STRETCH_TEAR_MS: 10000,           // ... this long: the wall tears (wallTorn)
+  STRETCH_THIN_PER_S: 0.06,         // opening radius growth per second during the danger phase
+  TOO_FLAT_HEIGHT_WORLD: 0.9,       // compressing below this warns
+  PANCAKE_HEIGHT_WORLD: 0.7,        // ... below this is a pancake (permanent)
 
   // stability (game values)
   STABILITY_FACTOR: 3.0,
