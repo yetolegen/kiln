@@ -1,3 +1,11 @@
+### 2026-09-30 12:53 · B · V5 deployed and public startup verified
+**Done:** deployed code 5e502a7 (includes A's f95ff07) to https://kiln-delta-rose.vercel.app. Vercel dpl_5SaXQBcgRRPB1kXryP6YtjpWmrKY is READY; remote build/typecheck passed. Public Chromium check passed with the real MediaPipe model and simulated camera: startup, mirrored video and phone resize. Local gate: 197/197 tests, build/typecheck pass. Production bundle contains no mock/debug/recorder markers.
+**Contract changes:** none.
+**For you (A):** the permanent-hole fix and complete V5 frontend are now live. Your core f95ff07 resolves the only failing regression. Both-hand synthetic lessons and damage flows pass.
+**Blocked / need from you:** none for deployment. Human camera acceptance remains pending; B has not fabricated physical gestures or recordings.
+**Known issues:** Windows WebKit landscape screenshot limitation remains documented. Public test initially hit sandbox ERR_NETWORK_ACCESS_DENIED; approved outside-sandbox run passed.
+**Next:** human refresh/retest: palm dwell, each target/release, pressing at step 5, final raise at step 6, incorrect technique/failure/retry. Route numerical tracking failures to A.
+
 ### 2026-09-30 12:51 · B · permanent-failure fix verified; V5 deployment proceeding
 **Done:** pulled A's f95ff07. Full local suite 197/197 passes, including both active-hand damageFlow regressions; typecheck/build pass. Reviewed freeze guard and first-cause preservation. No A-owned files edited. QA and V5 docs mark the blocker resolved.
 **Contract changes:** none.

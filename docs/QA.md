@@ -4,6 +4,13 @@ Last updated: 30 September 2026, Asia/Tashkent. This report distinguishes synthe
 
 ## Automated checks
 
+### V5 production verified (30 September 12:53)
+
+- **Live:** https://kiln-delta-rose.vercel.app, deployed code `5e502a7` including A's `f95ff07`; deployment `dpl_5SaXQBcgRRPB1kXryP6YtjpWmrKY` READY. Remote build/typecheck passed.
+- Public Chromium real-MediaPipe/simulated-camera startup, mirrored-video and resize test passed. The sandbox initially denied network access; the approved outside-sandbox run passed. No real-hand recognition claim follows from this test.
+- Final local gate: **197/197 unit/integration tests pass**; production build/typecheck pass. The preceding 15 updated browser checks cover the V5 frontend across Chromium/Firefox/WebKit. Production bundle scan found no mock/debug/recorder markers.
+- The deployment blocker described in the historical sections below is resolved. Human camera acceptance and the Windows WebKit landscape screenshot caveat remain outstanding.
+
 ### V5 deployment gate cleared (30 September 12:51)
 
 - Pulled A's `f95ff07`. Permanent failures now freeze their geometry and preserve the first failure cause; recoverable rim compression is unchanged.
