@@ -15,6 +15,10 @@ export class ExternalWiden {
     if (!e || e.ids !== ids || e.epoch !== frame.epoch || e.projection !== projection.revision || t <= e.last || t - e.last > CONFIG.MAX_INPUT_AGE_MS) {
       e = this.grip = { left, right, y, travel: 0, since: t, last: t, epoch: frame.epoch, projection: projection.revision, ids, blocked: false };
     }
+    // The height anchor follows slow drift (still hands wander, a spread arcs); only a deliberate vertical
+    // move outrunning it blocks. A fixed anchor silently ended long strokes after ~0.2 palm of drift.
+    const follow = palm * .25 * (t - e.last) / 1000;
+    e.y += Math.max(-follow, Math.min(follow, y - e.y));
     e.last = t;
     const speed = Math.max(Math.hypot(l.velocityPalmPerS.x, l.velocityPalmPerS.y), Math.hypot(r.velocityPalmPerS.x, r.velocityPalmPerS.y));
     if (speed > 1.2 || Math.abs(y - e.y) > Math.max(.10, palm * .2)) e.blocked = true;

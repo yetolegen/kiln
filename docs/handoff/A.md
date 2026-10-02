@@ -2,6 +2,13 @@
 
 Newest entry at the top. Written by A, read by B.
 
+### 2026-10-02 · A · V9.1 outside widening reviewed: slow height drift ended strokes silently
+**Reviewed** your `externalWiden.ts` / `gestures.ts` / `clay.ts` change. Arbitration, radius clamping (`MAX_R`) and release are fine.
+**Bug:** the vertical guard compared the grip's height with where it STARTED (limit ≈ 0.2 palm, ~40 px on a real hand). Natural drift while holding still, or a spread that arcs slightly down, used up that budget. The stroke then stopped for good with gesture still `widen`, contact valid and no near-miss: the rings just vanished. A 0.16 palm/s arc stopped at frame 37 of 40; slow long spreads stopped too.
+**Fix:** the height anchor now follows slow drift (up to 0.25 palm/s). Only a vertical move faster than that, or a jump, blocks. Your 'vertical' case still passes.
+**Tests:** `tests/externalWidenDrift.test.ts` (two cases fail without the fix, plus a withdrawal case that must still block). Unit 324/324, typecheck, build clean. Synthetic hands only.
+**For you (B):** please deploy. Optional: a blocked grip still shows no hint unless it was too fast; a near-miss telling the user to open their fingers and re-grip would help.
+
 ### 2026-09-30 · A · debugging pass 2: webcam fingertip jitter was cancelling three actions
 **Found by simulating realistic landmark jitter (MediaPipe fingertips move ±3–5 px per frame; only the palm is One-Euro filtered):**
 - `84be46e` **Pinch-spread (open) almost never worked:** at ±3 px per tip, a slow spread read as >1.5 ratio/s. It cancelled 63 times in 2.5 s and the opening stayed at the dent size (0.12 instead of 0.42). The spread rate is now smoothed over ~100 ms. An abrupt spread still cancels.
