@@ -129,10 +129,14 @@ describe('v4 actions on the clay', () => {
     let c = indented();
     const first = c.cavityDepthWorld;
     expect(first).toBeCloseTo(INDENT.indentWorld * CONFIG.INDENT_GAIN);
-    c = stepClay(c, actionGesture('indent'), 0.05, undefined, { ...NO_DELTA, indentWorld: 0.2 });
-    expect(c.cavityDepthWorld).toBeCloseTo(first + 0.2 * CONFIG.INDENT_GAIN);
+    c = stepClay(c, actionGesture('indent'), 0.05, undefined, { ...NO_DELTA, indentWorld: 0.02 });
+    expect(c.cavityDepthWorld).toBeCloseTo(first + 0.02 * CONFIG.INDENT_GAIN);
     expect(c.floorThicknessWorld).toBeCloseTo(c.height - c.cavityDepthWorld);
-    for (let k = 0; k < 20 && !c.bottomHole; k++) c = stepClay(c, actionGesture('indent'), 0.05, undefined, { ...NO_DELTA, indentWorld: 0.1 });
+    // one big frame deepens by at most INDENT_MAX_DEPTH_PER_S·dt (it used to skip the lesson's depth window)
+    const d = c.cavityDepthWorld;
+    c = stepClay(c, actionGesture('indent'), 0.05, undefined, { ...NO_DELTA, indentWorld: 0.2 });
+    expect(c.cavityDepthWorld).toBeCloseTo(d + CONFIG.INDENT_MAX_DEPTH_PER_S * 0.05);
+    for (let k = 0; k < 80 && !c.bottomHole; k++) c = stepClay(c, actionGesture('indent'), 0.05, undefined, { ...NO_DELTA, indentWorld: 0.1 });
     expect(c.bottomHole).toBe(true);
     expect(c.collapsed).toBe(true);
     expect(c.collapseCause).toBe('bottomHole');

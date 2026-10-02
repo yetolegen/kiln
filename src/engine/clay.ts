@@ -66,7 +66,7 @@ export function cloneClay(c: ClayModel): ClayModel {
 }
 
 /** First band (bottom → top) that lies inside the opening. */
-export function cavityStartBand(c: Pick<ClayState, 'radii' | 'height' | 'cavityDepthWorld'>): number {
+export function cavityStartBand(c: { radii: ArrayLike<number> } & Pick<ClayState, 'height' | 'cavityDepthWorld'>): number {
   const n = c.radii.length;
   return Math.max(0, Math.min(n - 1, Math.floor(((c.height - c.cavityDepthWorld) / c.height) * (n - 1))));
 }
@@ -149,7 +149,7 @@ export function stepClay(
     if (acting && g.gesture === 'indent' && d.indentWorld > 0) {
       // v6: depth follows the thumb tip continuously from the first contact (no fixed first dent).
       // Past the safe depth the floor thins (rules warn); through it = a hole.
-      c.cavityDepthWorld += CONFIG.INDENT_GAIN * d.indentWorld;
+      c.cavityDepthWorld += Math.min(CONFIG.INDENT_GAIN * d.indentWorld, CONFIG.INDENT_MAX_DEPTH_PER_S * dtS);
       c.cavityRadiusWorld = Math.max(c.cavityRadiusWorld, CONFIG.INDENT_RADIUS_WORLD);
       if (c.height - c.cavityDepthWorld <= CONFIG.HOLE_FLOOR_WORLD) {
         c.bottomHole = true;

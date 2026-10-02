@@ -87,6 +87,7 @@ export const CONFIG = {
   SAFE_INDENT_PALM: 0.3,            // safe indentation ≈ one thumb phalanx ≈ 0.3 palm lengths
   SAFE_INDENT_MIN_WORLD: 0.1,
   INDENT_GAIN: 1.0,                 // indentation depth per world unit of downward thumb travel
+  INDENT_MAX_DEPTH_PER_S: 0.6,      // fastest the dent deepens (like MAX_DR_PER_S): one frame can't skip the lesson's 0.05 depth window
   HOLE_FLOOR_WORLD: 0.02,           // floor thinner than this = through-hole
   STRETCH_DANGER_MS: 7000,          // engaged opening this long: thin-wall danger, the wall starts thinning
   STRETCH_TEAR_MS: 10000,           // ... this long: the wall tears (wallTorn)
