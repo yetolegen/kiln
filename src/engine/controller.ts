@@ -15,6 +15,9 @@ import { HintManager } from './hints';
 import { RuleEngine } from './rules';
 import { SessionTracker } from './session';
 import { getTarget, similarity, targetKey } from './target';
+import { readCheckpoint, terminalClay, type Checkpoint } from './checkpoint';
+import { customizationFits, emptyCustomization, readCustomization } from './customization';
+import { isMaterial } from './materials';
 
 export interface ControllerOptions {
   /** Wall-clock timestamp for SessionResult.completedAtIso. The core never reads the clock itself. */
@@ -52,6 +55,9 @@ class Controller implements CoreController {
   private result: SessionResult | null = null;
   private epochWarned = false;
   private safeIndentDepthWorld: number = CONFIG.SAFE_INDENT_MIN_WORLD;
+  private restoredAtMs = -Infinity;
+  private needsRelease = false;
+  private customization = emptyCustomization();
 
   /**
    * v5 limits from outside the clay: the screen ceiling (75 % of the space above the pot base) and the
@@ -73,6 +79,7 @@ class Controller implements CoreController {
   constructor(private readonly nowIso: () => string) {}
 
   observe(frame: FrameInput): void {
+    if (frame.tMs <= this.restoredAtMs) return;
     if (frame.epoch < this.epoch) { // frame from before a camera/viewport reset
       if (!this.epochWarned) console.warn(`KILN: dropping frames from epoch ${frame.epoch} < ${this.epoch}. Set tracker.epoch too.`);
       this.epochWarned = true;
@@ -93,6 +100,15 @@ class Controller implements CoreController {
       uiEnabled: UI_PHASES.includes(this.phase),
     };
     this.gesture = this.gestures.update(this.input, ctx, this.clay, this.projection);
+
+    if (this.needsRelease) {
+      const g = this.gesture;
+      if (!stale && (frame.status === 'ready' || frame.status === 'oneHand') &&
+          !g.contact.valid && g.activeTrackId === null && !g.deforming &&
+          ['none', 'point', 'oneHand'].includes(g.gesture)) this.needsRelease = false;
+      this.gestures.reset(); this.gesture = null;
+      return;
+    }
 
     if (this.phase === 'calibrate') return this.calibrate(this.input);
     if (!isShaping(this.phase)) return;
@@ -119,7 +135,7 @@ class Controller implements CoreController {
 
   tick(nowMs: number): EngineSnapshot {
     if (this.phase === 'firing' && nowMs - this.firingStartMs >= CONFIG.FIRING_MS && this.session) {
-      this.result = this.session.finalize(this.clay, this.glazeId ?? '', this.nowIso(), nowMs);
+      this.result = this.session.finalize(this.clay, this.glazeId ?? '', this.nowIso(), nowMs, this.customization);
       this.phase = 'result';
     }
     // tracker stalled: show "not touching" right away and drop holds; clay itself is untouched
@@ -133,6 +149,7 @@ class Controller implements CoreController {
     const events = this.pendingEvents;
     this.pendingEvents = [];
     return {
+      customization: this.customization,
       phase: this.phase,
       mode: this.mode,
       calibrationProgress: this.phase === 'calibrate'
@@ -155,6 +172,11 @@ class Controller implements CoreController {
   dispatch(command: AppCommand, nowMs: number): void {
     // commands that don't fit the current phase are ignored, so a late dwell can't skip a screen
     switch (command.type) {
+      case 'customize': {
+        const value = readCustomization(command.value);
+        if (this.phase === 'glaze' && value && customizationFits(value, this.clay)) this.customization = { ...value, revision: this.customization.revision + 1 };
+        break;
+      }
       case 'modelReady':
         if (this.phase === 'loading') this.phase = 'permission';
         break;
@@ -171,10 +193,10 @@ class Controller implements CoreController {
         break;
       }
       case 'finishShaping':
-        if (this.phase === 'studio') this.finishShaping(nowMs);
+        if (this.phase === 'studio' && !terminalClay(this.clay)) this.finishShaping(nowMs);
         break;
       case 'selectGlaze':
-        if (this.phase === 'glaze') this.glazeId = command.glazeId;
+        if (this.phase === 'glaze' && isMaterial(command.glazeId)) this.glazeId = command.glazeId;
         break;
       case 'confirmGlaze':
         if (this.phase === 'glaze' && this.glazeId !== null) {
@@ -209,6 +231,36 @@ class Controller implements CoreController {
     this.gesture = null;
     this.calibrationStillMs = 0;
     this.gestures.reset();
+  }
+
+  captureCheckpoint(nowMs: number): Checkpoint | null {
+    if (!['studio', 'glaze'].includes(this.phase) || !this.session || !this.mode || this.mode === 'tutorial' ||
+        terminalClay(this.clay) || this.clay.touching || this.gesture?.deforming || (this.gesture?.activationProgress ?? 0) > 0) return null;
+    return readCheckpoint({ version: 1, mode: this.mode, stage: this.phase, targetId: this.session.targetId,
+      glazeId: this.glazeId, clay: { ...this.clay, radii: Array.from(this.clay.radii), damage: Array.from(this.clay.damage) },
+      stats: this.session.stats(nowMs), customization: this.customization });
+  }
+
+  restoreCheckpoint(value: unknown, nowMs: number, sessionId?: string): boolean {
+    if (!['menu', 'studio', 'glaze'].includes(this.phase)) return false;
+    const saved = readCheckpoint(value);
+    if (!saved) return false;
+    const previous = this.phase === 'menu' ? saved.stats : this.session?.stats(nowMs) ?? saved.stats;
+    const editMistakes = this.phase === 'menu' ? saved.customization.editMistakes : this.customization.editMistakes;
+    const session = new SessionTracker(sessionId ?? this.session?.sessionId ?? saved.stats.sessionId,
+      saved.mode, nowMs, saved.targetId, previous);
+    if (saved.stage === 'glaze') session.freeze(nowMs, saved.mode === 'commission' ? similarity(saved.clay.radii, saved.clay.height, getTarget(saved.targetId)) : undefined);
+    this.rules.closeAll(nowMs);
+    this.clay = { ...saved.clay, revision: Math.max(this.clay.revision, saved.clay.revision) + 1,
+      radii: Float32Array.from(saved.clay.radii), damage: Float32Array.from(saved.clay.damage), touching: false, activeBand: null };
+    this.session = session; this.mode = saved.mode; this.phase = saved.stage;
+    this.customization = { ...saved.customization, editMistakes, revision: this.customization.revision + 1 };
+    this.target = saved.mode === 'commission' ? getTarget(saved.targetId) : null;
+    this.glazeId = saved.glazeId; this.result = null; this.pendingEvents = []; this.activeIssues = [];
+    this.effects = NO_EFFECTS; this.hint = null; this.hints.reset(); this.gestures.reset();
+    this.input = null; this.gesture = null; this.expectedGesture = undefined; this.tutorialStepIndex = null;
+    this.raiseArmed = true; this.firingStartMs = 0; this.needsRelease = true; this.restoredAtMs = nowMs;
+    return true;
   }
 
   setPaused(paused: boolean, _nowMs: number): void {
@@ -259,6 +311,8 @@ class Controller implements CoreController {
   }
 
   private startSession(mode: SessionMode, sessionId: string, targetId: string | undefined, nowMs: number): void {
+    this.customization = emptyCustomization();
+    this.needsRelease = false;
     // a new session never inherits the previous one's mistakes (tutorial tears don't count later)
     this.target = mode === 'commission' ? getTarget(targetId) : null;
     this.session = new SessionTracker(sessionId, mode, nowMs, this.target ? targetKey(this.target) : undefined);

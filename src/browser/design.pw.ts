@@ -11,7 +11,7 @@ test('V8 studio inspection rotates freely and restores the shaping view', async 
   const canvas = page.getByTestId('pot-canvas');
   await expect(canvas).toHaveAttribute('data-spinning', 'false');
   const initial = await canvas.getAttribute('data-view');
-  const surface = page.locator('.inspection__surface'); const box = (await surface.boundingBox())!;
+  const surface = page.locator('.inspection .inspection__surface'); const box = (await surface.boundingBox())!;
   await page.mouse.move(box.x + box.width * .5, box.y + box.height * .5);
   await page.mouse.down(); await page.mouse.move(box.x + box.width * .8, box.y + box.height * .25, { steps: 15 }); await page.mouse.up();
   await expect.poll(() => canvas.getAttribute('data-view')).not.toBe(initial);

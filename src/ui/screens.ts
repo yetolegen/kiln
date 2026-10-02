@@ -86,11 +86,15 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
   const sculpting = new SculptingLock();
   let controlsLocked = false, destroyed = false;
   let inspection = false, preview = false;
+  let actionScope: string | null = null;
+  const eligible = (id: string, button: HTMLButtonElement) =>
+    (!actionScope || id.startsWith(actionScope)) && (!inspection || id.startsWith('view-') || !!actionScope) &&
+    !button.disabled && button.isConnected && !button.closest('[hidden], [inert]') &&
+    !!button.getClientRects().length && getComputedStyle(button).visibility !== 'hidden';
   function refreshTargets(): void {
     targets.length = 0;
     for (const entry of entries) {
-      if (inspection && !entry.id.startsWith('view-')) continue;
-      if (entry.element.disabled || !entry.element.isConnected || !entry.element.getClientRects().length) continue;
+      if (!eligible(entry.id, entry.element)) continue;
       const rect = entry.element.getBoundingClientRect();
       const slow = SESSION_ACTIONS.includes(entry.id) && (lastPhase === 'studio' || lastPhase === 'tutorial');
       targets.push({ id: entry.id, x: rect.x, y: rect.y, width: rect.width, height: rect.height, ...(slow ? { dwellMs: CONFIG.DWELL_CONFIRM_MS } : {}) });
@@ -100,7 +104,7 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
     const button = document.createElement('button');
     button.type = 'button'; button.className = 'dwell-button'; button.textContent = label; button.dataset.action = id;
     button.insertAdjacentHTML('afterbegin', actionIcon(id));
-    const guarded = () => { if (!button.disabled && button.isConnected) run(); };
+    const guarded = () => { if (eligible(id, button)) run(); };
     button.addEventListener('click', guarded);
     entries.push({ id, element: button, run: guarded }); parent.append(button);
     return button;
@@ -108,7 +112,9 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
   const newSession = () => crypto.randomUUID();
   const back = () => dispatch({ type: 'backToMenu' });
   function buildActions(snapshot: EngineSnapshot, state: StartupState): void {
-    entries.length = 0; targets.length = 0; actions.replaceChildren(); details.replaceChildren();
+    actions.replaceChildren(); details.replaceChildren();
+    for (let i = entries.length - 1; i >= 0; i--) if (!entries[i].element.isConnected) entries.splice(i, 1);
+    targets.length = 0;
     dwelling = null; screenRevision++; contentRevision++;
     if (state.error || !state.cameraActive) return;
     if (snapshot.phase === 'menu') {
@@ -124,7 +130,7 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
         entry.element.insertAdjacentHTML('afterbegin', actionIcon(entry.id));
       }
     } else if (snapshot.phase === 'studio' || snapshot.phase === 'tutorial') {
-      if (snapshot.phase === 'studio') addAction('done', 'Готово', () => dispatch({ type: 'finishShaping' }));
+      if (snapshot.phase === 'studio') addAction('done', 'Готово: к оформлению', () => dispatch({ type: 'finishShaping' }));
       addAction('restart', 'Начать сначала', () => dispatch({ type: 'restart', newSessionId: newSession() }));
       addAction('menu', 'В мастерскую', back);
     } else if (snapshot.phase === 'result') {
@@ -156,11 +162,19 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
     page.dataset.sculpting = String(controlsLocked);
   }
   const layout = new ResizeObserver(refreshTargets);
+  // Visibility transitions finish after the lock refresh. Register newly visible targets then.
+  const transition = (event: TransitionEvent) => { if (event.propertyName === 'visibility' || event.propertyName === 'opacity') refreshTargets(); };
+  page.addEventListener('transitionend', transition);
   layout.observe(content);
   window.addEventListener('resize', refreshTargets);
   window.addEventListener('scroll', refreshTargets, { passive: true });
   return {
     video, viewport, page, details, actions, addAction, refreshTargets,
+    get controlsLocked() { return controlsLocked; },
+    get actionScope() { return actionScope; },
+    setActionScope(scope: string | null): void {
+      actionScope = scope; screenRevision++; refreshTargets();
+    },
     removeActions(prefix: string): void {
       for (let i = entries.length - 1; i >= 0; i--) if (entries[i].id.startsWith(prefix)) { entries[i].element.remove(); entries.splice(i, 1); }
       screenRevision++; refreshTargets();
@@ -172,6 +186,7 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
     get targets(): readonly DwellRegion[] { return targets; },
     get revision(): number { return screenRevision; },
     get contentRevision(): number { return contentRevision; },
+    invalidateContent(): void { lastPhase = null; },
     setTutorialCompleted(completed: boolean): void {
       if (lastPhase !== 'tutorial' || lastError) return;
       if (title.textContent === (completed ? 'Обучение окончено' : phaseText.tutorial[0])) return;
@@ -182,7 +197,8 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
     showDwell(id: string | null, progress: number): void {
       const element = entries.find((entry) => entry.id === id)?.element ?? null;
       if (element !== dwelling) {
-        dwelling?.classList.remove('is-dwelling'); dwelling = element; dwelling?.classList.add('is-dwelling'); lastDwell = -1;
+        dwelling?.classList.remove('is-dwelling'); dwelling?.style.setProperty('--dwell', '0%');
+        dwelling = element; dwelling?.classList.add('is-dwelling'); lastDwell = -1;
       }
       if (dwelling && progress !== lastDwell) { dwelling.style.setProperty('--dwell', `${progress * 100}%`); lastDwell = progress; }
     },
@@ -219,6 +235,6 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
         if (tracking !== lastTracking) { status.textContent = ru.tracking[tracking]; lastTracking = tracking; }
       }
     },
-    destroy(): void { layout.disconnect(); window.removeEventListener('resize', refreshTargets); window.removeEventListener('scroll', refreshTargets); start.removeEventListener('click', onStart); page.remove(); },
+    destroy(): void { layout.disconnect(); page.removeEventListener('transitionend', transition); window.removeEventListener('resize', refreshTargets); window.removeEventListener('scroll', refreshTargets); start.removeEventListener('click', onStart); page.remove(); },
   };
 }

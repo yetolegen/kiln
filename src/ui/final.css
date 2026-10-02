@@ -1,0 +1,84 @@
+.work-modal { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 20px; background: #161a18b8; backdrop-filter: blur(6px); }
+.work-modal[hidden] { display: none; }
+.work-modal__card { max-width: 680px; width: 100%; max-height: calc(100dvh - 40px); overflow: auto; box-sizing: border-box; padding: clamp(20px,4vw,44px); color: #34291e; background: #f1e4cc; border: 1px solid #baa384; border-radius: 22px; box-shadow: 0 28px 100px #0008; }
+.work-modal h2 { font: 500 clamp(24px,3vw,38px)/1.12 Georgia,serif; margin: 0 0 18px; }
+.work-modal p { font-size: 17px; line-height: 1.5; }
+.work-modal nav { display: grid; gap: 12px; margin-top: 24px; }
+.work-modal .dwell-button { min-height: 60px; background: #405547; color: #fff5df; }
+.work-modal button:disabled { opacity: .45; }
+.work-modal small { color: #604f3d; }
+.checkpoint-status { color: #dbc7a5; max-width: 460px; line-height: 1.4; }
+.phase-actions [data-action^="checkpoint-"] { font-size: 13px; }
+.workshop[data-phase='menu'] .phase-actions > .dwell-button:is([data-action='new-lessons'], [data-action='checkpoint-resume']):not(.sound-toggle):not(.camera-toggle) { grid-template-columns: 1fr; min-height: 52px; padding: 12px 18px; font-size: 15px; }
+.glaze-pages { display: flex; gap: 8px; margin: 10px 0; }
+.workshop > .hand-cursor, .workshop[data-inspecting='true'] > .hand-cursor { z-index: 90; }
+.decoration-editor { position: fixed; inset: 0; z-index: 5; pointer-events: none; background: radial-gradient(ellipse at 50% 48%, #201a2820, #150f20dc); }
+.decoration-editor[hidden] { display: none; }
+.public-viewer { position: fixed; inset: 0; z-index: 5; pointer-events: none; background: radial-gradient(ellipse at 50% 48%, #201a2820, #150f20dc); }
+.public-viewer .inspection__header { color: #efdab6; }
+.share-url { display: block; color: #375945; overflow-wrap: anywhere; max-height: 170px; overflow-y: auto; font: 12px/1.5 monospace; }
+.share-error { max-width: 700px; margin: 15vh auto; padding: 30px; color: #f0dcc0; }
+.share-error button { padding: 20px; border-radius: 8px; }
+.workshop[data-viewer='true'] { background: transparent; }
+.workshop[data-viewer='true'] .camera-viewport { visibility: visible; }
+.tool-lesson { position: fixed; top: 190px; left: 30px; width: 270px; z-index: 4; padding: 20px; border-radius: 14px; background: #eee0c8; color: #392d24; box-shadow: 0 8px 30px #0004; }
+.tool-lesson[hidden] { display: none; }
+.tool-lesson:not([data-module='recovery']) { left: auto; right: 30px; }
+.tool-lesson h2 { font: 23px Georgia,serif; margin: 0 0 14px; }
+.tool-lesson p { font-size: 14px; line-height: 1.45; }
+.tool-lesson__note { opacity: .72; font-size: 12px !important; }
+.tool-lesson nav { display: grid; gap: 8px; }
+.tool-lesson .dwell-button { min-height: 52px; }
+.workshop[data-inspecting='true'] .tool-lesson { visibility: hidden; }
+@media (max-width: 900px) { .tool-lesson { top: 160px; left: 12px; width: 210px; padding: 12px; } }
+@media (max-width: 600px) { .tool-lesson { top: auto; bottom: 140px; left: 12px; right: 12px; width: auto; max-height: 38vh; overflow: auto; } .tool-lesson nav { grid-template-columns: 1fr 1fr; } }
+@media (max-height: 500px) {
+  .workshop[data-phase='result'] .result-summary { left: auto; right: 24px; top: 100px; width: 40%; max-height: calc(100dvh - 150px); overflow: auto; }
+  .workshop[data-phase='gallery'] .gallery-card { padding: 6px; }
+  .workshop[data-phase='gallery'] .gallery-card canvas { height: 60px; width: 100px; }
+  .workshop[data-phase='gallery'] .gallery-card h2 { font-size: 15px; margin: 4px 0; }
+  .workshop[data-phase='gallery'] .gallery-card p { font-size: 10px; margin: 4px; }
+  .workshop[data-phase='glaze'] .phase-actions { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; gap: 5px; }
+  .workshop[data-phase='glaze'] .phase-actions .dwell-button { min-width: 0; min-height: 44px; padding: 5px; font-size: 10px; }
+  .workshop[data-phase='glaze'] .phase-actions .action-icon { display: none; }
+  .workshop[data-phase='glaze'] .phase-details { display: grid; grid-template-columns: 1fr auto; gap: 6px; width: 100%; }
+  .workshop[data-phase='glaze'] .glaze-choices { grid-column: 1 / -1; margin: 8px 0 0; }
+  .workshop[data-phase='glaze'] .glaze-jar { flex: 1; min-width: 0; min-height: 64px; padding: 38px 5px 7px; font-size: 11px; }
+  .workshop[data-phase='glaze'] .glaze-pages { margin: 0; gap: 5px; }
+  .workshop[data-phase='glaze'] .glaze-pages .dwell-button { padding: 5px; font-size: 11px; }
+  .workshop[data-phase='glaze'] .checkpoint-status { grid-column: 1 / -1; font-size: 11px; margin: 0; }
+  .checkpoint-status:empty { display: none; }
+  .work-modal { padding: 10px; }
+  .work-modal__card { max-width: 760px; padding: 16px; max-height: calc(100dvh - 20px); }
+  .work-modal h2 { font-size: 24px; margin-bottom: 8px; }
+  .work-modal p { font-size: 13px; line-height: 1.3; margin-block: 8px; }
+  .work-modal nav { grid-template-columns: repeat(3,1fr); margin-top: 12px; gap: 8px; }
+  .work-modal .dwell-button { min-height: 54px; font-size: 13px; padding: 8px; }
+  .work-modal small { font-size: 10px; }
+  .tool-lesson { top: 70px; bottom: 65px; left: 12px; width: 220px; padding: 12px; overflow: auto; }
+  .tool-lesson h2 { font-size: 18px; }
+  .tool-lesson p { font-size: 12px; }
+}
+.decoration-editor .inspection__header { max-width: 780px; margin-inline: auto; }
+.decoration-editor .inspection__actions { max-width: 920px; margin-inline: auto; padding: 10px; background: #211b27e8; border-radius: 16px; }
+.decoration-editor .dwell-button { min-height: 58px; min-width: 100px; }
+@media (max-width: 600px) and (min-height: 501px) {
+  .tool-lesson, .tool-lesson:not([data-module='recovery']) { top: 88px; bottom: auto; left: 16px; right: 16px; width: auto; max-height: none; padding: 12px; overflow: visible; }
+  .tool-lesson h2 { font-size: 18px; margin-bottom: 8px; }
+  .tool-lesson p { font-size: 12px; margin: 0; }
+  .tool-lesson__note { display: none; }
+  .tool-lesson nav { position: fixed; left: 16px; right: 16px; bottom: 80px; grid-template-columns: 1fr 1fr; padding: 8px; background: #eee0c8; border-radius: 12px; }
+  .tool-lesson nav .dwell-button { min-height: 50px; font-size: 11px; padding: 8px; }
+  .workshop[data-tool-lesson] .workshop__content { justify-content: flex-start; padding-top: 145px; }
+  .workshop[data-tool-lesson] .workshop__content > :is(h1, .workshop__description) { display: none; }
+  .workshop[data-tool-lesson][data-phase='glaze'] .phase-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .workshop[data-tool-lesson][data-phase='glaze'] .phase-actions > .dwell-button:not(.sound-toggle):not(.camera-toggle) { min-height: 48px; padding: 8px; font-size: 12px; }
+}
+@media (max-height: 500px) { .tool-lesson__note { display: none; } }
+@media (max-width: 600px) {
+  .decoration-editor .inspection__header { top: 14px; left: 16px; right: 16px; }
+  .decoration-editor .inspection__header h2 { font-size: 23px; }
+  .decoration-editor .inspection__header p { font-size: 12px; }
+  .decoration-editor .inspection__actions { bottom: 10px; left: 8px; right: 8px; gap: 6px; }
+  .decoration-editor .dwell-button { min-height: 48px; min-width: 95px; padding: 8px; font-size: 12px; }
+}

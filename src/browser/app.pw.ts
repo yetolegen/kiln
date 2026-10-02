@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test('B10 retains a fading visual briefly while lost tracking pauses the controls', async ({ page }) => {
-  await page.goto('/?dev=1&mock=1');
+  await page.goto('/?dev=1&mock=1'); await expect(page.getByTestId('mock-badge')).toBeVisible();
   await expect(page.getByTestId('mock-badge')).toBeVisible();
   await page.keyboard.press('5'); await page.keyboard.press('s');
   const pixels = () => page.locator('.overlay-canvas').evaluate((canvas: HTMLCanvasElement) => {
@@ -39,7 +39,7 @@ test('B10 retains a fading visual briefly while lost tracking pauses the control
 });
 
 test('B9 keeps portrait/landscape controls in view and exports a square PNG', async ({ page }) => {
-  await page.goto('/?dev=1&mock=1');
+  await page.goto('/?dev=1&mock=1'); await expect(page.getByTestId('mock-badge')).toBeVisible();
   await expect(page.getByTestId('mock-badge')).toBeVisible();
   for (const size of [{ width: 390, height: 844 }, { width: 360, height: 740 }, { width: 844, height: 390 }]) {
     await page.setViewportSize(size);
@@ -74,7 +74,7 @@ for (const blockedStorage of [false, true]) test(`B8 finishes a pot, exports PNG
     Object.defineProperty(window, 'AudioContext', { value: undefined });
   });
   const errors: string[] = []; page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto('/?dev=1&mock=1');
+  await page.goto('/?dev=1&mock=1'); await expect(page.getByTestId('mock-badge')).toBeVisible();
   await page.locator('[data-action="commission"]').hover();
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'studio');
   await page.keyboard.press('u'); await page.keyboard.press('f');
@@ -104,7 +104,7 @@ for (const blockedStorage of [false, true]) test(`B8 finishes a pot, exports PNG
 });
 
 for (const action of ['shape', 'widen']) for (const mode of ['free', 'commission']) test(`studio sculpting locks Done/restart and resets palm dwell in ${mode} (${action})`, async ({ page }) => {
-  await page.goto('/?dev=1&mock=1');
+  await page.goto('/?dev=1&mock=1'); await expect(page.getByTestId('mock-badge')).toBeVisible();
   await page.keyboard.press('h'); await page.locator(`[data-action="${mode}"]`).hover();
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'studio');
   const done = page.locator('[data-action="done"]'), restart = page.locator('[data-action="restart"]');
@@ -137,25 +137,25 @@ for (const action of ['shape', 'widen']) for (const mode of ['free', 'commission
 });
 
 test('studio terminal damage keeps Done disabled and restart available', async ({ page }) => {
-  await page.goto('/?dev=1&mock=1');
+  await page.goto('/?dev=1&mock=1'); await expect(page.getByTestId('mock-badge')).toBeVisible();
   await page.locator('[data-action="free"]').click(); await page.mouse.move(0, 0);
   await page.keyboard.press('s'); await page.keyboard.press('n');
   await expect(page.locator('[data-action="done"]')).toBeDisabled();
   await expect(page.locator('[data-action="restart"]')).toBeEnabled();
   await page.locator('[data-action="done"]').dispatchEvent('click');
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'studio');
-  await page.locator('[data-action="restart"]').click(); await page.keyboard.press('Escape');
+  await page.locator('[data-action="modal-restart"]').click(); await page.keyboard.press('Escape');
   await expect(page.locator('[data-action="done"]')).toBeEnabled();
 });
 
 test('studio Free Mode unlocks glazing only through the palm-selectable Done button', async ({ page }) => {
-  await page.goto('/?dev=1&mock=1');
+  await page.goto('/?dev=1&mock=1'); await expect(page.getByTestId('mock-badge')).toBeVisible();
   await page.keyboard.press('h'); await page.locator('[data-action="free"]').hover();
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'studio');
   await page.mouse.move(0, 0); await page.keyboard.press('f');
   await expect(page.locator('[data-action="glaze-jade"]')).toHaveCount(0);
   await expect(page.locator('[data-action="fire"]')).toHaveCount(0);
-  await expect(page.locator('[data-action="done"]')).toHaveText('Готово');
+  await expect(page.locator('[data-action="done"]')).toHaveText('Готово: к оформлению');
   await page.keyboard.press('h'); await page.locator('[data-action="done"]').hover();
   await expect(page.locator('[data-action="done"]')).toHaveClass(/is-dwelling/);
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'glaze');
@@ -165,7 +165,7 @@ test('studio Free Mode unlocks glazing only through the palm-selectable Done but
 });
 
 test('B7 tutorial validates geometry for all actions and requires release', async ({ page }) => {
-  await page.goto('/?dev=1&mock=1');
+  await page.goto('/?dev=1&mock=1'); await expect(page.getByTestId('mock-badge')).toBeVisible();
   await page.locator('[data-action="tutorial"]').hover();
   const lesson = page.locator('.tutorial-card');
   const complete = async (key: string, step: number) => {
@@ -210,20 +210,20 @@ test('B7 tutorial validates geometry for all actions and requires release', asyn
   await expect(lesson).toHaveAttribute('data-state', 'completed');
   await expect(lesson).toHaveAttribute('data-step', '6');
   await expect(page.locator('h1')).toHaveText('Обучение окончено');
-  await expect(page.locator('.hud__hint')).toContainText('Обучение окончено');
+  await expect(page.locator('.work-modal:not(.share-panel)')).toContainText('Вы справились с обучением');
   await page.keyboard.press('x');
-  await expect(page.locator('.hud__hint')).toContainText('Обучение окончено');
+  await expect(page.locator('.work-modal:not(.share-panel)')).toContainText('Вы справились с обучением');
   await page.keyboard.press('x');
   await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
   const finalPanel = await lesson.boundingBox(); expect(finalPanel!.y + finalPanel!.height).toBeLessThanOrEqual(390);
   await page.screenshot({ path: 'test-results/final-lesson-advice.png' });
   await page.keyboard.press('f'); await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'tutorial');
-  await page.keyboard.press('h'); await page.locator('[data-action="menu"]').hover();
+  await page.keyboard.press('h'); await page.mouse.move(0, 0); await page.waitForTimeout(130); await page.locator('[data-action="modal-menu"]').hover();
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'menu');
 });
 
 test('B7 palm dwell fills, failures stop the lesson and palm retry resets the attempt', async ({ page }) => {
-  await page.goto('/?dev=1&mock=1');
+  await page.goto('/?dev=1&mock=1'); await expect(page.getByTestId('mock-badge')).toBeVisible();
   await expect(page.getByTestId('mock-badge')).toBeVisible();
   await page.keyboard.press('h');
   const button = page.locator('[data-action="tutorial"]');
@@ -259,19 +259,20 @@ test('B6 continues without sound APIs and toggles mute by dwell', async ({ page 
   });
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto('/?dev=1&mock=1');
+  await page.goto('/?dev=1&mock=1'); await expect(page.getByTestId('mock-badge')).toBeVisible();
   await page.locator('[data-action="mute"]').hover();
   await expect(page.locator('[data-action="mute"]')).toHaveText('Звук выключен');
   await page.locator('[data-action="free"]').hover();
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'studio');
   await page.keyboard.press('t');
-  await expect(page.locator('.hud__hint')).toContainText('Слишком быстро');
+  await expect(page.locator('.hud__hint')).toContainText('Глина испортилась');
+  await expect(page.locator('.work-modal:not(.share-panel)')).toBeHidden();
   expect(errors).toEqual([]);
 });
 
 test('V5 warns about stretching and shows permanent hole/pancake failures with restart', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto('/?dev=1&mock=1'); await page.locator('[data-action="free"]').hover();
+  await page.goto('/?dev=1&mock=1'); await expect(page.getByTestId('mock-badge')).toBeVisible(); await page.locator('[data-action="free"]').hover();
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'studio');
   await page.mouse.move(0, 0); await page.keyboard.press('i'); await page.keyboard.press('e');
   await expect(page.locator('.hud__hint')).toContainText('слишком долго');
@@ -281,7 +282,7 @@ test('V5 warns about stretching and shows permanent hole/pancake failures with r
   if (await page.getByTestId('pot-canvas').isVisible()) await page.getByTestId('pot-canvas').dispatchEvent('webglcontextlost');
   await expect(page.getByTestId('pot-fallback')).toBeVisible();
   await page.screenshot({ path: 'test-results/v5-hole-fallback.png' });
-  await page.locator('[data-action="restart"]').hover(); await expect(page.locator('.hud__hint')).not.toContainText('продавили'); await page.mouse.move(0, 0);
+  await page.keyboard.press('h'); await page.mouse.move(0, 0); await page.waitForTimeout(130); await page.locator('[data-action="modal-restart"]').hover(); await expect(page.locator('.hud__hint')).not.toContainText('продавили'); await page.mouse.move(0, 0);
   await page.keyboard.press('n'); await expect(page.locator('.hud__hint')).toContainText('лепёшку');
   await expect(page.locator('.hud__hint')).toContainText('Начать сначала');
   await page.screenshot({ path: 'test-results/v5-pancake.png' });
@@ -289,7 +290,7 @@ test('V5 warns about stretching and shows permanent hole/pancake failures with r
 });
 
 test('B5 navigates by dwell and shows a readable phone HUD', async ({ page }) => {
-  await page.goto('/?dev=1&mock=1');
+  await page.goto('/?dev=1&mock=1'); await expect(page.getByTestId('mock-badge')).toBeVisible();
   await expect(page.locator('[data-action="free"]')).toBeVisible();
   await page.locator('[data-action="free"]').hover();
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'studio');
@@ -309,7 +310,7 @@ test('B5 navigates by dwell and shows a readable phone HUD', async ({ page }) =>
 test('B4 renders clay and falls back after WebGL context loss', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto('/?dev=1&mock=1');
+  await page.goto('/?dev=1&mock=1'); await expect(page.getByTestId('mock-badge')).toBeVisible();
   await expect(page.getByTestId('mock-badge')).toBeVisible();
   await page.keyboard.press('5');
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'studio');
@@ -327,7 +328,7 @@ test('B4 renders clay and falls back after WebGL context loss', async ({ page })
 test('B3 mock changes phases without loading a model or camera', async ({ page }) => {
   let modelRequests = 0;
   page.on('request', (request) => { if (request.url().includes('hand_landmarker.task')) modelRequests++; });
-  await page.goto('/?dev=1&mock=1');
+  await page.goto('/?dev=1&mock=1'); await expect(page.getByTestId('mock-badge')).toBeVisible();
   await expect(page.getByTestId('mock-badge')).toBeVisible();
   await page.keyboard.press('5');
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'studio');
@@ -349,7 +350,7 @@ test('B2 loads the real model, starts a mirrored camera, and resizes', async ({ 
   await start.click();
   try { await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'calibrate', { timeout: 20_000 }); }
   catch (error) { throw new Error(`Camera startup failed: ${startupErrors.join('\n')}`, { cause: error }); }
-  await expect(page.locator('footer')).toContainText('V9.1');
+  await expect(page.locator('footer')).toContainText('KILN FINAL');
   await expect(page.locator('.camera-viewport')).toHaveCSS('background-image', /workshop-dusk\.png/);
   await page.evaluate(() => new Promise<void>((resolve, reject) => {
     const art = new Image(); art.onload = () => resolve(); art.onerror = () => reject(new Error('Workshop artwork missing')); art.src = '/workshop-dusk.png';

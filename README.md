@@ -14,6 +14,8 @@ No installation is required. On your first visit, click **Start («Начать�
 
 The game interface is currently in Russian. This guide includes the original button labels so you can find them on screen.
 
+> This checkout includes the final update. It has not been published automatically; the public deployment may still run the earlier release. Run locally to try these features.
+
 ## Quick start
 
 1. Open the studio on a device with a camera. A computer running Chrome with a reasonably large screen is convenient for your first session.
@@ -121,25 +123,53 @@ Each action has a cyan target silhouette and a **Shape («Форма»)** indica
 
 Exceeding the permitted shape or damaging the clay stops progression. Read the explanation and choose **Try Again · From Step One («Попробовать снова · с первого шага»)**. This restarts the entire lesson attempt. After completing the lesson, return to the studio and begin Free Sculpting or Reference mode.
 
-### Shape → glaze → fire → result
+### Shape → personalize → fire → result
 
-1. Choose **Free Sculpting («Свободная форма»)** for your own design, or **Create a Vase · From a Reference («Создать вазу · по образцу»)** to match a transparent silhouette.
-2. Shape the vessel using the gestures above. All six actions are available in Free Sculpting.
-3. Move your hands away and select **Done («Готово»)**. This unlocks glazing and firing.
-4. Hover your palm over a glaze: **Amber («Янтарь»)**, **Jade («Нефрит»)** or **Milk («Молоко»)**. Selecting a glaze enables **Fire («В печь»)**.
-5. Select Fire and wait about **4 seconds** for firing to finish.
-6. Review your time and mistakes on the result screen. Reference mode also shows a **similarity percentage** against the target vase.
-7. Your vessel is automatically added to **My Shelf («Моя полка»)**. Export its image with **Save PNG («Сохранить PNG»)** or begin another vessel.
+1. Choose **Free Sculpting («Свободная форма»)** or **Create a Vase · From a Reference («Создать вазу · по образцу»)** and shape the vessel with the actions above.
+2. Release the clay, then select **Done: decorate («Готово: к оформлению»)**. The base shape is fixed.
+3. Optionally open **Details and stamps («Детали и штампы»)**. Decoration can be skipped.
+4. Choose a glaze; use **← Глазури / Глазури →** to browse **Amber, Jade, Milk, Cobalt, Plum, Coral, Graphite and Honey**. Selection enables **Fire («В печь»)**.
+5. Select Fire and wait about **4 seconds**. The result shows time, technique and tracking mistakes, restorations and decoration errors separately. Reference mode also shows shape similarity.
+6. The vessel is automatically added to **My Shelf («Моя полка»)**. Open it in 3D, export PNG or share a link. The shelf holds up to 24 works in this browser. Storage failure is reported as temporary, memory-only storage.
 
-The gallery stores up to 24 works and the best reference scores in the current browser. If browser storage is unavailable, the shelf lasts until the page is closed; the complete scenario remains playable.
+### Save a checkpoint and recover
+
+Release the clay and select **Save checkpoint («Сохранить точку»)** during shaping or decoration. A second save asks before replacing the one manual point. This is separate from the finished-work shelf.
+
+**Restore («Восстановить»)** returns geometry, stage, glaze and confirmed decoration. Later changes are lost; elapsed shaping time and mistakes are retained, and the restore count increases. After restoring, move your hands away and release the gesture before starting again. Old observations cannot deform the restored clay.
+
+A permanent bottom hole, rim tear or pancake opens a central dialog with its cause and **Restore checkpoint / Start again / Studio** actions. Without a point, restoration is disabled with an explanation. A stored point can be resumed from the menu after reload. It cannot be replaced by a destroyed vessel or restored after firing. The original shaping lesson repeats from step one and remains separate from personal points.
 
 ### Inspect the vessel from any angle
 
-Release the clay and choose **Inspect in 3D («Осмотреть в 3D»)**. You can freely rotate, zoom and inspect it from above or below.
+Release the clay and select **Inspect in 3D («Осмотреть в 3D»)**, or **Inspect vessel («Осмотреть сосуд»)** on a shelf card.
 
-- **With your hands:** dwell over the arrow buttons, **Top («Сверху»)**, **Bottom («Снизу»)**, **+**, **−** and **Reset View («Сбросить вид»)**.
-- **Optional mouse or touch controls:** drag to rotate; use the mouse wheel or a touchscreen pinch to zoom.
-- Select **Return to Vessel («Вернуться к сосуду»)** to continue. Shaping and lesson progression pause during inspection.
+1. Open your thumb and index finger, away from all buttons.
+2. Bring them together and hold briefly. Move this pinched hand left/right or up/down: the view follows continuously.
+3. Open the pinch to stop. After tracking loss, switching hands or resizing, open and make a new pinch; an old grab is never resumed.
+4. Dwell over **+ / −**, **Top**, **Bottom** or **Reset view** for framing. Mouse drag, wheel and touch remain optional alternatives.
+5. Choose **Return to vessel («Вернуться к сосуду»)**. Shaping is paused throughout inspection. A shelf work is read-only; viewing and exporting it do not change the draft, scores or gallery page.
+
+### Add a detail or stamp
+
+1. After Done, open **Details and stamps**. In its **rotation** mode, inspect with the pinch-drag gesture above.
+2. Choose **Add detail** → oval lump, cylinder or cone; or **Add stamp** → star, dots or wave.
+3. Aim the **index fingertip** at a visible outside wall, or the rim for an attachment. A green preview indicates a valid surface. The wheel, inside, bottom and unseen back wall are excluded. Rotate first to reach another side.
+4. Briefly hold a thumb/index pinch to place the preview, then open your fingers. Use dwell controls for detail length/width, tilt and rotation, or stamp size, color and rotation.
+5. Select **Apply («Применить»)** to commit. **Cancel** discards this edit. **Move** returns to placement. **My details and stamps** lets you select an existing item to edit or delete.
+6. Return to glaze and firing. Limits: **6 details and 8 stamps**; detail length 0.08–0.8, width 0.08–0.45, aspect ratio at most 4:1; stamp size 0.08–0.45 in game units. Invalid changes give advice and do not modify the piece.
+
+Confirmed decoration follows the vessel through checkpoint, firing, shelf, 3D view, PNG and link. Stamps are surface drawings, not engraving; attachments are not guaranteed to form one watertight printable mesh.
+
+### Share without requiring a camera
+
+Select **Share vessel («Поделиться сосудом»)** on the result screen or **Share** in a shelf view. The dialog shows the URL even if clipboard access fails. Send the link yourself.
+
+The recipient opens a **read-only viewer before camera/model startup**, using mouse or touch. **Enable hand control** explicitly requests the optional camera; denial leaves viewing available. Opening a link does not add it to the recipient's shelf. It contains geometry, glaze and decoration, not video, landmarks, session statistics or checkpoints. The versioned gzip payload in the URL fragment is limited to **12,000 characters and 64 KiB decompressed data**. Invalid or unknown links show an error.
+
+### Short lessons for the new tools
+
+Select **Lessons · new features («Уроки · новые возможности»)**: recovery, hand rotation, adding/deleting a detail, stamp/glaze, or shelf/sharing. Each uses a labeled prepared training vessel and separate temporary checkpoint/shelf. Personal work and records remain untouched. Success requires the resulting state, not simply hovering a button. **Repeat** restarts the module; **Skip** exits without marking it complete.
 
 ## Mistake mode: what went wrong and how to fix it
 
@@ -165,7 +195,7 @@ The following examples are English translations of the in-game Russian hints:
 - Excessive vertical compression creates a flat pancake. At around 20% of the initial height, this becomes a terminal failure.
 - An excessively tall or unstable vessel can slump. In the lesson, exceeding the target's permitted bounds also stops the step.
 
-Serious damage displays **“The clay is ruined. Start again.” («Глина испортилась, начните заново»)** with its cause and restart instructions. Withdraw your hands and select **Start Again («Начать сначала»)**. A punctured bottom, terminal wall tear or pancake blocks further shaping until restart. Minor damage produces technique advice and may be repaired by rim compression; a light scratch does not require restarting.
+Serious damage displays **“The clay is ruined. Start again.” («Глина испортилась, начните заново»)** with its cause and restart instructions. Withdraw your hands and select **Start Again («Начать сначала»)**. A punctured bottom, terminal wall tear or pancake blocks further shaping until restart or restoration of a valid checkpoint. Minor damage produces technique advice and may be repaired by rim compression; a light scratch does not require restarting.
 
 ## How KILN meets the MOTION case
 
@@ -207,6 +237,7 @@ Deploy to a host that supports Vite: use `npm run build` as the build command an
 Run checks:
 
 ```sh
+npm run typecheck
 npm test
 npx playwright install chromium
 npm run test:browser -- --project=chromium
@@ -236,8 +267,19 @@ The vessel model, diagrams and effects are generated in code; sounds are synthes
 - Free 3D inspection requires WebGL. A simplified 2D vessel display is available if the graphics context is lost.
 - This is a game model of clay. The camera estimates positions and movement, not real force, physical thickness or exact material volume.
 
+## Final demonstration and evidence
+
+Final criteria supplied by the team: working live demo **25**, technical implementation **20**, UX/design **15**, development since stage one **15**, pitch/Q&A **15**, originality **10**. Evidence and limitations are documented without predicting a score:
+
+- [Changes and baseline](docs/FINAL_CHANGELOG.md)
+- [Suggested demonstration](docs/FINAL_DEMO.md)
+- [Technical questions and answers](docs/FINAL_QA.md)
+- [Actual tests and physical-camera checklist](docs/FINAL_TEST_REPORT.md)
+
 ## Project description for the submission form
 
 > **KILN, team Avivengers — Open track of the MOTION case.** We built a browser-based pottery studio controlled with two hands through an ordinary webcam. Six actions let the player narrow and lift a vessel, make an indentation, open its cavity, compress its rim and widen its body. After shaping, the player chooses a glaze, fires the piece and receives a finished vessel and statistics, plus a similarity score in Reference mode. Works and best scores are saved in a personal gallery.
 >
 > **Mistake mode** checks hand placement, support, hold time and speed. It gives concrete advice such as “Bring your right hand to the right wall,” “Open your right palm and turn your wrist horizontally, with fingers pointing sideways,” “Raise your hand more slowly; hold it horizontally at the base for three seconds again,” and “First make a shallow indentation with your thumb pointing down, supporting the wall with your other hand.” These hints appear in Russian in the game. Mistakes have visible consequences: thinning, tears, bottom holes or flattening. Tracking loss pauses shaping and is counted separately. MediaPipe supplies hand coordinates; action recognition, technique checks and gameplay use the project's own logic.
+
+The final update adds manual recovery, continuous hand inspection, attachments and stamps, eight glazes and a camera-free sharing viewer. New lessons use isolated training work; original pottery gestures and the widening target are preserved.

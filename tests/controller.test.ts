@@ -63,13 +63,13 @@ describe('phases', () => {
 
     core.dispatch({ type: 'confirmGlaze' }, t);
     expect(core.tick(t).phase).toBe('glaze'); // no glaze chosen yet
-    core.dispatch({ type: 'selectGlaze', glazeId: 'celadon' }, t);
+    core.dispatch({ type: 'selectGlaze', glazeId: 'jade' }, t);
     core.dispatch({ type: 'confirmGlaze' }, t);
     expect(core.tick(t).phase).toBe('firing');
     expect(core.tick(t + CONFIG.FIRING_MS - 1).phase).toBe('firing');
     const res = core.tick((t += CONFIG.FIRING_MS));
     expect(res.phase).toBe('result');
-    expect(res.result?.glazeId).toBe('celadon');
+    expect(res.result?.glazeId).toBe('jade');
     expect(res.result?.id).toBe('s1');
 
     core.dispatch({ type: 'openGallery' }, t);
@@ -97,8 +97,8 @@ describe('phases', () => {
     expect(core.tick(T_START).target?.name).toBe('Ваза');
     core.dispatch({ type: 'finishShaping' }, T_START);
     expect(core.tick(T_START).glazeId).toBeNull();
-    core.dispatch({ type: 'selectGlaze', glazeId: 'celadon' }, T_START);
-    expect(core.tick(T_START).glazeId).toBe('celadon');
+    core.dispatch({ type: 'selectGlaze', glazeId: 'jade' }, T_START);
+    expect(core.tick(T_START).glazeId).toBe('jade');
     core.dispatch({ type: 'backToMenu' }, T_START);
     const menu = core.tick(T_START);
     expect(menu.target).toBeNull();
@@ -172,7 +172,7 @@ describe('sessions', () => {
     const score = frozen.stats!.similarity!.score;
 
     t = feed(core, hand(-0.4, 0.6, fast), hand(0.4, 0.6, fast), t, 2000); // shaping + fast moves in glaze
-    core.dispatch({ type: 'selectGlaze', glazeId: 'g' }, t);
+    core.dispatch({ type: 'selectGlaze', glazeId: 'jade' }, t);
     core.dispatch({ type: 'confirmGlaze' }, t);
     t = feed(core, hand(-0.4, 0.6, fast), hand(0.4, 0.6, fast), t, CONFIG.FIRING_MS + 100);
     const first = core.tick(t);
@@ -189,7 +189,7 @@ describe('sessions', () => {
     const core = inSession('free');
     let t = feed(core, hand(-0.8, 0.6), hand(0.8, 0.6), T_START, 500);
     core.dispatch({ type: 'finishShaping' }, t);
-    core.dispatch({ type: 'selectGlaze', glazeId: 'g' }, t);
+    core.dispatch({ type: 'selectGlaze', glazeId: 'jade' }, t);
     core.dispatch({ type: 'confirmGlaze' }, t);
     const s = core.tick((t += CONFIG.FIRING_MS));
     expect(Array.isArray(s.result!.finalProfile)).toBe(true);
@@ -201,7 +201,7 @@ describe('sessions', () => {
     toMenu(core);
     core.dispatch({ type: 'start', mode: 'free', sessionId: 'w' }, T_START);
     core.dispatch({ type: 'finishShaping' }, T_START);
-    core.dispatch({ type: 'selectGlaze', glazeId: 'g' }, T_START);
+    core.dispatch({ type: 'selectGlaze', glazeId: 'jade' }, T_START);
     core.dispatch({ type: 'confirmGlaze' }, T_START);
     expect(core.tick(T_START + CONFIG.FIRING_MS).result?.completedAtIso).toBe('2026-09-30T10:00:00.000Z');
   });

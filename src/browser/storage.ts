@@ -1,5 +1,8 @@
 import { CONFIG } from '../config';
 import type { SessionResult } from '../types';
+import { customizationFits, emptyCustomization, readCustomization } from '../engine/customization';
+import { artifactFromResult } from '../engine/artifact';
+import { isMaterial } from '../engine/materials';
 
 export const GALLERY_KEY = 'kiln.gallery.v1';
 export const MAX_POTS = 24;
@@ -12,11 +15,12 @@ function counts(value: unknown, keys: string[], integers: boolean): boolean {
   return record(value) && Object.entries(value).every(([key, count]) => keys.includes(key) && number(count) && (!integers || Number.isInteger(count)));
 }
 export function isSessionResult(value: unknown): value is SessionResult {
-  if (!record(value) || value.schemaVersion !== 3 || !text(value.id) || !text(value.completedAtIso) || !Number.isFinite(Date.parse(value.completedAtIso)) || !record(value.stats)) return false;
+  if (!record(value) || (value.schemaVersion !== 3 && value.schemaVersion !== 4) || !text(value.id) || !text(value.completedAtIso) || !Number.isFinite(Date.parse(value.completedAtIso)) || !record(value.stats)) return false;
   const stats = value.stats;
   if (stats.sessionId !== value.id || typeof stats.mode !== 'string' || !['free', 'commission', 'tutorial'].includes(stats.mode) || !number(stats.durationMs) || !number(stats.activeMs, 0, stats.durationMs) ||
     !counts(stats.executionEpisodes, ISSUES, true) || !counts(stats.trackingEpisodes, ISSUES, true) || !counts(stats.gestureMs, GESTURES, false)) return false;
   if (stats.targetId !== undefined && !text(stats.targetId)) return false;
+  if (stats.restores !== undefined && (!number(stats.restores) || !Number.isInteger(stats.restores))) return false;
   if (stats.similarity !== undefined) {
     const s = stats.similarity;
     if (!record(s) || !number(s.score, 0, 100) || !number(s.radialError) || !number(s.heightError) || !number(s.worstBand, 0, CONFIG.N_BANDS - 1) || !Number.isInteger(s.worstBand) ||
@@ -31,12 +35,17 @@ export function isSessionResult(value: unknown): value is SessionResult {
   if (value.bottomHole ? value.floorThicknessWorld !== 0 || value.cavityDepthWorld !== value.height || value.collapsed !== true : value.floorThicknessWorld <= 0) return false;
   const start = value.cavityDepthWorld > 0 ? Math.floor((1 - value.cavityDepthWorld / value.height) * (CONFIG.N_BANDS - 1)) : 0;
   const thickness = Math.min(...value.finalProfile.slice(start)) - value.cavityRadiusWorld;
+  if (value.schemaVersion === 4) {
+    const c = readCustomization(value.customization);
+    if (!c || !customizationFits(c, artifactFromResult(value as unknown as SessionResult).clay)) return false;
+    if (value.collapseCause !== null && (typeof value.collapseCause !== 'string' || !['thinWall', 'tooTall', 'wallTorn', 'bottomHole', 'pancake'].includes(value.collapseCause))) return false;
+  }
   return number(value.thickness, CONFIG.THICKNESS_FLOOR, CONFIG.MAX_R) && thickness >= CONFIG.THICKNESS_FLOOR - 1e-6 && Math.abs(value.thickness - thickness) < 1e-5 &&
-    typeof value.collapsed === 'boolean' && typeof value.glazeId === 'string' && ['amber', 'jade', 'chalk'].includes(value.glazeId);
+    typeof value.collapsed === 'boolean' && isMaterial(value.glazeId);
 }
 
 /** Version 1 did not describe a cavity. Keep the silhouette and migrate it as solid. */
-export function migrateSessionResult(value: unknown): unknown {
+function migrateLegacy(value: unknown): unknown {
   if (record(value) && value.schemaVersion === 2 && number(value.height, CONFIG.MIN_HEIGHT, CONFIG.MAX_HEIGHT) && number(value.cavityDepthWorld, 0, value.height - CONFIG.FLOOR_WORLD)) {
     return { ...value, schemaVersion: 3, floorThicknessWorld: value.height - value.cavityDepthWorld, bottomHole: false };
   }
@@ -46,9 +55,17 @@ export function migrateSessionResult(value: unknown): unknown {
   return { ...value, schemaVersion: 3, cavityRadiusWorld: 0, cavityDepthWorld: 0, floorThicknessWorld: value.height, bottomHole: false, thickness: Math.min(...value.finalProfile), stats: { ...value.stats, gestureMs } };
 }
 
+export function migrateSessionResult(value: unknown): unknown {
+  const old = migrateLegacy(value);
+  if (!record(old) || old.schemaVersion !== 3 || !isSessionResult(old)) return old;
+  return { ...old, schemaVersion: 4, customization: emptyCustomization(),
+    collapseCause: old.bottomHole ? 'bottomHole' : old.collapsed ? old.height <= CONFIG.PANCAKE_HEIGHT_WORLD ? 'pancake' : 'thinWall' : null };
+}
+
 export function createGalleryStore(getStorage: () => Pick<Storage, 'getItem' | 'setItem'> = () => window.localStorage) {
   let pots: SessionResult[] = [];
   let persistent = true;
+  let protectedData = false;
   const bestScores = new Map<string, number>();
   function rememberBest(pot: SessionResult): void {
     if (pot.stats.mode === 'commission' && pot.stats.targetId && pot.stats.similarity) bestScores.set(pot.stats.targetId, Math.max(bestScores.get(pot.stats.targetId) ?? 0, pot.stats.similarity.score));
@@ -57,30 +74,36 @@ export function createGalleryStore(getStorage: () => Pick<Storage, 'getItem' | '
     const raw = getStorage().getItem(GALLERY_KEY);
     if (raw && raw.length < 2_000_000) {
       const parsed: unknown = JSON.parse(raw);
-      const items = Array.isArray(parsed) ? parsed : record(parsed) && [1, 2, 3].includes(Number(parsed.schemaVersion)) && Array.isArray(parsed.pots) ? parsed.pots : [];
-      if (record(parsed) && [1, 2, 3].includes(Number(parsed.schemaVersion)) && record(parsed.bestScores)) {
+      const items = Array.isArray(parsed) ? parsed : record(parsed) && [1, 2, 3, 4].includes(Number(parsed.schemaVersion)) && Array.isArray(parsed.pots) ? parsed.pots : [];
+      protectedData = !Array.isArray(parsed) && !(record(parsed) && [1, 2, 3, 4].includes(Number(parsed.schemaVersion)) && Array.isArray(parsed.pots));
+      if (record(parsed) && [1, 2, 3, 4].includes(Number(parsed.schemaVersion)) && record(parsed.bestScores)) {
         for (const [target, score] of Object.entries(parsed.bestScores)) if (text(target) && number(score, 0, 100)) bestScores.set(target, score);
       }
       if (items.length) {
         const seen = new Set<string>();
+        if (items.some(item => record(item) && Number(item.schemaVersion) > 4)) protectedData = true;
         const valid = items.map(migrateSessionResult).filter(isSessionResult).filter((pot) => { if (seen.has(pot.id)) return false; seen.add(pot.id); return true; });
         for (const pot of valid) rememberBest(pot);
         pots = valid.slice(0, MAX_POTS);
       }
-    }
-  } catch { persistent = false; }
+    } else if (raw) protectedData = true;
+  } catch { persistent = false; protectedData = true; }
+  function saveDetailed(result: SessionResult): 'saved' | 'memory' | 'duplicate' | 'invalid' {
+    if (!isSessionResult(result)) return 'invalid';
+    if (pots.some(pot => pot.id === result.id)) return 'duplicate';
+    const copy = structuredClone(migrateSessionResult(result)) as SessionResult;
+    if (!isSessionResult(copy)) return 'invalid';
+    pots = [copy, ...pots].slice(0, MAX_POTS); rememberBest(copy);
+    if (!protectedData) try { getStorage().setItem(GALLERY_KEY, JSON.stringify({ schemaVersion: 4, pots, bestScores: Object.fromEntries(bestScores) })); persistent = true; }
+    catch { persistent = false; }
+    return persistent && !protectedData ? 'saved' : 'memory';
+  }
   return {
-    get persistent(): boolean { return persistent; },
-    list(): readonly SessionResult[] { return pots; },
+    get persistent(): boolean { return persistent && !protectedData; },
+    list(): readonly SessionResult[] { return structuredClone(pots); },
+    saveDetailed,
     save(result: SessionResult): boolean {
-      if (!isSessionResult(result) || pots.some((pot) => pot.id === result.id)) return false;
-      // Freeze the stored representation independently of the live controller snapshot.
-      const copy = JSON.parse(JSON.stringify(result)) as SessionResult;
-      pots = [copy, ...pots].slice(0, MAX_POTS);
-      rememberBest(copy);
-      try { getStorage().setItem(GALLERY_KEY, JSON.stringify({ schemaVersion: 3, pots, bestScores: Object.fromEntries(bestScores) })); persistent = true; }
-      catch { persistent = false; }
-      return true;
+      const status = saveDetailed(result); return status === 'saved' || status === 'memory';
     },
     best(targetId: string): number | null {
       return bestScores.get(targetId) ?? null;

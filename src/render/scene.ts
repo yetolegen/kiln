@@ -2,13 +2,19 @@ import {
   ACESFilmicToneMapping, BoxGeometry, CylinderGeometry, DirectionalLight, HemisphereLight, Mesh, MeshStandardMaterial,
   OrthographicCamera, PerspectiveCamera, Scene, SRGBColorSpace, WebGLRenderer, TorusGeometry,
   IcosahedronGeometry, InstancedMesh, Object3D, Spherical, Vector3, Group,
-  PMREMGenerator, PCFShadowMap, type WebGLRenderTarget,
+  PMREMGenerator, PCFShadowMap, WebGLRenderTarget, Box3, Sphere,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import type { ClayState, EngineSnapshot, ProjectionParams } from '../types';
 import { createPotView, rimTearBottom } from './pot';
 import { WheelEffects } from './wheelEffects';
+import type { DisplayArtifact } from '../engine/artifact';
+import { glazeColor } from './kiln';
+import { createDecorationView } from './decoration';
+import { emptyCustomization, type Attachment, type Stamp } from '../engine/customization';
+import { pickOuterSurface } from './surfacePicking';
+import type { Vec2 } from '../types';
 
 const TILT = Math.PI / 12;
 
@@ -67,6 +73,7 @@ export function createScene(parent: HTMLElement) {
   let inspectionDistance = 8;
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   const pot = createPotView();
+  const decoration = createDecorationView(pot.group), emptyDecor = emptyCustomization();
   scene.add(pot.group, new HemisphereLight('#f1ede4', '#28392e', 1.1));
   const key = new DirectionalLight('#fff2e4', 2.6);
   key.position.set(-3, 5, 6);
@@ -119,9 +126,21 @@ export function createScene(parent: HTMLElement) {
   const particle = new Object3D();
   let projection: ProjectionParams | null = null;
   let lastSnapshot: EngineSnapshot | null = null;
+  let artifact: DisplayArtifact | null = null;
   let color = '#b9825e';
+  let surfaceGloss = 0, surfaceGlow = 0;
   let dpr = 1;
+  let quality = 1, previousRender = 0, slowFrames = 0;
+  let appearanceRevision = 0, lastView = '', shadowRevision = '';
   const activeCamera = () => inspecting ? inspectionCamera : camera;
+  function applySurface() {
+    const gloss = artifact ? 1 : surfaceGloss;
+    pot.material.color.set(artifact ? glazeColor(artifact.glazeId) : color);
+    pot.material.roughness = .6 - gloss * .28; pot.material.metalness = 0;
+    pot.material.bumpScale = .018 - gloss * .012; pot.material.clearcoat = .22 + gloss * .6;
+    pot.material.clearcoatRoughness = .4 - gloss * .2;
+    pot.material.emissive.set('#ff640b'); pot.material.emissiveIntensity = artifact ? 0 : surfaceGlow;
+  }
 
   function inspectionView(action: string): void {
     if (!controls) return;
@@ -146,18 +165,40 @@ export function createScene(parent: HTMLElement) {
     canvas,
     get supportsInspection(): boolean { return !canvas.hidden && renderer !== null; },
     inspectionView,
+    pickSurface(pointer: Vec2) {
+      const clay = artifact?.clay ?? lastSnapshot?.clay;
+      return clay && pot.mesh ? pickOuterSurface(pointer, canvas.getBoundingClientRect(), activeCamera(), pot.mesh, pot.group, clay) : null;
+    },
+    previewDecoration(value: Attachment | Stamp | null): void { const clay = artifact?.clay ?? lastSnapshot?.clay; if (clay) { decoration.preview(value, clay); appearanceRevision++; } },
+    setArtifact(value: DisplayArtifact | null): void {
+      artifact = value;
+      appearanceRevision++;
+      applySurface();
+    },
+    rotateInspection(dx: number, dy: number): void {
+      if (!controls || !inspecting) return;
+      const s = new Spherical().setFromVector3(inspectionCamera.position.clone().sub(controls.target));
+      s.theta -= dx * Math.PI * 2;
+      s.phi = Math.max(.01, Math.min(Math.PI - .01, s.phi - dy * Math.PI * 2));
+      inspectionCamera.position.copy(new Vector3().setFromSpherical(s).add(controls.target)); controls.update();
+    },
+    setPointerOrbit(enabled: boolean): void { if (controls) controls.enabled = inspecting && enabled; },
     setInspection(active: boolean, surface?: HTMLElement): void {
       inspecting = active && !canvas.hidden && renderer !== null;
-      if (!controls && surface) {
+      appearanceRevision++;
+      if (surface && (!controls || controls.domElement !== surface)) {
+        controls?.dispose();
         controls = new OrbitControls(inspectionCamera, surface);
         controls.enablePan = false; controls.enableDamping = false;
       }
       if (controls) {
         controls.enabled = inspecting;
-        if (inspecting && lastSnapshot?.clay && projection) {
-          const clay = lastSnapshot.clay;
+        if (inspecting && (artifact?.clay ?? lastSnapshot?.clay) && projection) {
+          const clay = (artifact?.clay ?? lastSnapshot!.clay)!;
           controls.target.set(0, clay.height / 2, 0);
-          const radius = Math.hypot(Math.max(...clay.radii), clay.height / 2);
+          const decor = artifact?.customization ?? lastSnapshot?.customization;
+          const margin = decor?.attachments.length ? Math.max(...decor.attachments.map(a => a.length)) : 0;
+          const radius = Math.hypot(Math.max(...clay.radii) + margin, clay.height / 2 + margin);
           inspectionDistance = radius / Math.sin(19 * Math.PI / 180) / Math.min(1, projection.viewportWidth / projection.viewportHeight) * 1.25;
           controls.minDistance = radius * 1.3; controls.maxDistance = inspectionDistance * 2.5;
           inspectionView('reset');
@@ -165,35 +206,59 @@ export function createScene(parent: HTMLElement) {
       }
     },
     setProjection(p: ProjectionParams): void {
+      const aspect = p.viewportWidth / p.viewportHeight;
+      if (inspecting && controls) {
+        // Retain the chosen angle and relative zoom when the viewport narrows.
+        // Updating only the perspective aspect crops the vessel after rotation.
+        const scale = Math.min(1, inspectionCamera.aspect) / Math.min(1, aspect);
+        inspectionDistance *= scale;
+        controls.maxDistance *= scale;
+        inspectionCamera.position.sub(controls.target).multiplyScalar(scale).add(controls.target);
+        controls.update();
+      }
       projection = p;
+      appearanceRevision++;
       dpr = Math.min(window.devicePixelRatio || 1, 2);
       configureCamera(camera, p);
-      inspectionCamera.aspect = p.viewportWidth / p.viewportHeight; inspectionCamera.updateProjectionMatrix();
-      renderer?.setPixelRatio(dpr);
+      inspectionCamera.aspect = aspect; inspectionCamera.updateProjectionMatrix();
+      renderer?.setPixelRatio(dpr * quality);
       renderer?.setSize(p.viewportWidth, p.viewportHeight, false);
       fallback.width = Math.round(p.viewportWidth * dpr);
       fallback.height = Math.round(p.viewportHeight * dpr);
     },
     setSurface(nextColor: string, gloss = 0, glow = 0): void {
-      color = nextColor;
-      pot.material.color.set(color);
-      pot.material.roughness = .6 - gloss * .28;
-      pot.material.metalness = 0;
-      pot.material.bumpScale = .018 - gloss * .012;
-      pot.material.clearcoat = .22 + gloss * .6;
-      pot.material.clearcoatRoughness = .4 - gloss * .2;
-      pot.material.emissive.set('#ff640b');
-      pot.material.emissiveIntensity = glow;
+      color = nextColor; surfaceGloss = gloss; surfaceGlow = glow;
+      appearanceRevision++;
+      applySurface();
     },
     render(snapshot: EngineSnapshot, nowMs: number): void {
       if (!projection) return;
+      // Keep hand input responsive on software/low-power graphics. Never relax freshness.
+      const elapsed = nowMs - previousRender; previousRender = nowMs;
+      // Video callbacks can arrive every second animation frame. Leave headroom for
+      // the unchanged 150 ms track-retention limit, not just the 200 ms stale gate.
+      slowFrames = elapsed > 45 && elapsed < 1500 ? slowFrames + 1 : Math.max(0, slowFrames - 1);
+      if (slowFrames >= 3 && quality > .25 && renderer) {
+        quality = Math.max(.25, quality * .8); slowFrames = 0;
+        renderer.setPixelRatio(dpr * quality);
+        renderer.setSize(projection.viewportWidth, projection.viewportHeight, false);
+        const shadowSize = quality <= .41 ? 256 : quality <= .65 ? 512 : 1024;
+        if (key.shadow.mapSize.x !== shadowSize) {
+          key.shadow.map?.dispose(); key.shadow.map = null;
+          key.shadow.mapSize.set(shadowSize, shadowSize); renderer.shadowMap.needsUpdate = true;
+        }
+        canvas.dataset.renderScale = quality.toFixed(2);
+        appearanceRevision++;
+      }
       lastSnapshot = snapshot;
-      const visible = !['loading', 'permission', 'calibrate', 'gallery'].includes(snapshot.phase);
-      pot.group.visible = visible && !!snapshot.clay;
+      const clay = artifact?.clay ?? snapshot.clay;
+      const visible = !!artifact || !['loading', 'permission', 'calibrate', 'gallery'].includes(snapshot.phase);
+      pot.group.visible = visible && !!clay;
       wheel.visible = visible && !inspecting;
       stand.visible = wheel.visible;
       effects.update(snapshot, nowMs, reduced.matches, inspecting);
-      if (snapshot.clay && visible) pot.update(snapshot.clay, inspecting ? null : snapshot.hint?.band ?? snapshot.gesture?.contact.activeBand ?? null, nowMs, effects.angle, reduced.matches || inspecting);
+      if (clay && visible) pot.update(clay, inspecting ? null : snapshot.hint?.band ?? snapshot.gesture?.contact.activeBand ?? null, nowMs, effects.angle, reduced.matches || inspecting);
+      if (clay) decoration.update(artifact?.customization ?? snapshot.customization ?? emptyDecor, clay);
       wheel.rotation.y = effects.angle;
       let activeParticles = 0;
       for (let i = 0; i < effects.capacity; i++) {
@@ -214,29 +279,67 @@ export function createScene(parent: HTMLElement) {
         inspectionFill.position.copy(p); inspectionFill.target.position.copy(controls!.target);
       }
       if (!canvas.hidden && renderer) {
-        try { renderer.render(scene, activeCamera()); } catch { useFallback(); }
+        // A paused vessel does not need a full WebGL redraw for every camera observation.
+        // Input and UI still run at their original cadence and freshness thresholds.
+        const model = `${appearanceRevision}:${clay?.revision}:${(artifact?.customization ?? snapshot.customization)?.revision}`;
+        const p = inspectionCamera.position, q = inspectionCamera.quaternion;
+        const view = `${model}:${p.x},${p.y},${p.z}:${q.x},${q.y},${q.z},${q.w}`;
+        renderer.shadowMap.autoUpdate = !inspecting;
+        if (model !== shadowRevision) { renderer.shadowMap.needsUpdate = true; shadowRevision = model; }
+        if (!inspecting || view !== lastView) {
+          try { renderer.render(scene, activeCamera()); lastView = view; } catch { useFallback(); }
+        }
       }
       if (!fallback.hidden && context) {
         context.setTransform(dpr, 0, 0, dpr, 0, 0);
         context.clearRect(0, 0, projection.viewportWidth, projection.viewportHeight);
-        if (snapshot.clay && visible) drawFallback(context, snapshot.clay, projection, color, snapshot.hint?.band ?? snapshot.clay.activeBand, nowMs);
+        if (clay && visible) drawFallback(context, clay, projection, artifact ? glazeColor(artifact.glazeId) : color, inspecting ? null : snapshot.hint?.band ?? clay.activeBand, nowMs);
       }
     },
     async exportPng(): Promise<Blob | null> {
       try {
         if (!lastSnapshot || !projection) return null;
-        if (!canvas.hidden && renderer) renderer.render(scene, activeCamera());
+        const customization = artifact?.customization ?? lastSnapshot.customization;
+        if (canvas.hidden && ((customization?.attachments.length ?? 0) + (customization?.stamps.length ?? 0) > 0)) return null;
         const source = canvas.hidden ? fallback : canvas;
         const picture = document.createElement('canvas'); picture.width = 1200; picture.height = 1200;
-        const ctx = picture.getContext('2d'); if (!ctx || !lastSnapshot.clay) return null;
-        const p = projection, clay = lastSnapshot.clay;
+        const ctx = picture.getContext('2d'); if (!ctx || !(artifact?.clay ?? lastSnapshot.clay)) return null;
+        const p = projection, clay = (artifact?.clay ?? lastSnapshot.clay)!;
         ctx.fillStyle = '#211d19'; ctx.fillRect(0, 0, 1200, 1200);
         const x = Math.max(0, p.axisXPx - p.pixelsPerWorldUnit * 1.95);
         const y = Math.max(0, p.bottomYPx - (clay.height + .45) * p.pixelsPerWorldUnit);
         const width = Math.min(p.viewportWidth - x, p.pixelsPerWorldUnit * 3.9);
         const height = Math.min(p.viewportHeight - y, p.bottomYPx + p.pixelsPerWorldUnit * .35 - y);
         const scale = Math.min(960 / width, 870 / height), dw = width * scale, dh = height * scale;
-        ctx.drawImage(source, x * dpr, y * dpr, width * dpr, height * dpr, (1200 - dw) / 2, 170 + (870 - dh) / 2, dw, dh);
+        if (!canvas.hidden && renderer) {
+          // Frame the selected artifact, including protruding decorations, independently
+          // of the user's zoom. Rendering to a target leaves their live camera untouched.
+          const bounds = new Box3().setFromObject(pot.group).getBoundingSphere(new Sphere());
+          const photoCamera = new PerspectiveCamera(38, 1, .01, 100);
+          const direction = inspecting && controls ? inspectionCamera.position.clone().sub(controls.target).normalize() : new Vector3(0, .3, 1).normalize();
+          photoCamera.position.copy(bounds.center).addScaledVector(direction, bounds.radius / Math.sin(19 * Math.PI / 180) * 1.12);
+          photoCamera.lookAt(bounds.center); photoCamera.updateMatrixWorld();
+          const target = new WebGLRenderTarget(1024, 1024); target.texture.colorSpace = SRGBColorSpace;
+          const previous = renderer.getRenderTarget(), visibility = [wheel.visible, stand.visible, drops.visible];
+          const lightPosition = inspectionFill.position.clone(), lightTarget = inspectionFill.target.position.clone(), lightVisible = inspectionFill.visible;
+          const pixels = new Uint8Array(1024 * 1024 * 4);
+          try {
+            wheel.visible = stand.visible = drops.visible = false;
+            inspectionFill.visible = true; inspectionFill.position.copy(photoCamera.position); inspectionFill.target.position.copy(bounds.center);
+            renderer.setRenderTarget(target); renderer.render(scene, photoCamera); renderer.readRenderTargetPixels(target, 0, 0, 1024, 1024, pixels);
+          } finally {
+            renderer.setRenderTarget(previous); target.dispose();
+            [wheel.visible, stand.visible, drops.visible] = visibility;
+            inspectionFill.visible = lightVisible; inspectionFill.position.copy(lightPosition); inspectionFill.target.position.copy(lightTarget);
+          }
+          const photo = document.createElement('canvas'); photo.width = photo.height = 1024;
+          const photoContext = photo.getContext('2d')!; const data = photoContext.createImageData(1024, 1024);
+          for (let row = 0; row < 1024; row++) data.data.set(pixels.subarray((1023 - row) * 4096, (1024 - row) * 4096), row * 4096);
+          photoContext.putImageData(data, 0, 0); ctx.drawImage(photo, 120, 135, 960, 960);
+        } else {
+          const pixelScale = source.width / projection.viewportWidth;
+          ctx.drawImage(source, x * pixelScale, y * pixelScale, width * pixelScale, height * pixelScale, (1200 - dw) / 2, 170 + (870 - dh) / 2, dw, dh);
+        }
         ctx.fillStyle = '#eedac4'; ctx.textAlign = 'center'; ctx.font = '54px Georgia'; ctx.fillText('K I L N', 600, 100);
         ctx.fillStyle = '#bba58d'; ctx.font = '22px system-ui'; ctx.fillText('Форма, созданная движением', 600, 1120);
         return await new Promise<Blob | null>((resolve) => picture.toBlob(resolve, 'image/png'));
@@ -245,6 +348,7 @@ export function createScene(parent: HTMLElement) {
     dispose(): void {
       canvas.removeEventListener('webglcontextlost', useFallback);
       controls?.dispose(); studioLight?.dispose(); key.shadow.dispose(); renderer?.dispose(); pot.dispose(); wheelGeometry.dispose(); wheelMaterial.dispose();
+      decoration.dispose();
       grooveGeometry.dispose(); grooveMaterial.dispose(); markGeometry.dispose(); dropGeometry.dispose(); dropMaterial.dispose();
       slipGeometry.dispose(); slipMaterial.dispose();
       spindleGeometry.dispose(); baseGeometry.dispose(); standMaterial.dispose();

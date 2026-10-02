@@ -16,7 +16,7 @@ test('V9 workshop artwork, parchment lesson and damage restart stay readable', a
   await page.keyboard.press('b');
   await expect(page.locator('.hud__hint')).toContainText('Глина испортилась, начните заново');
   await page.screenshot({ path: 'test-results/v9-lesson-damaged.png' });
-  await page.keyboard.press('3'); await page.locator('[data-action="free"]').click(); await page.mouse.move(0, 0);
+  await page.locator('[data-action="modal-menu"]').click(); await page.locator('[data-action="free"]').click(); await page.mouse.move(0, 0);
   for (const [key, cause] of [['b', 'продавили дно'], ['n', 'лепёшку'], ['c', 'осела'], ['t', 'разрывы']] as const) {
     await page.keyboard.press(key); await page.keyboard.press('Escape');
     const banner = page.locator('.hud__hint');
@@ -26,7 +26,7 @@ test('V9 workshop artwork, parchment lesson and damage restart stay readable', a
     await expect(banner).toContainText('Глина испортилась, начните заново');
     await page.keyboard.press('x');
     await page.screenshot({ path: `test-results/v9-damage-${key}.png` });
-    await page.locator('[data-action="restart"]').click(); await page.mouse.move(0, 0);
+    await page.locator(key === 'b' || key === 'n' ? '[data-action="modal-restart"]' : '[data-action="restart"]').click(); await page.mouse.move(0, 0);
     await expect(banner).not.toContainText('Глина испортилась');
     await expect(page.locator('.workshop')).toHaveAttribute('data-damaged', 'false');
   }
@@ -35,10 +35,10 @@ test('V9 workshop artwork, parchment lesson and damage restart stay readable', a
     const banner = (await page.locator('.hud__hint').boundingBox())!;
     expect(banner.x).toBeGreaterThanOrEqual(0); expect(banner.y).toBeGreaterThanOrEqual(0);
     expect(banner.x + banner.width).toBeLessThanOrEqual(viewport.width);
-    const retry = (await page.locator('[data-action="restart"]').boundingBox())!;
+    const retry = (await page.locator('[data-action="modal-restart"]').boundingBox())!;
     expect(retry.y + retry.height).toBeLessThanOrEqual(viewport.height);
     await page.screenshot({ path: `test-results/v9-damage-${viewport.width}.png` });
-    await page.locator('[data-action="restart"]').click();
+    await page.locator('[data-action="modal-restart"]').click();
   }
   expect(errors).toEqual([]);
 });

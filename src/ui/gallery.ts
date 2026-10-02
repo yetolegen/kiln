@@ -1,5 +1,6 @@
 import type { SessionResult } from '../types';
 import { glazeColor } from '../render/kiln';
+import { thumbnailDecoration } from '../render/thumbnailDecoration';
 
 export function renderGallery(parent: HTMLElement, pots: readonly SessionResult[], page: number, best: (target: string) => number | null): void {
   parent.replaceChildren();
@@ -24,6 +25,7 @@ export function renderGallery(parent: HTMLElement, pots: readonly SessionResult[
         ctx.fillStyle = `rgba(49, 28, 18, ${Math.min(.95, .35 + pot.cavityDepthWorld / pot.height)})`;
         ctx.beginPath(); ctx.ellipse(center, bottom - pot.height * scale, pot.cavityRadiusWorld * scale, pot.cavityRadiusWorld * scale * .15, 0, 0, Math.PI * 2); ctx.fill();
       }
+      thumbnailDecoration(ctx, pot, scale, bottom, center);
     }
     const title = document.createElement('h2'); title.textContent = pot.stats.mode === 'commission' ? 'Ваза по образцу' : 'Свободная форма';
     const date = document.createElement('p'); date.textContent = new Date(pot.completedAtIso).toLocaleDateString('ru-RU');

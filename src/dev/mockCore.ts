@@ -1,5 +1,8 @@
 import { CONFIG } from '../config';
 import { TARGETS } from '../engine/target';
+import { readCheckpoint, type Checkpoint } from '../engine/checkpoint';
+import { customizationFits, emptyCustomization, readCustomization } from '../engine/customization';
+import { isMaterial } from '../engine/materials';
 import type {
   AppCommand, AppPhase, ClayEvent, ClayEventType, ClayState, CoreController, EngineSnapshot,
   FrameInput, Gesture, GestureState, HandFeatures, Hint, ProjectionParams, SessionResult, SessionStats, Vec2,
@@ -32,6 +35,9 @@ export class MockCore implements CoreController {
   private lost = false;
   private cursor: Vec2 = { x: 0, y: 0 };
   private palmCursor = false;
+  private viewerPinch = false;
+  private singleHand = false;
+  private customization = emptyCustomization();
   private stats: SessionStats = this.newStats('mock-1', 'commission');
   private result: SessionResult | null = null;
   private glazeId: string | null = null;
@@ -46,6 +52,18 @@ export class MockCore implements CoreController {
     };
   }
   observe(frame: FrameInput): void { this.input = frame; }
+  captureCheckpoint(): Checkpoint | null {
+    return readCheckpoint({ version: 1, mode: this.stats.mode, stage: this.phase, targetId: this.stats.targetId, glazeId: this.glazeId,
+      clay: { ...this.clay, recoveryMs: 0, radii: Array.from(this.clay.radii), damage: Array.from(this.clay.damage) }, stats: this.stats, customization: this.customization });
+  }
+  restoreCheckpoint(value: unknown): boolean {
+    const saved = readCheckpoint(value); if (!saved || !['studio', 'glaze', 'menu'].includes(this.phase)) return false;
+    const editMistakes = this.phase === 'menu' ? saved.customization.editMistakes : this.customization.editMistakes;
+    this.clay = { ...saved.clay, revision: this.clay.revision + 1, radii: Float32Array.from(saved.clay.radii), damage: Float32Array.from(saved.clay.damage) };
+    this.phase = saved.stage; this.glazeId = saved.glazeId; this.gestureName = 'none'; this.gesture = null; this.hint = null; this.active.clear(); this.pending = [];
+    this.customization = { ...saved.customization, editMistakes, revision: this.customization.revision + 1 };
+    this.stats = { ...this.stats, mode: saved.mode, restores: (this.stats.restores ?? 0) + 1 }; return true;
+  }
   resetInput(epoch: number): void { this.epoch = epoch; this.input = null; this.gesture = null; this.lastObservation = -Infinity; }
   setPaused(paused: boolean): void { this.paused = paused; if (paused) { this.gesture = null; this.clay.touching = false; } }
   updateProjection(projection: ProjectionParams): void { this.projection = projection; this.clay.maxHeightWorld = Math.min(CONFIG.MAX_HEIGHT, .75 * projection.bottomYPx / projection.pixelsPerWorldUnit); }
@@ -53,15 +71,21 @@ export class MockCore implements CoreController {
 
   dispatch(command: AppCommand, nowMs: number): void {
     switch (command.type) {
+      case 'customize': {
+        const value = readCustomization(command.value);
+        if (this.phase === 'glaze' && value && customizationFits(value, this.clay)) this.customization = { ...value, revision: this.customization.revision + 1 };
+        break;
+      }
       case 'modelReady': this.phase = 'permission'; break;
       case 'start':
+        this.customization = emptyCustomization();
         this.clay = makeClay(); this.result = null; this.glazeId = null; this.active.clear(); this.pending = [];
         this.stats = this.newStats(command.sessionId, command.mode);
         this.phase = command.mode === 'tutorial' ? 'tutorial' : 'studio'; break;
       case 'restart': this.dispatch({ type: 'start', mode: this.stats.mode, sessionId: command.newSessionId }, nowMs); break;
       case 'tutorialStep': this.expected = command.expectedGesture; break;
       case 'finishShaping': if (this.phase === 'studio') { this.phase = 'glaze'; this.clay.touching = false; } break;
-      case 'selectGlaze': if (this.phase === 'glaze') this.glazeId = command.glazeId; break;
+      case 'selectGlaze': if (this.phase === 'glaze' && isMaterial(command.glazeId)) this.glazeId = command.glazeId; break;
       case 'confirmGlaze': if (this.phase === 'glaze' && this.glazeId) { this.phase = 'firing'; this.firingAt = nowMs; } break;
       case 'openGallery': this.phase = 'gallery'; break;
       case 'backToMenu': this.phase = 'menu'; break;
@@ -69,7 +93,7 @@ export class MockCore implements CoreController {
   }
 
   key(key: string, nowMs: number): void {
-    if (this.paused && !/^[0-9hpx]$/i.test(key)) return;
+    if (this.paused && !/^[0-9hpxq]$/i.test(key)) return;
     if (/^[0-9]$/.test(key)) {
       this.phase = PHASES[Number(key)];
       if (this.phase === 'firing') this.firingAt = nowMs;
@@ -103,6 +127,8 @@ export class MockCore implements CoreController {
         break;
       case 'p': this.palmCursor = false; this.gestureName = 'point'; break;
       case 'h': this.palmCursor = true; this.gestureName = 'none'; break;
+      case 'q': this.viewerPinch = !this.viewerPinch; return; // viewer input must not invalidate clay geometry
+      case 'j': this.singleHand = !this.singleHand; return; // one-hand UI testing without a fixed support palm
       case 'x': this.lost = !this.lost; break;
       case 't': this.issue('tear', nowMs); this.clay.damage[24] = this.active.has('tear') ? .8 : .25; break;
       case 'w': this.issue('wobble', nowMs); this.clay.wobble = this.active.has('wobble') ? .8 : 0; break;
@@ -139,12 +165,12 @@ export class MockCore implements CoreController {
     const palmPx = this.palmCursor && side === -1 ? { ...this.cursor } : { x: p.axisXPx + side * 1.1 * p.pixelsPerWorldUnit, y: p.bottomYPx - .8 * p.pixelsPerWorldUnit };
     const landmarksPx = HAND_POINTS.map(([x, y]) => ({ x: palmPx.x + side * x, y: palmPx.y + y }));
     return { trackId: side + 2, palmPx, palmWorld: { x: side * 1.1, y: .8 }, indexTipPx: this.cursor, landmarksPx,
-      palmSizePx: 70, referencePalmSizePx: 70, extension: { index: 1, middle: 1, ring: 1, pinky: 1 }, openness: 1, pinchRatio: .7,
+      palmSizePx: 70, referencePalmSizePx: 70, extension: { index: 1, middle: 1, ring: 1, pinky: 1 }, openness: 1, pinchRatio: side === -1 && this.viewerPinch ? .2 : .7,
       pointing: this.gestureName === 'point', velocityWorldPerS: { x: 0, y: 0 }, velocityPalmPerS: { x: 0, y: 0 }, velocityValid: true };
   }
 
   private finalize(): SessionResult {
-    return { schemaVersion: 3, id: this.stats.sessionId, completedAtIso: new Date().toISOString(), stats: structuredClone(this.stats),
+    return { schemaVersion: 4, customization: structuredClone(this.customization), collapseCause: this.clay.collapseCause, id: this.stats.sessionId, completedAtIso: new Date().toISOString(), stats: structuredClone(this.stats),
       finalProfile: Array.from(this.clay.radii), height: this.clay.height, thickness: this.clay.thickness,
       cavityRadiusWorld: this.clay.cavityRadiusWorld, cavityDepthWorld: this.clay.cavityDepthWorld,
       floorThicknessWorld: this.clay.floorThicknessWorld, bottomHole: this.clay.bottomHole,
@@ -159,7 +185,7 @@ export class MockCore implements CoreController {
       this.lastObservation = nowMs;
       const pointing = this.gestureName === 'point';
       this.input = { frameId: ++this.frame, epoch: this.epoch, tMs: nowMs, receivedAtMs: nowMs, dtSampleS,
-        status: this.lost ? 'noHands' : pointing ? 'oneHand' : 'ready', screenLeft: this.lost ? null : this.hand(-1), screenRight: this.lost || pointing ? null : this.hand(1) };
+        status: this.lost ? 'noHands' : pointing || this.singleHand ? 'oneHand' : 'ready', screenLeft: this.lost ? null : this.hand(-1), screenRight: this.lost || pointing || this.singleHand ? null : this.hand(1) };
       this.clay.touching = !this.paused && !this.lost && ['studio', 'tutorial'].includes(this.phase) && ['shape', 'pullUp', 'indent', 'open', 'compressRim', 'widen'].includes(this.gestureName) && (this.phase !== 'tutorial' || this.expected === this.gestureName);
       this.clay.activeBand = this.clay.touching ? 24 : null;
       this.gesture = {
@@ -185,7 +211,7 @@ export class MockCore implements CoreController {
     return { phase: this.phase, mode: this.stats.mode, calibrationProgress: this.phase === 'calibrate' ? .6 : 1,
       input: this.input, clay: this.clay, gesture: this.gesture, events, activeIssues: [...this.active.values()],
       hint: this.hint,
-      stats: this.stats, result: this.result, target: this.stats.mode === 'commission' ? TARGETS[0] : null, glazeId: this.glazeId };
+      stats: this.stats, result: this.result, customization: this.customization, target: this.stats.mode === 'commission' ? TARGETS[0] : null, glazeId: this.glazeId };
   }
 }
 

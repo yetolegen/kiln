@@ -3,6 +3,7 @@
 import type {
   ClayEvent, ClayEventType, ClayState, GestureState, SessionMode, SessionResult, SessionStats, SimilarityResult,
 } from '../types';
+import { emptyCustomization, type Customization } from './customization';
 
 export class SessionTracker {
   private readonly execution: Partial<Record<ClayEventType, number>> = {};
@@ -12,13 +13,25 @@ export class SessionTracker {
   private frozenAtMs: number | null = null;
   private similarityResult: SimilarityResult | undefined;
   private result: SessionResult | null = null;
+  private elapsedBefore = 0;
+  private restores = 0;
 
   constructor(
     readonly sessionId: string,
     readonly mode: SessionMode,
     private readonly startedAtMs: number,
     readonly targetId?: string,
-  ) {}
+    previous?: SessionStats,
+  ) {
+    if (previous) {
+      this.elapsedBefore = previous.durationMs;
+      this.activeMs = previous.activeMs;
+      Object.assign(this.execution, previous.executionEpisodes);
+      Object.assign(this.tracking, previous.trackingEpisodes);
+      Object.assign(this.gestureMs, previous.gestureMs);
+      this.restores = (previous.restores ?? 0) + 1;
+    }
+  }
 
   get frozen(): boolean {
     return this.frozenAtMs !== null;
@@ -49,7 +62,8 @@ export class SessionTracker {
     return {
       sessionId: this.sessionId,
       mode: this.mode,
-      durationMs: (this.frozenAtMs ?? nowMs) - this.startedAtMs,
+      durationMs: this.elapsedBefore + Math.max(0, (this.frozenAtMs ?? nowMs) - this.startedAtMs),
+      restores: this.restores,
       activeMs: this.activeMs,
       executionEpisodes: { ...this.execution },
       trackingEpisodes: { ...this.tracking },
@@ -60,10 +74,12 @@ export class SessionTracker {
   }
 
   /** Exactly one result per session; later calls return the same object. Arrays are copies. */
-  finalize(clay: ClayState, glazeId: string, completedAtIso: string, nowMs: number): SessionResult {
+  finalize(clay: ClayState, glazeId: string, completedAtIso: string, nowMs: number, customization: Customization = emptyCustomization()): SessionResult {
     this.freeze(nowMs);
     this.result ??= {
-      schemaVersion: 3,
+      schemaVersion: 4,
+      customization: structuredClone(customization),
+      collapseCause: clay.collapseCause,
       id: this.sessionId,
       completedAtIso,
       stats: this.stats(nowMs),
