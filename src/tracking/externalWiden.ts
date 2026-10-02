@@ -1,19 +1,32 @@
 import { CONFIG } from '../config';
 import type { FrameInput, ProjectionParams } from '../types';
 
+interface Grip {
+  left: number; right: number; y: number; travel: number; since: number; last: number; epoch: number; projection: number;
+  ids: string; blocked: boolean; tooFast: boolean; progress: number;
+}
+
 /** A deliberate two-sided grip keeps widening distinct from withdrawing open palms. */
 export class ExternalWiden {
-  private grip: { left: number; right: number; y: number; travel: number; since: number; last: number; epoch: number; projection: number; ids: string; blocked: boolean } | null = null;
+  private grip: Grip | null = null;
   reset(): void { this.grip = null; }
   update(frame: FrameInput, projection: ProjectionParams, eligible: boolean) {
-    const l = frame.screenLeft, r = frame.screenRight;
-    if (!eligible || !l || !r || frame.status !== 'ready' || !l.velocityValid || !r.velocityValid) { this.reset(); return null; }
-    const t = frame.tMs, left = -l.palmWorld.x, right = r.palmWorld.x, y = (l.palmWorld.y + r.palmWorld.y) / 2;
+    const l = frame.screenLeft, r = frame.screenRight, t = frame.tMs;
+    // losing tracking ends the grip; a brief pose glitch with both hands still seen (one loose-pinch frame,
+    // a contact flicker) only pauses it for LIFT_GRACE_MS, like the lift: nothing accumulates meanwhile
+    if (!l || !r || frame.status !== 'ready') { this.reset(); return null; }
+    let e = this.grip;
+    if (!eligible || !l.velocityValid || !r.velocityValid) {
+      if (!e || e.epoch !== frame.epoch || t - e.last > CONFIG.LIFT_GRACE_MS) { this.reset(); return null; }
+      // progress 0 while paused: a real release (opening the fingers) must read as released at once
+      return { progress: 0, push: 0, tooFast: e.tooFast };
+    }
+    const left = -l.palmWorld.x, right = r.palmWorld.x, y = (l.palmWorld.y + r.palmWorld.y) / 2;
     const ids = `${l.trackId}:${r.trackId}`, palm = (l.referencePalmSizePx + r.referencePalmSizePx) / (2 * projection.pixelsPerWorldUnit);
     const deadband = Math.max(.012, palm * .035);
-    let e = this.grip;
-    if (!e || e.ids !== ids || e.epoch !== frame.epoch || e.projection !== projection.revision || t <= e.last || t - e.last > CONFIG.MAX_INPUT_AGE_MS) {
-      e = this.grip = { left, right, y, travel: 0, since: t, last: t, epoch: frame.epoch, projection: projection.revision, ids, blocked: false };
+    if (!e || e.ids !== ids || e.epoch !== frame.epoch || e.projection !== projection.revision || t <= e.last ||
+        t - e.last > Math.max(CONFIG.MAX_INPUT_AGE_MS, CONFIG.LIFT_GRACE_MS)) {
+      e = this.grip = { left, right, y, travel: 0, since: t, last: t, epoch: frame.epoch, projection: projection.revision, ids, blocked: false, tooFast: false, progress: 0 };
     }
     // The height anchor follows slow drift (still hands wander, a spread arcs); only a deliberate vertical
     // move outrunning it blocks. A fixed anchor silently ended long strokes after ~0.2 palm of drift.
@@ -21,20 +34,25 @@ export class ExternalWiden {
     e.y += Math.max(-follow, Math.min(follow, y - e.y));
     e.last = t;
     const speed = Math.max(Math.hypot(l.velocityPalmPerS.x, l.velocityPalmPerS.y), Math.hypot(r.velocityPalmPerS.x, r.velocityPalmPerS.y));
-    if (speed > 1.2 || Math.abs(y - e.y) > Math.max(.10, palm * .2)) e.blocked = true;
-    if (e.blocked) return { progress: 0, push: 0, tooFast: speed > 1.2 };
-    const progress = Math.min(1, (t - e.since) / 500);
-    if (progress < 1) {
-      if (Math.max(Math.abs(left - e.left), Math.abs(right - e.right)) > deadband || speed > .35) {
-        e.left = left; e.right = right; e.since = t;
-        return { progress: 0, push: 0, tooFast: false };
+    const vertical = Math.abs(y - e.y) > Math.max(.10, palm * .2);
+    if (!e.blocked && e.progress < 1) {
+      // Before arming, any motion (arriving pinched, repositioning) only restarts the still hold.
+      // It used to block the grip for good, silently, until the pinches were opened.
+      if (Math.max(Math.abs(left - e.left), Math.abs(right - e.right)) > deadband || speed > .35 || vertical) {
+        e.left = left; e.right = right; e.y = y; e.since = t;
       }
-      return { progress, push: 0, tooFast: false };
+      e.progress = Math.min(1, (t - e.since) / 500);
+      return { progress: e.progress, push: 0, tooFast: false };
     }
+    // Armed: too fast or a vertical move ends this stroke. The too-fast hint stays until the pinches open,
+    // because opening them is what it asks for.
+    if (speed > 1.2) e.tooFast = true;
+    if (e.tooFast || vertical) e.blocked = true;
+    if (e.blocked) { e.progress = 0; return { progress: 0, push: 0, tooFast: e.tooFast }; }
     // Both hands must spread. A one-sided withdrawal, jitter or returning to the same width adds nothing.
     const travel = Math.min(left - e.left, right - e.right);
     const push = travel > e.travel + (e.travel === 0 ? deadband : 0) ? travel - e.travel : 0;
     if (push > 0) e.travel = travel;
-    return { progress, push, tooFast: false };
+    return { progress: 1, push, tooFast: false };
   }
 }
