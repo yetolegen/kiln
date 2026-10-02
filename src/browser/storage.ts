@@ -1,4 +1,5 @@
 import { CONFIG } from '../config';
+import { cavityStartBand } from '../engine/clay';
 import type { SessionResult } from '../types';
 
 export const GALLERY_KEY = 'kiln.gallery.v1';
@@ -29,7 +30,8 @@ export function isSessionResult(value: unknown): value is SessionResult {
     (value.cavityDepthWorld === 0) !== (value.cavityRadiusWorld === 0)) return false;
   if (typeof value.bottomHole !== 'boolean' || !number(value.floorThicknessWorld, 0, value.height) || Math.abs(value.floorThicknessWorld - (value.height - value.cavityDepthWorld)) > 1e-6) return false;
   if (value.bottomHole ? value.floorThicknessWorld !== 0 || value.cavityDepthWorld !== value.height || value.collapsed !== true : value.floorThicknessWorld <= 0) return false;
-  const start = value.cavityDepthWorld > 0 ? Math.floor((1 - value.cavityDepthWorld / value.height) * (CONFIG.N_BANDS - 1)) : 0;
+  // the engine's own formula: an algebraically equal one rounded differently and rejected valid pots
+  const start = value.cavityDepthWorld > 0 ? cavityStartBand({ radii: value.finalProfile, height: value.height, cavityDepthWorld: value.cavityDepthWorld }) : 0;
   const thickness = Math.min(...value.finalProfile.slice(start)) - value.cavityRadiusWorld;
   return number(value.thickness, CONFIG.THICKNESS_FLOOR, CONFIG.MAX_R) && thickness >= CONFIG.THICKNESS_FLOOR - 1e-6 && Math.abs(value.thickness - thickness) < 1e-5 &&
     typeof value.collapsed === 'boolean' && typeof value.glazeId === 'string' && ['amber', 'jade', 'chalk'].includes(value.glazeId);
