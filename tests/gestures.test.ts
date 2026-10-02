@@ -427,11 +427,14 @@ describe('raise / point / near-miss', () => {
     expect(s.g.nearMiss?.intended).not.toBe('raise');
   });
 
-  it('raise: open hands above the pot top + margin, held; not in menu', () => {
-    const s = run([hand(-1, 1.6), hand(1, 1.6)], 1600);
+  it('raise: open hands above the pot top + margin, held; only in a lesson step expecting it', () => {
+    const raiseStep: GestureContext = { ...CTX, phase: 'tutorial', expectedGesture: 'raise' };
+    const s = run([hand(-1, 1.6), hand(1, 1.6)], 1600, undefined, raiseStep);
     expect(s.g.gesture).toBe('raise');
     expect(s.g.holdMs).toBeGreaterThanOrEqual(1400);
     expect(run([hand(-1, 1.6), hand(1, 1.6)], 600, undefined, { ...CTX, phase: 'menu' }).g.gesture).not.toBe('raise');
+    // the studio does nothing with raise, so it must not take the hands from the rim press or top-band shaping
+    expect(run([hand(-1, 1.6), hand(1, 1.6)], 1600).g.gesture).not.toBe('raise');
   });
 
   it('never from a neutral pose', () => {

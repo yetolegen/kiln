@@ -109,10 +109,12 @@ interface Engagement {
   lastY: number;      // indent: previous thumb-tip height, for its speed
   started: boolean;   // ratchet: motion has passed the jitter deadband once; from then on every bit counts
   pauseSinceMs: number | null; // lift: start of the current run of glitchy frames (v7 grace)
+  graceSinceMs: number | null; // any action: start of the current run of frames where its step failed
   lastMs: number;     // time of the last step, to rebase after an observation gap
   speed: number;      // indent: thumb-tip push speed smoothed over ~TIP_SPEED_TAU_MS (raw tips jitter)
 }
 const TIP_SPEED_TAU_MS = 100;
+const SHAPE_BAND_SLACK = 2; // bands a touch may drift per observation and stay continuous
 
 export class GestureRecognizer {
   /** Clay change measured on the last update, for stepClay(). */
@@ -178,7 +180,9 @@ export class GestureRecognizer {
     const cur = this.current;
     const shapingPhase = ctx.phase === 'studio' || ctx.phase === 'tutorial';
     const allowed = (g: ActionGesture) => ctx.phase === 'studio' || (ctx.phase === 'tutorial' && ctx.expectedGesture === g);
-    const raisePhase = ctx.phase === 'studio' || (ctx.phase === 'tutorial' && ctx.expectedGesture === 'raise');
+    // only a lesson step expecting it: in the studio raise does nothing (finishing is «Готово»), yet as the
+    // top-priority gesture it stole rim presses with a high support palm and top-band shaping
+    const raisePhase = ctx.phase === 'tutorial' && ctx.expectedGesture === 'raise';
     const raiseLineWorld = clay.height + CONFIG.RAISE_MARGIN_WORLD;
     // In shaping phases a stray index finger must not become a cursor (it could dwell on "start over"),
     // so there pointing only counts with ONE hand visible.
@@ -236,8 +240,11 @@ export class GestureRecognizer {
       const previous = this.shapeContact;
       const band = c.contact.activeBand;
       // Rebase on acquisition or discontinuity: the first frame of a contact never deforms.
+      // A neighbouring band is NOT a discontinuity: `deepest` is an inner-edge distance, valid at any height,
+      // and a band is only ~4 px tall, so sub-pixel palm noise at a boundary used to rebase every frame (no
+      // narrowing). Only a jump of several bands in one observation rebases.
       const continuous = previous !== null && previous.leftId === l.trackId && previous.rightId === r.trackId &&
-        previous.band === band && previous.epoch === frame.epoch &&
+        Math.abs(previous.band - band) <= SHAPE_BAND_SLACK && previous.epoch === frame.epoch &&
         previous.projection === proj.revision && previous.phase === ctx.phase &&
         t > previous.tMs && t - previous.tMs <= CONFIG.MAX_INPUT_AGE_MS;
       // v7.2: the clay only moves where the hands visibly are. Only the part of the hands' INNER-EDGE travel
@@ -317,10 +324,25 @@ export class GestureRecognizer {
     if (e) {
       const active = l.trackId === e.activeId ? l : r.trackId === e.activeId ? r : null;
       const support = active === l ? r : l;
-      if (keep(e.kind) && active && support.trackId === e.supportId && supportOk(support)) {
+      if (keep(e.kind) && active && support.trackId === e.supportId) {
         if (e.armed) e.armedMs += dtS * 1000; // dtS is 0 for replayed frames (update() returns early for them)
-        const res = STEP[e.kind](this, e, active, clay, world, dtS, t);
-        if (res) return { ...res, kind: e.kind, activeId: e.activeId, supportId: e.supportId, engagedMs: e.armed ? e.armedMs : 0 };
+        const latched = this.latched;
+        const res = supportOk(support) ? STEP[e.kind](this, e, active, clay, world, dtS, t) : null;
+        const ids = { kind: e.kind, activeId: e.activeId, supportId: e.supportId, engagedMs: e.armed ? e.armedMs : 0 };
+        if (res) {
+          e.graceSinceMs = null;
+          return { ...res, ...ids };
+        }
+        // A deliberate cancel (it latched its too-fast hint) ends at once. One or two glitchy frames (a finger
+        // misread, the support palm flickering off its wall) only pause, like the lift's own grace: nothing
+        // deforms, and progress reads 0 so a real release still shows at once. Ending on them cost half a press.
+        if (this.latched === latched) {
+          e.graceSinceMs ??= t;
+          if (t - e.graceSinceMs <= CONFIG.LIFT_GRACE_MS) {
+            e.lastY = NaN; // the next good frame measures no speed across the glitch
+            return { ...idle(0), ...ids };
+          }
+        }
       }
       this.engagement = null;
     }
@@ -333,7 +355,7 @@ export class GestureRecognizer {
         if ((kind === 'open' || kind === 'widen') && clay.cavityDepthWorld <= 0) continue; // needs an indentation first
         const fresh: Engagement = {
           kind, activeId: active.trackId, supportId: support.trackId, ms: 0, armed: false,
-          travel: 0, armedMs: 0, span: active.pinchRatio, stillSinceMs: null, topY: NaN, lastY: NaN, started: false, pauseSinceMs: null, lastMs: t, speed: 0,
+          travel: 0, armedMs: 0, span: active.pinchRatio, stillSinceMs: null, topY: NaN, lastY: NaN, started: false, pauseSinceMs: null, graceSinceMs: null, lastMs: t, speed: 0,
         };
         this.engagement = fresh;
         const res = STEP[kind](this, fresh, active, clay, world, 0, t);
@@ -519,11 +541,15 @@ function atSideWall(h: HandFeatures, clay: ClayState): boolean {
   // off to a side (not in front of the pot's centre), and near that wall
   return Math.abs(h.palmWorld.x) >= 0.5 * r && Math.abs(Math.abs(h.palmWorld.x) - r) < Z.supportReach;
 }
+// With a real palm (zones grow with it) the lift zone's top passes the rim zone's bottom on pots under ~1.2,
+// and the rim press (tried first) took every lift. Where they overlap, the nearer of base and rim wins.
+const liftTop = (clay: ClayState) => Math.min(Z.liftAbove, (Z.liftAbove + clay.height - Z.rimBelow) / 2);
+const rimBottom = (clay: ClayState) => Math.max(clay.height - Z.rimBelow, (Z.liftAbove + clay.height - Z.rimBelow) / 2);
 const inLiftZone = (h: HandFeatures, clay: ClayState) =>
-  h.palmWorld.y >= -Z.liftBelow && h.palmWorld.y <= Z.liftAbove &&
+  h.palmWorld.y >= -Z.liftBelow && h.palmWorld.y <= liftTop(clay) &&
   Math.abs(h.palmWorld.x) <= clay.radii[0] + Z.liftX;
 const inRimZone = (h: HandFeatures, clay: ClayState) =>
-  h.palmWorld.y >= clay.height - Z.rimBelow && h.palmWorld.y <= clay.height + Z.rimAbove &&
+  h.palmWorld.y >= rimBottom(clay) && h.palmWorld.y <= clay.height + Z.rimAbove &&
   Math.abs(h.palmWorld.x) <= clay.radii[clay.radii.length - 1] + Z.rimX;
 /** Pinch point (between thumb and index tips) inside the opening, or at the top centre when there's none yet. */
 function atOpening(h: HandFeatures, clay: ClayState, world: World, orTopCentre = false): boolean {
