@@ -157,7 +157,9 @@ const RULES: Rule[] = [
           severity: 0.3,
           band: s.worstBand,
           cause: s.signedRadiusDeltaWorld > 0 ? 'tooWide' : 'tooNarrow',
-          data: { pct: Math.round((100 * s.worstBand) / (i.clay.radii.length - 1)), deltaWorld: round2(s.signedRadiusDeltaWorld) },
+          // `opening` picks the advice: a finger inside widens locally, a solid pot only widens with the outside grip
+          data: { pct: Math.round((100 * s.worstBand) / (i.clay.radii.length - 1)), deltaWorld: round2(s.signedRadiusDeltaWorld),
+            opening: i.clay.cavityDepthWorld > 0 ? 'yes' : 'no' },
         };
       }
       return {
