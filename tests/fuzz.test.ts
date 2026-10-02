@@ -22,7 +22,7 @@ const STATUSES: FrameInput['status'][] = ['ready', 'ready', 'ready', 'ready', 'r
 const MODES: SessionMode[] = ['tutorial', 'free', 'commission'];
 
 function randomCommand(rand: () => number, n: number): AppCommand {
-  const gestures = [undefined, 'shape', 'pullUp', 'indent', 'open', 'compressRim', 'raise'] as const;
+  const gestures = [undefined, 'shape', 'pullUp', 'indent', 'open', 'compressRim', 'widen', 'raise'] as const;
   const all: AppCommand[] = [
     { type: 'modelReady' },
     { type: 'start', mode: MODES[Math.floor(rand() * 3)], sessionId: `s${n}` },
@@ -49,7 +49,7 @@ function run(seed: number, steps: number) {
   let result: unknown = null, resultJson = '';
   let sessionId: string | null = null;
   const phases = new Set<string>();
-  let cavities = 0, lifts = 0;
+  let cavities = 0, lifts = 0, widened = 0;
 
   for (let k = 0; k < steps; k++) {
     t += 10 + rand() * 60;
@@ -63,20 +63,25 @@ function run(seed: number, steps: number) {
     const phase = k % 400;
     const calm = phase < 60;
     const scripted = phase >= 60 && phase < 260;
-    const kind = Math.floor(k / 400) % 4;
+    const kind = Math.floor(k / 400) % 5;
     const u = (phase - 60) / 200; // 0 → 1 over the stretch
     const noise = () => (rand() - 0.5) * 0.04;
+    // V9.1 outside widening: both hands pinched at their walls, held, then spread slowly (past MAX_R)
+    // (the palm is One-Euro filtered, so its noise is far below the fingertips')
+    const grip = (side: -1 | 1) => hand(side * (1.05 + Math.max(0, u - 0.2) * 1.2 + noise() / 5), 0.6 + noise() / 5,
+      { trackId: side < 0 ? 1 : 2, pinchRatio: 0.2 + Math.abs(noise()), ...moving(side * (u < 0.2 ? 0 : 0.4), 0) });
     const active = [
       () => poseHand('flat', noise(), u < 0.6 ? noise() : (u - 0.6) * 0.8, { trackId: 2, ...moving(noise(), u < 0.6 ? 0 : 0.5) }),
       () => poseHand('thumbDown', noise(), 1.25 - u * 0.3, { trackId: 2, ...moving(0, -0.5) }),
       () => poseHand('spread', noise(), 1.15, { trackId: 2, ratio: 0.2 + Math.max(0, u - 0.2) * 1.2 }),
       () => poseHand('flat', noise(), 1.35 - u * 0.3, { trackId: 2, ...moving(0, u < 0.3 ? 0 : -0.4) }),
+      () => grip(1),
     ][kind];
     const frame: FrameInput = {
       frameId: k, epoch, tMs: t, receivedAtMs: t + (rand() < 0.02 ? 500 : 5),
       dtSampleS: rand() < 0.01 ? 3 : 0.033,
       status: calm || scripted ? 'ready' : l && r ? STATUSES[Math.floor(rand() * STATUSES.length)] : l || r ? 'oneHand' : 'noHands',
-      screenLeft: calm ? hand(-1, 0.6) : scripted ? poseHand('wall', -1 + noise(), 0.6, { trackId: 1 }) : l,
+      screenLeft: calm ? hand(-1, 0.6) : scripted ? kind === 4 ? grip(-1) : poseHand('wall', -1 + noise(), 0.6, { trackId: 1 }) : l,
       screenRight: calm ? hand(1, 0.6) : scripted ? active() : r,
     };
     core.observe(frame);
@@ -95,6 +100,7 @@ function run(seed: number, steps: number) {
         c.wobble >= 0 && c.wobble <= 1;
       if (c.cavityDepthWorld > 0) cavities++;
       if (c.height > CONFIG.INIT_HEIGHT + 0.05) lifts++;
+      if (s.gesture?.gesture === 'widen' && s.gesture.deforming) widened++;
       if (!ok) expect.fail(`clay invariant broken at step ${k}: ${JSON.stringify({ ...c, radii: [...c.radii], damage: [...c.damage] })}`);
     }
 
@@ -139,15 +145,19 @@ function run(seed: number, steps: number) {
     if (s.hint && !Number.isFinite(s.hint.expiresAtMs)) expect.fail('hint without a finite expiry');
     phases.add(s.phase);
   }
-  return { phases, cavities, lifts };
+  return { phases, cavities, lifts, widened };
 }
 
 describe('fuzz: random frames and commands through the real controller', () => {
+  let widenedFrames = 0;
   for (const seed of [1, 2, 3, 4, 5]) {
     it(`seed ${seed}: invariants hold for 20000 steps`, () => {
-      const { phases, cavities, lifts } = run(seed, 20000);
+      const { phases, cavities, lifts, widened } = run(seed, 20000);
       expect(phases.has('studio') || phases.has('tutorial')).toBe(true); // the fuzz actually reached shaping
       expect(cavities + lifts).toBeGreaterThan(0); // the one-hand actions really ran through the controller
+      widenedFrames += widened;
     }, 30_000);
   }
+  // random commands can keep one seed out of shaping during every widening stretch; across seeds it must run
+  it('the two-hand outside widening really ran', () => expect(widenedFrames).toBeGreaterThan(0));
 });
