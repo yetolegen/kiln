@@ -2,6 +2,19 @@
 
 Newest entry at the top. Written by A, read by B.
 
+### 2026-10-03 · A · QA pass: 8 real-hand bugs fixed (user asked to fix all, including two in B files)
+**How found:** a QA agent drove the real controller at test scale and at real scale (215 px palm, 145 px/unit, `tests/realScale.ts`). Every repro is in `tests/qaRegressions.test.ts` and failed on `97bf882`.
+- **Outside widening never armed after pinching on the move** (`externalWiden.ts`): pinching while bringing the hands in, or moving them up or down, blocked the grip silently until the pinches opened. Before arming, motion now only restarts the 0.5 s hold. After arming, `widenTooFast` stays shown until release (it used to vanish as soon as the hands slowed).
+- **One glitchy frame ended an action** (`gestures.ts` runAction, `externalWiden.ts`): a misread finger, a loose-pinch frame or the support palm flickering off its wall now pauses the action for up to `LIFT_GRACE_MS` (250 ms) instead of ending it. With one glitch per second, rim press went 0.198 → 0.445 of 0.445, inside widen 0.050 → 0.174 of 0.179, outside widen 0.054 → full. A latched too-fast cancel still ends at once. **While paused, `activationProgress` is 0**, so your lesson still sees a release immediately. **Not changed:** losing a hand from tracking still ends everything, as both our specs say.
+- **Narrowing lost at a band boundary** (`gestures.ts` shape): every band change rebased the touch, and a band is ~4 px, so 0.18 px of palm noise gave 0 narrowing (clean: 0.378). Moving up to 2 bands per frame now stays continuous. A bigger jump still rebases (your `externalCompression` test passes).
+- **Raise in the studio** stole rim presses with a high support palm and top-band shaping, and did nothing. Raise is now only recognised in a lesson step that expects it.
+- **Lift zone vs rim zone at real palm size:** they overlapped on any pot under ~1.18, and the rim press (tried first) took every lift. Where they overlap, the nearer of base and rim wins. Pots without overlap keep the old zones.
+- **Lesson dent step skipped its window:** a press under `indentTooFast` could deepen ~0.09 in one frame at real scale, past the ±0.025 window, so the lesson failed and restarted. The dent now deepens at most `INDENT_MAX_DEPTH_PER_S` (0.6/s), like `MAX_DR_PER_S` for shaping.
+- **B file `src/i18n.ts`:** the `tooNarrow` advice told a solid pot to use its opening. `rules.ts` now passes `opening: 'yes'|'no'`; without an opening the text describes the outside pinch-spread.
+- **B file `src/browser/storage.ts`:** gallery validation computed the cavity start band with an algebraically equal formula that rounds differently, and silently rejected about 1 in 70,000 valid pots. It now imports the engine's `cavityStartBand`.
+**Verification:** unit 335/335, typecheck and build clean, 40 fuzz seeds with no invariant broken. Playwright (Chrome channel) 26/27. **B6 fails on clean source too:** it expects «Слишком быстро» but your V9 spoiled-clay banner now shows instead. Please update B6. Synthetic hands only.
+**For you (B):** please deploy and update B6. A one-frame tracking dropout still re-arms every action (lift needs another 3 s). If physical tests show that hurts, we should agree on a grace for it together.
+
 ### 2026-10-02 · A · V9.1 outside widening reviewed: slow height drift ended strokes silently
 **Reviewed** your `externalWiden.ts` / `gestures.ts` / `clay.ts` change. Arbitration, radius clamping (`MAX_R`) and release are fine.
 **Bug:** the vertical guard compared the grip's height with where it STARTED (limit ≈ 0.2 palm, ~40 px on a real hand). Natural drift while holding still, or a spread that arcs slightly down, used up that budget. The stroke then stopped for good with gesture still `widen`, contact valid and no near-miss: the rings just vanished. A 0.16 palm/s arc stopped at frame 37 of 40; slow long spreads stopped too.
