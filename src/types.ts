@@ -98,6 +98,7 @@ export type NearMissReason =
   | 'pinchFirst'     // open: start with thumb and index pinched inside the opening
   | 'spreadTooFast'  // open cancelled: fingers spread too fast
   | 'widenTooFast'   // widen cancelled: fingertip pushed outward too fast
+  | 'widenNotLevel'  // v9.2: outside two-pinch grip stopped by a vertical move; open the pinches and grip again
   | 'indentTooFast'  // indent: thumb tip pushed in too fast; nothing applied, push again slowly
   | 'compressTooFast' // rim: palm pressed down too fast; cancelled, hold above the rim again
   | 'rimPlacement';  // rim: params.dir 'lower' (hand too high) | 'closer' (too far out)

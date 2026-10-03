@@ -14,7 +14,7 @@ const PRIORITY: Partial<Record<Hint['id'], number>> = {
   tear: 80,
   wobble: 70,
   tooThin: 60, overhang: 60,
-  liftTooFast: 55, spreadTooFast: 55, widenTooFast: 55, indentTooFast: 55, compressTooFast: 55, noSupport: 55,
+  liftTooFast: 55, spreadTooFast: 55, widenTooFast: 55, widenNotLevel: 55, indentTooFast: 55, compressTooFast: 55, noSupport: 55,
   pinchLoose: 50, handsTooLow: 50, handsUneven: 50, handsNotOpposite: 50,
   notHorizontal: 50, thumbNotOnTop: 50, noIndentation: 50, pinchFirst: 50, rimPlacement: 50,
   handsTooFar: 45,
@@ -26,7 +26,7 @@ const PRIORITY: Partial<Record<Hint['id'], number>> = {
 const SEVERITY: Partial<Record<Hint['id'], Hint['severity']>> = {
   collapse: 'error', tear: 'error',
   wobble: 'warn', tooThin: 'warn', overhang: 'warn', noHands: 'warn', oneHand: 'warn', trackingUncertain: 'warn',
-  liftTooFast: 'warn', spreadTooFast: 'warn', widenTooFast: 'warn', indentTooFast: 'warn', compressTooFast: 'warn',
+  liftTooFast: 'warn', spreadTooFast: 'warn', widenTooFast: 'warn', widenNotLevel: 'warn', indentTooFast: 'warn', compressTooFast: 'warn',
   overStretch: 'error', thinFloor: 'error', tooFlat: 'error',
 };
 

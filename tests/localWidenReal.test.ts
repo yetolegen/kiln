@@ -1,6 +1,6 @@
 // v9.2 local outside widening at real palm scale (215 px palm, 145 px/unit): it widens at the pinch height,
 // and the grip's contact is judged at the pinch points (a real palm sits ~a palm above them).
-import { expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { gripPoint } from '../src/tracking/externalWiden';
 import { rframe, rpose, rsession, PALM_W, RPROJ } from './realScale';
 
@@ -59,4 +59,25 @@ it('gripPoint is the thumb–index midpoint, or the palm for a hand without land
   expect(p.y).toBeCloseTo(.5, 3);
   const bare = { ...pinched, landmarksPx: [] };
   expect(gripPoint(bare, RPROJ)).toEqual(bare.palmWorld);
+});
+
+describe('the outside grip never fails silently (ECC silent-failure-hunter)', () => {
+  it('both pinches held near but off the walls: a widen hint names the hand to bring in', () => {
+    const { core, t: t0 } = rsession('free'); let t = t0, id = 1;
+    const x = core.tick(t).clay!.radii[24] + 1.2 * PALM_W; let s = core.tick(t);
+    for (let k = 0; k < 45; k++) { t += 33; core.observe(rframe(t, rpose('pinch', -x, .6, { trackId: 1 }), rpose('pinch', x + .3, .6, { trackId: 2 }), id++)); s = core.tick(t); }
+    expect(s.gesture!.nearMiss).toMatchObject({ intended: 'widen', reason: 'handsTooFar', params: { side: 'right' } });
+  });
+
+  it('an armed grip stopped by a vertical move says why, until the pinches open', () => {
+    const { core, t: t0 } = rsession('free'); let t = t0, id = 1;
+    let x = core.tick(t).clay!.radii[24] + .02, y = .6, s = core.tick(t);
+    const feed = (vy: number) => { t += 33; core.observe(rframe(t, rpose('pinch', -x, y, { trackId: 1, vy }), rpose('pinch', x, y, { trackId: 2, vy }), id++)); return core.tick(t); };
+    for (let k = 0; k < 20; k++) s = feed(0);
+    expect(s.gesture!.activationProgress).toBe(1);
+    for (let k = 0; k < 20; k++) { y += .65 * PALM_W / 30; x += .3 * PALM_W / 30; s = feed(.65); }
+    expect(s.gesture!.activationProgress).toBe(0);
+    for (let k = 0; k < 20; k++) s = feed(0); // now still, but still pinched and blocked
+    expect(s.gesture!.nearMiss).toMatchObject({ intended: 'widen', reason: 'widenNotLevel' });
+  });
 });

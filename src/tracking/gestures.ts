@@ -309,7 +309,9 @@ export class GestureRecognizer {
       speedPalmPerS: speed,
       contact: (external ? gripContact?.contact : c?.contact) ?? NO_CONTACT, // the overlay's grip rings follow the pinch contact
       cursorPx: pointerNow ? ({ ...pointerNow.indexTipPx } as Vec2) : null,
-      nearMiss: external?.tooFast ? { intended: 'widen', reason: 'widenTooFast', params: {} } : external ? null : both ? this.nearMiss(ctx, t, g, l, r, clay, c, act, proj) : null,
+      nearMiss: external?.tooFast ? { intended: 'widen', reason: 'widenTooFast', params: {} }
+        : external?.notLevel ? { intended: 'widen', reason: 'widenNotLevel', params: {} }
+        : external ? null : both ? this.nearMiss(ctx, t, g, l, r, clay, c, act, proj, gripContact) : null,
     };
     this.lastFrame = { id: frame.frameId, epoch: frame.epoch, state };
     return state;
@@ -379,7 +381,7 @@ export class GestureRecognizer {
 
   private nearMiss(
     ctx: GestureContext, t: number, g: Gesture, l: HandFeatures, r: HandFeatures, clay: ClayState,
-    c: ContactResult | null, act: ActionResult | null, proj: ProjectionParams,
+    c: ContactResult | null, act: ActionResult | null, proj: ProjectionParams, gc: ContactResult | null,
   ): NearMiss | null {
     const touched = new Set<string>();
     const held = (key: string, cond: boolean) => {
@@ -388,7 +390,7 @@ export class GestureRecognizer {
       if (!this.evidenceSince.has(key)) this.evidenceSince.set(key, t);
       return t - this.evidenceSince.get(key)! >= CONFIG.NEAR_MISS_MIN_MS || (ctx.phase === 'tutorial' && ctx.expectedGesture !== undefined);
     };
-    const miss = this.findNearMiss(ctx, t, g, l, r, clay, c, act, proj, held);
+    const miss = this.findNearMiss(ctx, t, g, l, r, clay, c, act, proj, held, gc);
     // evidence only counts while it's continuously observed: forget anything not seen true this frame
     for (const key of [...this.evidenceSince.keys()]) if (!touched.has(key)) this.evidenceSince.delete(key);
     // a lesson only coaches its own step's technique
@@ -398,6 +400,7 @@ export class GestureRecognizer {
   private findNearMiss(
     ctx: GestureContext, t: number, g: Gesture, l: HandFeatures, r: HandFeatures, clay: ClayState,
     c: ContactResult | null, act: ActionResult | null, proj: ProjectionParams, held: (key: string, cond: boolean) => boolean,
+    gc: ContactResult | null,
   ): NearMiss | null {
     if (g === 'point' || g === 'raise') return null;
     if (this.latched && t <= this.latched.untilMs) return this.latched.miss;
@@ -482,6 +485,25 @@ export class GestureRecognizer {
       return { intended: 'raise', reason: 'handsTooLow', params: {} };
     }
 
+    // v9.2: both hands pinched in the work area but the pinches miss the walls, so the outside widening never
+    // arms: say which hand to move (it used to stay silent at gesture 'none')
+    // (the zone grows with the palm: at real scale the fixed 2.5 left almost no room between "touching" and "away")
+    const gripX = Math.max(CONFIG.ATTEMPT_ZONE_X_WORLD, Math.max(...clay.radii) + 2 * Z.palmW);
+    const gripZone = Math.abs(l.palmWorld.x) < gripX && Math.abs(r.palmWorld.x) < gripX &&
+      yMean > -CONFIG.ATTEMPT_ZONE_Y_MARGIN_WORLD && yMean < clay.height + 2 * CONFIG.ATTEMPT_ZONE_Y_MARGIN_WORLD;
+    if ((ctx.phase === 'studio' || expected === 'widen') && gc && !gc.contact.valid && gc.contact.reason &&
+        held('gripMiss', gripZone && isPinch(l, false) && isPinch(r, false))) {
+      const { reason, leftErrorWorld: le, rightErrorWorld: re } = gc.contact;
+      if (reason === 'handsTooFar' && le !== null && re !== null) {
+        const far = Math.abs(le) >= Math.abs(re) ? l : r, err = far === l ? le : re;
+        return { intended: 'widen', reason, handTrackId: far.trackId, params: { side: side(far, l), dir: err > 0 ? 'in' : 'out' } };
+      }
+      if (reason === 'handsUneven') {
+        const low = l.palmWorld.y < r.palmWorld.y ? l : r;
+        return { intended: 'widen', reason, handTrackId: low.trackId, params: { raise: side(low, l) } };
+      }
+      return { intended: 'widen', reason, params: {} };
+    }
     // v7.2: palms at the walls but the hands' edges not touching the clay: say which hand to bring in
     if (g === 'shape' && c?.contact.valid && c.contact.activeBand !== null && (heldShape || expected === 'shape')) {
       const wall = clay.radii[c.contact.activeBand];

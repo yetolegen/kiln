@@ -14,11 +14,11 @@ export function gripPoint(h: HandFeatures, projection: ProjectionParams): Vec2 {
 
 interface Grip {
   left: number; right: number; y: number; travel: number; since: number; last: number; epoch: number; projection: number;
-  ids: string; blocked: boolean; tooFast: boolean; progress: number;
+  ids: string; blocked: boolean; tooFast: boolean; notLevel: boolean; progress: number;
 }
 
 /** One grip observation. `push` > 0 only when armed; `y` is always the grip's (drift-following) height. */
-export interface GripResult { progress: number; push: number; tooFast: boolean; y: number }
+export interface GripResult { progress: number; push: number; tooFast: boolean; notLevel: boolean; y: number }
 
 /** A deliberate two-sided grip keeps widening distinct from withdrawing open palms. */
 export class ExternalWiden {
@@ -34,7 +34,7 @@ export class ExternalWiden {
     if (!eligible || !l.velocityValid || !r.velocityValid) {
       if (!e || e.epoch !== frame.epoch || t - e.last > CONFIG.LIFT_GRACE_MS) { this.reset(); return null; }
       // progress 0 while paused: a real release (opening the fingers) must read as released at once
-      return { progress: 0, push: 0, tooFast: e.tooFast, y: e.y };
+      return { progress: 0, push: 0, tooFast: e.tooFast, notLevel: e.notLevel, y: e.y };
     }
     // Spread is measured on the palms (filtered, steadier than fingertips); only the height uses the pinch points.
     const left = -l.palmWorld.x, right = r.palmWorld.x, y = (grips[0].y + grips[1].y) / 2;
@@ -42,7 +42,7 @@ export class ExternalWiden {
     const deadband = Math.max(.012, palm * .035);
     if (!e || e.ids !== ids || e.epoch !== frame.epoch || e.projection !== projection.revision || t <= e.last ||
         t - e.last > Math.max(CONFIG.MAX_INPUT_AGE_MS, CONFIG.LIFT_GRACE_MS)) {
-      e = this.grip = { left, right, y, travel: 0, since: t, last: t, epoch: frame.epoch, projection: projection.revision, ids, blocked: false, tooFast: false, progress: 0 };
+      e = this.grip = { left, right, y, travel: 0, since: t, last: t, epoch: frame.epoch, projection: projection.revision, ids, blocked: false, tooFast: false, notLevel: false, progress: 0 };
     }
     // The height anchor follows slow drift (still hands wander, a spread arcs); only a deliberate vertical
     // move outrunning it blocks. A fixed anchor silently ended long strokes after ~0.2 palm of drift.
@@ -58,17 +58,18 @@ export class ExternalWiden {
         e.left = left; e.right = right; e.y = y; e.since = t;
       }
       e.progress = Math.min(1, (t - e.since) / 500);
-      return { progress: e.progress, push: 0, tooFast: false, y: e.y };
+      return { progress: e.progress, push: 0, tooFast: false, notLevel: false, y: e.y };
     }
-    // Armed: too fast or a vertical move ends this stroke. The too-fast hint stays until the pinches open,
-    // because opening them is what it asks for.
-    if (speed > 1.2) e.tooFast = true;
-    if (e.tooFast || vertical) e.blocked = true;
-    if (e.blocked) { e.progress = 0; return { progress: 0, push: 0, tooFast: e.tooFast, y: e.y }; }
+    // Armed: too fast or a vertical move ends this stroke. Its hint stays until the pinches open, because
+    // opening them is what it asks for (a vertical block used to be silent: rings gone, no hint).
+    if (!e.blocked && speed > 1.2) e.tooFast = true;
+    else if (!e.blocked && vertical) e.notLevel = true;
+    if (e.tooFast || e.notLevel) e.blocked = true;
+    if (e.blocked) { e.progress = 0; return { progress: 0, push: 0, tooFast: e.tooFast, notLevel: e.notLevel, y: e.y }; }
     // Both hands must spread. A one-sided withdrawal, jitter or returning to the same width adds nothing.
     const travel = Math.min(left - e.left, right - e.right);
     const push = travel > e.travel + (e.travel === 0 ? deadband : 0) ? travel - e.travel : 0;
     if (push > 0) e.travel = travel;
-    return { progress: 1, push, tooFast: false, y: e.y };
+    return { progress: 1, push, tooFast: false, notLevel: false, y: e.y };
   }
 }
