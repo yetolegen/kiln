@@ -9,6 +9,8 @@ const PATHS: Record<string, string> = {
   inspect: 'M4 8l10-5 10 5v12l-10 5-10-5z M4 8l10 6 10-6 M14 14v11',
   more: 'M5 14a1.6 1.6 0 1 0 3.2 0a1.6 1.6 0 1 0-3.2 0 M12.4 14a1.6 1.6 0 1 0 3.2 0a1.6 1.6 0 1 0-3.2 0 M19.8 14a1.6 1.6 0 1 0 3.2 0a1.6 1.6 0 1 0-3.2 0',
   'checkpoint-save': 'M5 4h15l4 4v16H5z M9 4v6h9V4 M9 24v-8h10v8',
+  rotate: 'M5 11a9 4 0 0 1 18 0 M23 17a9 4 0 0 1-18 0 M20 7l3 4-5 1 M8 21l-3-4 5-1',
+  focus: 'M3 9V3h6 M19 3h6v6 M25 19v6h-6 M9 25H3v-6',
 };
 
 export function actionIcon(id: string): string {

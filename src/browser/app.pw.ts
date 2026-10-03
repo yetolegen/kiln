@@ -35,6 +35,8 @@ test('B10 retains a fading visual briefly while lost tracking pauses the control
   const advice = await page.locator('.hud__hint').boundingBox(), heading = await page.locator('h1').boundingBox();
   // the advice never covers the heading: above it on narrow screens, in the status card on wide ones
   expect(advice!.y + advice!.height <= heading!.y || advice!.y >= heading!.y + heading!.height || advice!.x >= heading!.x + heading!.width).toBe(true);
+  // floating, never in the flow: a flickering hint must not shift the layout (the old "screen shake")
+  expect(await page.locator('.hud__hint').evaluate(e => getComputedStyle(e).position)).toBe('fixed');
   await expect(page.locator('.hand-cursor')).toBeHidden();
   await expect.poll(pixels).toBe(0);
   await page.keyboard.press('x'); await expect.poll(pixels).toBeGreaterThan(0);
@@ -201,8 +203,7 @@ test('B7 tutorial validates geometry for all actions and requires release', asyn
   await page.keyboard.press('x');
   await expect(page.locator('.hud__hint')).toBeVisible();
   await expect(page.locator('.hud__hint')).toContainText('Отслеживание потеряно');
-  const warning = await page.locator('.hud__hint').boundingBox(), title = await page.locator('h1').boundingBox();
-  expect(warning!.y + warning!.height).toBeLessThanOrEqual(title!.y);
+  await expect(page.locator('h1')).toHaveCSS('visibility', 'hidden'); // covered by the floating hint, not displaced
   const panel = await lesson.boundingBox(); expect(panel!.y + panel!.height).toBeLessThanOrEqual(390);
   await page.screenshot({ path: 'test-results/b7-tutorial-landscape.png' });
   await page.keyboard.press('x');

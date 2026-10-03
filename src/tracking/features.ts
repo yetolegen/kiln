@@ -185,6 +185,23 @@ function buildFeatures(
 }
 
 /**
+ * Fist grip for viewer controls (3D rotation, decoration placement): every finger curled and the hand not pointing.
+ * Relative to real webcam readings, where relaxed curled fingers measure 0.36–0.66 (see config), so the mean and
+ * the straightest finger are tested, not an absolute "every finger < 0.35". Sticky = looser threshold to stay closed.
+ */
+export function isFistGrip(h: Pick<HandFeatures, 'extension' | 'pinchRatio'>, sticky: boolean): boolean {
+  const e = h.extension, values = [e.index, e.middle, e.ring, e.pinky];
+  const mean = values.reduce((a, b) => a + b, 0) / 4, straightest = Math.max(...values);
+  return mean < (sticky ? CONFIG.FIST_MEAN_OFF : CONFIG.FIST_MEAN_ON) && straightest < (sticky ? CONFIG.FIST_FINGER_OFF : CONFIG.FIST_FINGER_ON) &&
+    !isPointingPose(e, h.pinchRatio, false);
+}
+/** Clearly open hand: required before a new fist grip, so a hand that arrives already closed never grabs. */
+export function isOpenForGrip(h: Pick<HandFeatures, 'extension'>): boolean {
+  const e = h.extension;
+  return (e.index + e.middle + e.ring + e.pinky) / 4 >= CONFIG.FIST_RELEASED_MEAN;
+}
+
+/**
  * Index clearly straighter than the average of the other three fingers, and not pinching.
  * Relative, not absolute: real curled fingers read 0.4–0.65 on a laptop webcam (see config).
  */

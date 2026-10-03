@@ -10,16 +10,20 @@ export function createClaySurface(size = 512) {
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
     const u = x === size - 1 ? 0 : x / (size - 1), v = y === size - 1 ? 0 : y / (size - 1), a = u * tau;
     const broad = Math.sin(a * 3 + Math.sin(v * tau) * .7) * .5 + Math.sin(a * 7 - v * tau * 2) * .25;
-    const turn = v * tau * 28 + Math.sin(v * tau * 3) * .45 + Math.sin(v * tau * 7) * .2 + Math.sin(a * 3) * .28 + Math.sin(a * 7 + v * tau * 2) * .12;
+    // Dense throwing rings like a real thrown pot: ~52 rings per height, wavering gently around the wheel.
+    const turn = v * tau * 52 + Math.sin(v * tau * 3) * .45 + Math.sin(v * tau * 7) * .2 + Math.sin(a * 3) * .28 + Math.sin(a * 7 + v * tau * 2) * .12;
+    // A second, finer set of rings from the fingertips, broken up around the circumference.
+    const lines = Math.sin(v * tau * 163 + Math.sin(a * 2 + v * tau) * .9) * (.55 + .45 * Math.sin(a * 4 - v * tau * 5));
     const groove = Math.sin(turn);
     const broken = .35 + .65 * Math.max(0, Math.sin(a * 9 + v * tau * 7));
     const furrow = Math.max(0, Math.cos(turn + .4)) ** 12 * broken;
     const slip = Math.max(0, Math.sin(turn - .75)) ** 8 * (.5 + .5 * Math.sin(a * 5 - v * tau * 3));
     const fine = Math.sin(a * 59 + Math.sin(v * tau * 37) * 2) * Math.sin(v * tau * 71 + Math.cos(a * 31));
     const pores = Math.max(0, Math.sin(a * 83 + v * tau * 47) * Math.cos(a * 37 - v * tau * 89) - .8);
-    const shade = .84 + broad * .085 + slip * .12 + groove * .025 - furrow * .17 + fine * .008;
-    const height = .5 + groove * .12 - furrow * .06 + fine * .018 - pores * .20;
-    const wetness = .94 - slip * .09 + broad * .02 + fine * .012;
+    // Matte, leather-hard terracotta: little slip sheen, darker ring bottoms, fine line relief.
+    const shade = .86 + broad * .06 + slip * .05 + groove * .03 - furrow * .15 + lines * .022 + fine * .008;
+    const height = .5 + groove * .11 - furrow * .06 + lines * .045 + fine * .018 - pores * .20;
+    const wetness = .97 - slip * .05 + broad * .01 + fine * .01;
     const i = (y * size + x) * 4;
     for (let c = 0; c < 3; c++) {
       color[i + c] = Math.round(255 * Math.max(0, Math.min(1, shade)));

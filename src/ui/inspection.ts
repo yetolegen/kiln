@@ -15,9 +15,9 @@ export function createInspection(screens: ReturnType<typeof createScreens>, scen
   surface.setAttribute('aria-label', 'Вращение сосуда: перетаскивайте мышью или пальцем. Стрелки — поворот, плюс и минус — масштаб.');
   const header = document.createElement('header'); header.className = 'inspection__header';
   const title = document.createElement('h2'); title.id = 'inspection-title'; title.textContent = 'Форма со всех сторон';
-  const help = document.createElement('p'); help.textContent = 'Раскройте пальцы, соедините большой и указательный вдали от кнопок и ведите руку для вращения. Разомкните щипок, чтобы отпустить. Мышь и касание тоже работают.';
+  const help = document.createElement('p'); help.textContent = 'Раскройте ладонь, затем сожмите кулак вдали от кнопок и ведите руку для вращения. Раскройте ладонь, чтобы отпустить. Мышь и касание тоже работают.';
   const mode = document.createElement('span'); mode.className = 'inspection__mode'; mode.textContent = 'Свободное вращение · лепка на паузе';
-  const motion = document.createElement('p'); motion.className = 'inspection__motion'; motion.textContent = 'Щипок → движение руки → поворот сосуда';
+  const motion = document.createElement('p'); motion.className = 'inspection__motion'; motion.textContent = 'Кулак → движение руки → поворот сосуда';
   header.append(mode, title, motion, help);
   const actions = document.createElement('nav'); actions.className = 'inspection__actions'; actions.setAttribute('aria-label', 'Осмотр сосуда');
   layer.append(surface, header, actions); screens.page.append(layer);
@@ -26,7 +26,7 @@ export function createInspection(screens: ReturnType<typeof createScreens>, scen
     if (!active) return;
     active = false; layer.hidden = true; orbit.reset(); scene.setArtifact(null); scene.setInspection(false); screens.setInspection(false);
     screens.removeActions('view-'); actions.replaceChildren(); core.setPaused(false, performance.now()); resetInput();
-    screens.page.querySelector<HTMLButtonElement>('[data-action="inspect"]')?.focus({ preventScroll: true });
+    screens.page.querySelector<HTMLButtonElement>(`[data-action="${layer.dataset.kind === 'rotate' ? 'rotate' : 'inspect'}"]`)?.focus({ preventScroll: true });
   };
   const keyboard = (event: KeyboardEvent) => {
     if (!active || (screens.actionScope && screens.actionScope !== 'view-')) return;
@@ -50,21 +50,25 @@ export function createInspection(screens: ReturnType<typeof createScreens>, scen
     get active() { return active; },
     get usingHands() { return active && orbit.state !== 'idle'; },
     get handRotation() { return handRotation; }, get shelfViews() { return shelfViews; },
-    enter(result?: SessionResult): void {
+    /** rotate: the in-session "rotate only" mode: same paused orbit, a compact header and just a way back to shaping. */
+    enter(result?: SessionResult, kind: 'inspect' | 'rotate' = 'inspect'): void {
       if (active || !scene.supportsInspection) return;
+      if (kind === 'rotate' && result) kind = 'inspect';
       phase = core.tick(performance.now()).phase;
       if (!['studio', 'tutorial', 'glaze', 'result'].includes(phase) && !(result && phase === 'gallery')) return;
       active = true; layer.hidden = false; core.setPaused(true, performance.now());
       orbit.reset(); inputBoundary(); scene.setArtifact(result ? artifactFromResult(result) : null);
       if (result) shelfViews++;
-      title.textContent = result ? 'Сосуд с полки · только просмотр' : 'Форма со всех сторон';
-      mode.textContent = result ? 'Коллекция · только просмотр' : 'Свободное вращение · лепка на паузе';
+      layer.dataset.kind = kind;
+      title.textContent = result ? 'Сосуд с полки · только просмотр' : kind === 'rotate' ? 'Режим вращения' : 'Форма со всех сторон';
+      mode.textContent = result ? 'Коллекция · только просмотр' : kind === 'rotate' ? 'Вращение · лепка на паузе' : 'Свободное вращение · лепка на паузе';
       screens.setInspection(true); scene.setInspection(true, surface);
-      for (const [action, label] of [['left', '←'], ['right', '→'], ['up', '↑'], ['down', '↓'], ['top', 'Сверху'], ['bottom', 'Снизу'], ['closer', '+'], ['farther', '−'], ['reset', 'Сбросить вид']]) {
+      const views = kind === 'rotate' ? [['reset', 'Сбросить вид']] : [['left', '←'], ['right', '→'], ['up', '↑'], ['down', '↓'], ['top', 'Сверху'], ['bottom', 'Снизу'], ['closer', '+'], ['farther', '−'], ['reset', 'Сбросить вид']];
+      for (const [action, label] of views) {
         const button = screens.addAction(`view-${action}`, label, () => scene.inspectionView(action), actions);
         button.setAttribute('aria-label', ({ left: 'Повернуть влево', right: 'Повернуть вправо', up: 'Повернуть вверх', down: 'Повернуть вниз', closer: 'Приблизить', farther: 'Отдалить' } as Record<string, string>)[action] ?? label);
       }
-      screens.addAction('view-close', 'Вернуться к сосуду', close, actions);
+      screens.addAction('view-close', kind === 'rotate' ? 'Вернуться к лепке' : 'Вернуться к сосуду', close, actions);
       if (result) screens.addAction('view-download', 'Сохранить PNG', () => { void downloadPot(scene.exportPng, result); }, actions);
       if (result) screens.addAction('view-share', 'Поделиться', () => share(result), actions);
       screens.refreshTargets(); surface.focus({ preventScroll: true });
@@ -83,7 +87,7 @@ export function createInspection(screens: ReturnType<typeof createScreens>, scen
         if (wasGrabbing && orbit.state === 'idle') inputBoundary();
         scene.setPointerOrbit(orbit.state === 'idle');
         layer.dataset.grab = orbit.state;
-        const motionText = orbit.state === 'dragging' ? 'Рука вращает сосуд · разомкните пальцы, чтобы отпустить' : orbit.state === 'armed' ? 'Задержите щипок на мгновение' : 'Щипок → движение руки → поворот сосуда';
+        const motionText = orbit.state === 'dragging' ? 'Рука вращает сосуд · раскройте ладонь, чтобы отпустить' : orbit.state === 'armed' ? 'Задержите кулак на мгновение' : 'Кулак → движение руки → поворот сосуда';
         if (motion.textContent !== motionText) motion.textContent = motionText;
         if (!scene.supportsInspection) {
           help.textContent = '3D-графика недоступна. Форма сохранена; показан плоский силуэт. Для вращения обновите страницу после восстановления WebGL.';

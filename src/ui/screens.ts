@@ -7,9 +7,9 @@ import { actionIcon } from './icons';
 import { createProcess } from './process';
 
 /** Buttons that end or leave the current shaping session: locked while sculpting, slower to dwell. */
-const SESSION_ACTIONS = ['done', 'restart', 'menu', 'inspect'];
+const SESSION_ACTIONS = ['done', 'restart', 'menu', 'inspect', 'rotate'];
 /** Shaping-screen actions folded behind «Ещё» on wide screens (studio.css); choosing one folds it back. */
-const OVERFLOW_ACTIONS = ['restart', 'checkpoint-restore', 'camera-preview'];
+const OVERFLOW_ACTIONS = ['restart', 'checkpoint-restore', 'camera-preview', 'rotate', 'focus'];
 
 export interface StartupState {
   busy: boolean;
@@ -17,7 +17,7 @@ export interface StartupState {
   error: StartupProblem | null;
 }
 
-export function createScreens(root: HTMLElement, onStart: () => void, dispatch: (command: AppCommand) => void, toggleMute: () => boolean, onInspect: () => void = () => {}) {
+export function createScreens(root: HTMLElement, onStart: () => void, dispatch: (command: AppCommand) => void, toggleMute: () => boolean, onInspect: () => void = () => {}, onRotate: () => void = () => {}) {
   const page = document.createElement('main');
   page.className = 'workshop';
   const viewport = document.createElement('div');
@@ -96,7 +96,18 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
   let muted = false;
   const sculpting = new SculptingLock();
   let controlsLocked = false, destroyed = false;
-  let inspection = false, preview = false;
+  let inspection = false, preview = false, focus = false;
+  function setFocus(next: boolean): void {
+    focus = next; page.dataset.focus = String(focus);
+    const button = entries.find(e => e.id === 'focus')?.element;
+    if (button) { button.textContent = focus ? 'Показать кнопки' : 'Только глина'; button.insertAdjacentHTML('afterbegin', actionIcon('focus')); button.setAttribute('aria-pressed', String(focus)); }
+    // Real full screen only from an actual click or key press; a palm dwell is not a user gesture for the browser.
+    const activated = (navigator as Navigator & { userActivation?: { isActive: boolean } }).userActivation?.isActive;
+    if (focus && activated && !document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
+    if (!focus && document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    screenRevision++;
+    requestAnimationFrame(refreshTargets);
+  }
   let actionScope: string | null = null;
   const eligible = (id: string, button: HTMLButtonElement) =>
     (!actionScope || id.startsWith(actionScope)) && (!inspection || id.startsWith('view-') || !!actionScope) &&
@@ -168,6 +179,13 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
     if (['studio', 'tutorial', 'glaze', 'result'].includes(snapshot.phase)) addAction('inspect', 'Осмотреть в 3D', onInspect);
     page.dataset.more = 'false';
     if (snapshot.phase === 'studio' || snapshot.phase === 'tutorial') addAction('more', 'Ещё', () => setMore(page.dataset.more !== 'true')).setAttribute('aria-expanded', 'false');
+    if (snapshot.phase === 'studio' || snapshot.phase === 'tutorial') {
+      // Rotate only: shaping pauses, a fist turns the vessel, "Вернуться к лепке" restores the shaping view.
+      addAction('rotate', 'Вращать', onRotate);
+      // Clay only: every control but this one steps aside; hints about the hands stay.
+      const focusButton = addAction('focus', focus ? 'Показать кнопки' : 'Только глина', () => setFocus(!focus));
+      focusButton.setAttribute('aria-pressed', String(focus));
+    }
     if (!['loading', 'permission', 'calibrate', 'firing'].includes(snapshot.phase)) {
       const mute = addAction('mute', muted ? 'Звук выключен' : 'Звук включён', () => {
         muted = toggleMute(); mute.textContent = muted ? 'Звук выключен' : 'Звук включён';
@@ -242,6 +260,7 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
       if (snapshot.phase !== lastPhase || snapshot.mode !== lastMode || state.busy !== lastBusy || state.cameraActive !== lastActive || state.error !== lastError) {
         lastPhase = snapshot.phase; lastMode = snapshot.mode; lastBusy = state.busy; lastActive = state.cameraActive; lastError = state.error;
         page.dataset.phase = snapshot.phase;
+        if (focus && snapshot.phase !== 'studio' && snapshot.phase !== 'tutorial') setFocus(false);
         process.update(snapshot.phase === 'studio' ? 0 : snapshot.phase === 'glaze' ? 2 : snapshot.phase === 'firing' ? 3 : snapshot.phase === 'result' ? 4 : -1);
         page.classList.toggle('workshop--camera', state.cameraActive);
         page.classList.toggle('workshop--error', state.error !== null);

@@ -8,6 +8,8 @@ import { createScene } from './render/scene';
 import { createOverlay } from './render/overlay';
 import { DwellController } from './ui/dwell';
 import { createHud } from './ui/hud';
+import { CONFIG } from './config';
+import { showcaseArtifact } from './engine/artifact';
 import { PresentationHint } from './ui/presentationHint';
 import { LessonHints } from './ui/lessonHints';
 import { createTutorial } from './ui/tutorial';
@@ -45,7 +47,7 @@ const sound = createSoundPlayer();
 let muted = false;
 const screens = createScreens(root, () => { void start(); }, (command) => core.dispatch(command, performance.now()), () => {
   muted = !muted; sound.setMuted(muted); return muted;
-}, () => inspection.enter());
+}, () => inspection.enter(), () => inspection.enter(undefined, 'rotate'));
 const dwell = new DwellController();
 const sharing = createSharing(screens, dwell);
 const modal = createModal(screens, core, dwell);
@@ -165,6 +167,7 @@ function pageHide(): void {
 }
 window.addEventListener('pagehide', pageHide);
 
+let tutorialCompletedAt: number | null = null, tutorialOffered = false, showcaseShown = false;
 function render(): void {
   if (disposed) return;
   // Camera callbacks may run after the frame timestamp but before this callback.
@@ -179,6 +182,12 @@ function render(): void {
   recovery.update(snapshot, tutorial.status === 'completed');
   toolLessons.update(snapshot);
   screens.setTutorialCompleted(tutorial.status === 'completed');
+  // First completion of the main tutorial: after a beat to see the result, offer the newer feature lessons.
+  if (snapshot.phase !== 'tutorial') tutorialCompletedAt = null;
+  else if (tutorial.status === 'completed') {
+    tutorialCompletedAt ??= nowMs;
+    if (!tutorialOffered && !modal.active && !inspection.active && nowMs - tutorialCompletedAt >= CONFIG.LESSON_DONE_MODAL_DELAY_MS) { tutorialOffered = true; toolLessons.offerAfterTutorial(); }
+  }
   const coreHint = lessonHints.update(snapshot, tutorial.goal?.step ?? null, presentationHint.update(snapshot, nowMs));
   const activeHint = snapshot.phase === 'tutorial' && tutorial.status === 'completed' ? lessonHint :
     lessonHint?.severity === 'error' && coreHint?.id !== 'trackingUncertain' ? lessonHint : coreHint ?? lessonHint;
@@ -189,6 +198,9 @@ function render(): void {
   screens.showDwell(dwell.activeId, dwell.progress);
   if (selected) screens.activate(selected);
   kiln.update(snapshot, nowMs);
+  // Menu: a finished vase turns on the wheel. Only this loop sets or clears it; shelf viewing owns its own artifact.
+  const showcase = snapshot.phase === 'menu' && !inspection.active;
+  if (showcase !== showcaseShown) { showcaseShown = showcase; scene.setArtifact(showcase ? showcaseArtifact() : null); }
   scene.render(snapshot, nowMs);
   overlay.render(snapshot, nowMs, dwell.progress, dwell.cursorPx, tutorial.goal, tutorial.status);
   debug?.update(snapshot, nowMs);

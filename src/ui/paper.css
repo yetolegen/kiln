@@ -332,3 +332,90 @@ progress { accent-color: var(--ochre-edge); }
 }
 /* Phone menu: the camera and sound toggles are pinned to the bottom edge; keep the camera notice readable above them. */
 @media (max-width: 600px) { .workshop--camera[data-phase='menu'] footer { padding-bottom: 52px; } }
+
+/* ---------- Gameplay hints: out of the layout flow, beside the clay, never on it ---------- */
+/* In flow, every hint shifted the title, buttons and lesson card; with tracking flickering that read as a shaking
+   screen. Fixed over the instruction column instead: the clay and the hands work in the centre of the stage. */
+.workshop--camera .hud__hint {
+  position: fixed; z-index: 6; top: 96px; left: 40px; width: min(320px, calc(100vw - 80px)); margin: 0;
+  padding: 14px 16px; font-size: 15px; line-height: 1.4; text-align: left; pointer-events: none;
+  background: var(--paper-raised); color: var(--walnut-ink); border: 1px solid var(--control-edge);
+  box-shadow: 0 2px 4px #3e2d201a, 0 12px 28px -10px #3e2d2052;
+}
+.workshop--camera .hud__hint[data-severity='warn'] { background: #fbf3df; border-color: var(--ochre-edge); }
+.workshop--camera .hud__hint[data-severity='error'] { background: #f8e6df; border-color: var(--danger); color: #6e2717; }
+@media (max-width: 600px) {
+  .workshop--camera .hud__hint { top: 64px; left: 12px; right: 12px; width: auto; font-size: 14px; padding: 10px 12px; }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .workshop--camera .hud__hint { top: 52px; left: 16px; width: min(300px, 42vw); font-size: 12px; padding: 8px 10px; }
+}
+
+/* ---------- Calmer controls while shaping ---------- */
+.workshop[data-sculpting='true'] [data-action='rotate'] { opacity: 0; visibility: hidden; }
+.workshop:is([data-phase='studio'], [data-phase='tutorial']) .phase-actions > .dwell-button:not(.sound-toggle):not(.camera-toggle) {
+  min-height: 46px; padding: 8px 12px; font-size: 14px; line-height: 1.25; text-align: left;
+  background: #f8f7f4d9; border-color: var(--rule);
+}
+.workshop:is([data-phase='studio'], [data-phase='tutorial']) .phase-actions > [data-action='done']:not(.sound-toggle):not(.camera-toggle) { background: var(--ochre); border-color: var(--ochre-edge); }
+.workshop:is([data-phase='studio'], [data-phase='tutorial']) .phase-actions > [data-action='restart']:enabled { border-color: #c98f7f; }
+.workshop:is([data-phase='studio'], [data-phase='tutorial']) .phase-actions .action-icon { width: 18px; height: 18px; margin-right: 8px; vertical-align: -4px; }
+@media (min-width: 1000px) {
+  .workshop:is([data-phase='studio'], [data-phase='tutorial']) .phase-actions { gap: 8px; width: 176px; }
+}
+.workshop--camera .hud__gesture, .workshop--camera .hud__tracking, .workshop--camera .hud__activity {
+  background: #f8f7f4cc; border-color: transparent; font-size: 12px; padding: 6px 10px;
+}
+.workshop--camera :is(.sound-toggle, .camera-toggle) { background: #f8f7f4cc; border-color: var(--rule); font-size: 12px; }
+
+/* ---------- "Только глина": only the clay, the hands and hints remain ---------- */
+.workshop[data-focus='true'] :is(.workshop__header, footer, .hud, .tutorial-card, .tool-lesson) { visibility: hidden; }
+.workshop[data-focus='true'] .workshop__content > :not(.phase-actions):not(.hud__hint) { visibility: hidden; }
+.workshop[data-focus='true'] .phase-actions > .dwell-button:not([data-action='focus']) { visibility: hidden; }
+.workshop[data-focus='true'] .phase-actions > [data-action='focus'] {
+  position: fixed; z-index: 7; top: 16px; right: 16px; width: auto; min-width: 0; min-height: 44px; padding: 8px 14px;
+  background: #f8f7f4e6; border-color: var(--control-edge); font-size: 13px;
+}
+.workshop[data-focus='true'] .hud__hint { top: 16px; }
+
+/* ---------- Rotate mode: the vessel, a fist, and the way back ---------- */
+.inspection[data-kind='rotate'] .inspection__header :is(h2, p:not(.inspection__motion)) { display: none; }
+.inspection[data-kind='rotate'] .inspection__header { top: 16px; }
+.inspection[data-kind='rotate'] .inspection__surface { top: 80px; }
+
+/* ---------- Shelf: remove a chosen vessel (two deliberate steps) ---------- */
+/* A small corner control over the thumbnail: no extra card height, so shelves still fit short screens. */
+.gallery-card { position: relative; }
+.gallery-card .gallery-card__delete {
+  position: absolute; top: 8px; right: 8px; display: inline-flex; align-items: center; width: auto; min-width: 44px; min-height: 44px;
+  margin: 0; padding: 6px 12px; font-size: 13px; color: var(--danger); border-color: #c98f7f; background: #f8f7f4e6;
+}
+.gallery-card .gallery-card__delete[data-confirm='true'] { background: var(--danger); border-color: var(--danger); color: #fff6ee; }
+.gallery-removal { margin: 8px 0 0; color: var(--walnut-2); font-size: 13px; }
+.gallery-removal:empty { display: none; }
+@media (hover: hover) { .gallery-card .gallery-card__delete:hover:not([data-confirm='true']) { background: #f6e7e1; border-color: var(--danger); } }
+
+/* While a hint shows, the instructions it sits over step aside (hidden, not removed: nothing below moves). */
+.workshop--camera:has(.hud__hint:not([hidden])) .workshop__content > :is(h1, .workshop__description) { visibility: hidden; }
+/* Rotate mode keeps a quiet keyboard focus frame inset from the edges, below the motion hint. */
+.inspection[data-kind='rotate'] .inspection__surface { top: 108px; }
+.inspection__surface:focus-visible { outline: 1px solid var(--control-edge); outline-offset: -10px; }
+/* Phones: "Вращать" and "Только глина" live in the header row, out of the crowded shaping grid. */
+@media (max-width: 600px) {
+  .workshop--camera:is([data-phase='studio'], [data-phase='tutorial']) .workshop__label { visibility: hidden; }
+  .workshop:is([data-phase='studio'], [data-phase='tutorial']) .phase-actions > :is([data-action='rotate'], [data-action='focus']):not(.sound-toggle):not(.camera-toggle) {
+    position: fixed; z-index: 5; top: 12px; width: auto; min-width: 0; min-height: 44px; padding: 6px 10px; font-size: 12px;
+  }
+  .workshop:is([data-phase='studio'], [data-phase='tutorial']) .phase-actions > [data-action='focus'] { right: 12px; }
+  .workshop:is([data-phase='studio'], [data-phase='tutorial']) .phase-actions > [data-action='rotate'] { right: 112px; }
+  .workshop:is([data-phase='studio'], [data-phase='tutorial']) .phase-actions > :is([data-action='rotate'], [data-action='focus']) .action-icon { display: none; }
+}
+
+/* ---------- B · studio backdrop under the clay (render layer, not layout) ---------- */
+.backdrop-canvas { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none; }
+.camera-video { z-index: 1; opacity: .07; }
+.workshop[data-preview='true'] .camera-video, .workshop[data-phase='calibrate'] .camera-video { opacity: .85; }
+/* Damaged clay: "Начать сначала" stays the solid red call to action inside the calmer shaping column too. */
+.workshop[data-damaged='true']:is([data-phase='studio'], [data-phase='tutorial']) .phase-actions > [data-action='restart']:not(.sound-toggle):not(.camera-toggle) {
+  background: var(--danger); border-color: var(--danger); color: #fff6ee;
+}

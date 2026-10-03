@@ -114,6 +114,12 @@ export const CONFIG = {
   PINCH_OFF: 0.45,
   FINGER_CURLED_ON: 0.35,
   FINGER_CURLED_OFF: 0.45,
+  // viewer fist grip (rotate / place): mean finger extension and the straightest finger; real curled 0.36–0.66
+  FIST_MEAN_ON: 0.6,
+  FIST_MEAN_OFF: 0.7,
+  FIST_FINGER_ON: 0.75,
+  FIST_FINGER_OFF: 0.85,
+  FIST_RELEASED_MEAN: 0.78,       // seen open (mean above this) before a new grip may start
   FINGER_OPEN_ON: 0.6,
   FINGER_OPEN_OFF: 0.5,
   // pointing = index clearly straighter than the AVERAGE of the other three. Measured on a real laptop

@@ -74,6 +74,15 @@ export function createToolLessons(screens: ReturnType<typeof createScreens>, cor
   }
   return {
     get active() { return lesson !== null; },
+    /** After the main tutorial: invite the learner to the shorter lessons of the newer workshop features. */
+    offerAfterTutorial() {
+      modal.show('tutorial-complete', 'Обучение пройдено!',
+        'Вы освоили основу лепки. В мастерской есть и другие возможности: готовые ручки, вращение руками, детали и штампы, глазурь, полка и ссылки. Каждый короткий урок идёт на отдельном учебном сосуде.', [
+          { id: 'discover', label: 'Открыть новые возможности', run: choose },
+          { id: 'workshop', label: 'В мастерскую', run: () => core.dispatch({ type: 'backToMenu' }, performance.now()) },
+          { id: 'stay', label: 'Остаться здесь', run: () => {} },
+        ]);
+    },
     update(snapshot: EngineSnapshot) {
       if (revision !== screens.contentRevision) {
         revision = screens.contentRevision;

@@ -55,7 +55,7 @@ export async function createPublicViewer(root: HTMLElement, hash: string) {
   }
   const hands = screens.addAction('public-hands', 'Включить управление руками', () => { void enableHands(); }, actions);
   async function enableHands() {
-    hands.disabled = true; help.textContent = 'Загрузка распознавания. Разрешите камеру, чтобы вращать сосуд щипком.'; screens.refreshTargets();
+    hands.disabled = true; help.textContent = 'Загрузка распознавания. Разрешите камеру, чтобы вращать сосуд кулаком.'; screens.refreshTargets();
     try {
       if (!tracker) {
         const { HandTracker } = await import('../tracking/handTracker');
@@ -64,7 +64,7 @@ export async function createPublicViewer(root: HTMLElement, hash: string) {
       await camera.start(); if (disposed) { camera.stop(); return; }
       const { connectTracking } = await import('../browser/tracking'); tracking = connectTracking(core, tracker, screens.video);
       project(); hands.textContent = 'Камера включена';
-      help.textContent = 'Раскройте пальцы, затем зажмите щипок вдали от кнопок и ведите руку для вращения. Разомкните щипок, чтобы отпустить.';
+      help.textContent = 'Раскройте ладонь, затем сожмите кулак вдали от кнопок и ведите руку для вращения. Раскройте ладонь, чтобы отпустить.';
     } catch { help.textContent = 'Камера недоступна. Вращение мышью и касанием работает; можно повторить разрешение камеры.'; hands.disabled = false; }
     screens.refreshTargets();
   }

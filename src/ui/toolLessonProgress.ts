@@ -25,7 +25,7 @@ export class ToolLessonProgress {
       this.complete = this.damaged && !f.damaged && f.restored > this.restoredAtDamage;
       return !this.saved ? 'Сначала выберите «Сохранить точку».' : !this.damaged ? 'Учебный пример: намеренно сплющите глину до лепёшки. Пределы и последствия настоящие.' : !this.complete ? 'В центральном сообщении выберите «Восстановить точку».' : 'Геометрия восстановлена. Ошибки остались в истории этой учебной попытки.';
     }
-    if (this.lesson === 'rotation') { this.complete = f.handRotation - this.baseline.handRotation >= .12; return 'Выберите «Осмотреть в 3D». Раскройте пальцы, соедините большой и указательный и плавно проведите рукой. Разомкните щипок для отпускания.'; }
+    if (this.lesson === 'rotation') { this.complete = f.handRotation - this.baseline.handRotation >= .12; return 'Выберите «Осмотреть в 3D». Раскройте ладонь, сожмите кулак и плавно проведите рукой. Раскройте ладонь, чтобы отпустить.'; }
     if (this.lesson === 'attachment') {
       // a checkpoint restore also empties the list: only a removal without a restore since the add counts as delete
       if (f.attachments > 0) { this.added = true; this.restoredAtAdd = f.restored; }

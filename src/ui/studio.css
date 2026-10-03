@@ -56,14 +56,15 @@
       color: var(--walnut); font-size: 14px; line-height: 1.2;
     }
     .phase-actions > .dwell-button .action-icon { width: 22px; height: 22px; }
-    .phase-actions > .dwell-button[data-action='checkpoint-save']:not(.sound-toggle):not(.camera-toggle) { order: 1; }
+    /* the main row always starts its own grid row, however many actions are folded above it */
+    .phase-actions > .dwell-button[data-action='checkpoint-save']:not(.sound-toggle):not(.camera-toggle) { order: 1; grid-column-start: 1; }
     .phase-actions > .dwell-button[data-action='inspect']:not(.sound-toggle):not(.camera-toggle) { order: 2; border-left: 1px solid var(--slip-edge); }
     .phase-actions > .dwell-button[data-action='more']:not(.sound-toggle):not(.camera-toggle) { order: 3; border-left: 1px solid var(--slip-edge); }
-    .phase-actions > .dwell-button:is([data-action='restart'], [data-action='checkpoint-restore']):not(.sound-toggle):not(.camera-toggle),
+    .phase-actions > .dwell-button:is([data-action='restart'], [data-action='checkpoint-restore'], [data-action='rotate'], [data-action='focus']):not(.sound-toggle):not(.camera-toggle),
     .phase-actions > .dwell-button.camera-toggle {
       order: 0; display: none; min-height: 52px; font-size: 13px; border-bottom: 1px solid var(--slip-edge);
     }
-    &[data-more='true'] .phase-actions > .dwell-button:is([data-action='restart'], [data-action='checkpoint-restore']):not(.sound-toggle):not(.camera-toggle),
+    &[data-more='true'] .phase-actions > .dwell-button:is([data-action='restart'], [data-action='checkpoint-restore'], [data-action='rotate'], [data-action='focus']):not(.sound-toggle):not(.camera-toggle),
     &[data-more='true'] .phase-actions > .dwell-button.camera-toggle { display: flex; }
     &[data-more='true'] .phase-actions > .dwell-button[data-action='more']:not(.sound-toggle):not(.camera-toggle) { background: var(--paper-sunk); }
     .phase-actions > .dwell-button[data-action='restart']:not(.sound-toggle):not(.camera-toggle) { color: var(--clay-text); }
@@ -82,8 +83,19 @@
     }
     .hud > span { border: 0; background: none; padding: 2px 0; min-height: 0; font-size: 13px; color: var(--walnut-2); }
     .hud__hint {
-      position: fixed; right: var(--edge-gap); bottom: calc(var(--edge-gap) + 108px); width: var(--status-w); margin: 0; z-index: 4;
+      position: fixed; top: auto; left: auto; right: var(--edge-gap); bottom: calc(var(--edge-gap) + 108px); width: var(--status-w); margin: 0; z-index: 4;
       text-align: left; font-size: 15px; /* severity colours the whole border (paper.css), no side stripe */
+    }
+  }
+  .workshop.workshop--camera:is([data-phase='studio'], [data-phase='tutorial']) {
+    /* the hint lives in the status card here, so nothing it could cover needs to step aside (paper.css does that on narrow screens) */
+    &:has(.hud__hint:not([hidden])) .workshop__content > :is(h1, .workshop__description) { visibility: visible; }
+    /* «Только глина»: no toolbar frame, no top bar; only its own button, back in the corner even though it is folded under «Ещё» */
+    &[data-focus='true'] .phase-actions { background: none; border: 0; box-shadow: none; }
+    &[data-focus='true'] .phase-actions > .dwell-button[data-action='focus']:not(.sound-toggle):not(.camera-toggle) {
+      display: inline-flex; flex-direction: row; position: fixed; top: 16px; right: 16px; left: auto; bottom: auto; z-index: 7;
+      width: auto; min-height: 44px; padding: 8px 14px; border: 1px solid var(--control-edge); border-radius: var(--radius-s);
+      background: #f8f7f4e6; font-size: 13px;
     }
   }
   /* the lesson keeps its own step card bottom-left */
