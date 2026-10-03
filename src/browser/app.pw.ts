@@ -5,8 +5,9 @@ test('B10 retains a fading visual briefly while lost tracking pauses the control
   await page.goto('/?dev=1&mock=1'); await expect(page.getByTestId('mock-badge')).toBeVisible();
   await expect(page.getByTestId('mock-badge')).toBeVisible();
   await page.keyboard.press('5'); await page.keyboard.press('s');
+  // wide shaping raises the pot (base at 72%, rim lines ~38-43%): sample from 47%, where the mock hands sit
   const pixels = () => page.locator('.overlay-canvas').evaluate((canvas: HTMLCanvasElement) => {
-    const top = Math.floor(canvas.height * .62); // below V6's persistent safe-depth line at the rim
+    const top = Math.floor(canvas.height * .47); // below V6's persistent safe-depth line at the rim
     const data = canvas.getContext('2d')!.getImageData(0, top, canvas.width, canvas.height - top).data;
     let count = 0; for (let i = 3; i < data.length; i += 4) if (data[i]) count++; return count;
   });
@@ -20,7 +21,7 @@ test('B10 retains a fading visual briefly while lost tracking pauses the control
       const sample = () => {
         if (document.querySelector('.hud__hint')?.textContent?.includes('Отслеживание потеряно')) {
           const canvas = document.querySelector<HTMLCanvasElement>('.overlay-canvas')!;
-          const top = Math.floor(canvas.height * .62); // below V6's persistent safe-depth line at the rim
+          const top = Math.floor(canvas.height * .47); // below V6's persistent safe-depth line at the rim
           const data = canvas.getContext('2d')!.getImageData(0, top, canvas.width, canvas.height - top).data;
           let count = 0; for (let i = 3; i < data.length; i += 4) if (data[i]) count++;
           resolve(count);

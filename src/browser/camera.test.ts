@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CameraSession, cameraProjection } from './camera';
+import { CONFIG } from '../config';
 
 class FakeTrack extends EventTarget {
   readyState = 'live';
@@ -91,7 +92,16 @@ describe('camera permission and lifecycle', () => {
 });
 
 describe('projection from actual layout', () => {
-  it.each([[1440, 900], [390, 844], [844, 390]])('fits the maximum pot at %i by %i', (width, height) => {
+  it.each([[1440, 900], [1920, 1080], [1000, 800]])('wide shaping centres a large pot whose screen ceiling fits under the top bar at %i by %i', (width, height) => {
+    const p = cameraProjection({ videoWidth: 640, videoHeight: 480 }, { width, height }, 7);
+    expect(p.axisXPx).toBe(width / 2); expect(p.bottomYPx).toBe(height * .72);
+    const ceiling = Math.min(CONFIG.MAX_HEIGHT, CONFIG.SCREEN_HEIGHT_FRACTION * p.bottomYPx / p.pixelsPerWorldUnit);
+    expect(ceiling).toBeGreaterThan(2); // the 1.8 commission vase plus tolerance stays reachable
+    expect(p.bottomYPx - ceiling * p.pixelsPerWorldUnit).toBeGreaterThanOrEqual(height * .15);
+    expect(p.axisXPx - 1.6 * p.pixelsPerWorldUnit).toBeGreaterThan(0); expect(p.axisXPx + 1.6 * p.pixelsPerWorldUnit).toBeLessThan(width);
+    expect(1.2 * p.pixelsPerWorldUnit).toBeGreaterThan(height * .28); // the starting pot reads as the subject
+  });
+  it.each([[390, 844], [844, 390]])('fits the maximum pot at %i by %i', (width, height) => {
     const p = cameraProjection({ videoWidth: 640, videoHeight: 480 }, { width, height }, 7);
     expect(p).toMatchObject({ revision: 7, fit: 'cover', mirrored: true, bottomYPx: height * .8 });
     expect(p.bottomYPx - 3.2 * p.pixelsPerWorldUnit).toBeGreaterThanOrEqual(height * .15);

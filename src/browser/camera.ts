@@ -131,11 +131,16 @@ export function cameraProjection(
   const landscape = height < 500 && width > height;
   const phoneResult = width <= 600 && phase === 'result';
   const display = ['menu', 'glaze', 'result'].includes(phase);
-  const axis = landscape ? .74 : width >= 1000 ? display ? .7 : .56 : width > 600 ? .66 : .5;
+  // Wide shaping screens (studio.css layout): the pot is the centred subject, sized like the reference shot.
+  // The screen ceiling (CONFIG.SCREEN_HEIGHT_FRACTION) then caps growth at .75 × .72 / .24 = 2.25 world units:
+  // above the 1.8 commission vase, and the tallest pot still ends below the top bar.
+  const wideShaping = !landscape && width >= 901 && height >= 600 && (phase === 'studio' || phase === 'tutorial');
+  const axis = wideShaping ? .5 : landscape ? .74 : width >= 1000 ? display ? .7 : .56 : width > 600 ? .66 : .5;
   return {
     revision, videoWidth: video.videoWidth, videoHeight: video.videoHeight,
     viewportWidth: width, viewportHeight: height, fit: 'cover', mirrored: true,
-    axisXPx: width * axis, bottomYPx: height * (phoneResult ? .65 : .8),
-    pixelsPerWorldUnit: landscape ? Math.min(width * .43 / 3.8, height * .64 / CONFIG.MAX_HEIGHT) : Math.min(width / 5, height * (phoneResult ? .24 : .48) / CONFIG.MAX_HEIGHT),
+    axisXPx: width * axis, bottomYPx: height * (wideShaping ? .72 : phoneResult ? .65 : .8),
+    pixelsPerWorldUnit: wideShaping ? Math.min(width / 5, height * .24)
+      : landscape ? Math.min(width * .43 / 3.8, height * .64 / CONFIG.MAX_HEIGHT) : Math.min(width / 5, height * (phoneResult ? .24 : .48) / CONFIG.MAX_HEIGHT),
   };
 }
