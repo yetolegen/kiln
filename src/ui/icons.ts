@@ -7,6 +7,8 @@ const PATHS: Record<string, string> = {
   restart: 'M6 8a10 10 0 1 1-2 12 M6 2v7H0',
   menu: 'M3 3h8v8H3z M17 3h8v8h-8z M3 17h8v8H3z M17 17h8v8h-8z',
   inspect: 'M4 8l10-5 10 5v12l-10 5-10-5z M4 8l10 6 10-6 M14 14v11',
+  rotate: 'M5 11a9 4 0 0 1 18 0 M23 17a9 4 0 0 1-18 0 M20 7l3 4-5 1 M8 21l-3-4 5-1',
+  focus: 'M3 9V3h6 M19 3h6v6 M25 19v6h-6 M9 25H3v-6',
 };
 
 export function actionIcon(id: string): string {

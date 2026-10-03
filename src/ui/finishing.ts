@@ -53,16 +53,33 @@ export function createFinishing(screens: ReturnType<typeof createScreens>, dispa
             });
           });
         } else if (snapshot.phase === 'gallery') {
-          let page = 0; const pots = store.list();
+          let page = 0, pots = store.list(), undoTimer = 0;
           const area = document.createElement('div'); screens.details.append(area);
           const previous = screens.addAction('previous', '← Назад', () => { page--; refresh(); });
           const next = screens.addAction('next', 'Дальше →', () => { page++; refresh(); });
           const count = document.createElement('p'); count.className = 'gallery-count'; screens.details.append(count);
+          const removal = document.createElement('p'); removal.className = 'gallery-removal'; removal.setAttribute('role', 'status'); screens.details.append(removal);
           function refresh(): void {
-            screens.removeActions('shelf-open-');
+            screens.removeActions('shelf-open-'); screens.removeActions('shelf-delete-'); clearTimeout(undoTimer);
             renderGallery(area, pots, page, (target) => store.best(target));
             const cards = area.querySelectorAll<HTMLElement>('.gallery-card');
-            for (const [i, pot] of pots.slice(page * 2, page * 2 + 2).entries()) screens.addAction(`shelf-open-${i}`, 'Осмотреть сосуд', () => openWork(pot), cards[i]);
+            for (const [i, pot] of pots.slice(page * 2, page * 2 + 2).entries()) {
+              screens.addAction(`shelf-open-${i}`, 'Осмотреть сосуд', () => openWork(pot), cards[i]);
+              // Two deliberate steps: the same button asks again (a resting palm cannot fire it twice), then removes.
+              const remove = screens.addAction(`shelf-delete-${i}`, 'Удалить', () => {
+                if (remove.dataset.confirm !== 'true') {
+                  remove.dataset.confirm = 'true'; remove.textContent = 'Точно? Ещё раз';
+                  clearTimeout(undoTimer);
+                  undoTimer = window.setTimeout(() => { remove.dataset.confirm = 'false'; remove.textContent = 'Удалить'; }, 5000);
+                  return;
+                }
+                const outcome = store.remove(pot.id);
+                pots = store.list(); if (page > 0 && page * 2 >= pots.length) page--;
+                removal.textContent = outcome === 'removed' ? 'Сосуд удалён с полки.' : outcome === 'memory' ? 'Сосуд скрыт до перезагрузки: хранилище браузера недоступно.' : '';
+                refresh();
+              }, cards[i]);
+              remove.classList.add('gallery-card__delete');
+            }
             previous.disabled = page <= 0; next.disabled = (page + 1) * 2 >= pots.length;
             count.textContent = pots.length ? `${page + 1} / ${Math.ceil(pots.length / 2)} · до 24 сосудов в этом браузере` : '';
             screens.refreshTargets();

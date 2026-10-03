@@ -86,3 +86,18 @@ it('keeps target-version best scores even when an older pot leaves the bounded s
   expect(store.best('vase@2')).toBeNull();
   expect(createGalleryStore(() => backend).best('vase@1')).toBe(100);
 });
+it('removes only the chosen vessel, persists it, keeps best scores and never overwrites protected data', () => {
+  const backend = storage();
+  const store = createGalleryStore(() => backend);
+  store.save(result('keep', 70)); store.save(result('drop', 91));
+  expect(store.remove('drop')).toBe('removed');
+  expect(store.list().map(p => p.id)).toEqual(['keep']);
+  expect(store.best('vase@1')).toBe(91);
+  const reopened = createGalleryStore(() => backend);
+  expect(reopened.list().map(p => p.id)).toEqual(['keep']);
+  expect(store.remove('drop')).toBe('missing');
+  const guarded = storage(JSON.stringify({ schemaVersion: 99, pots: [] }));
+  const future = createGalleryStore(() => guarded); future.save(result('new'));
+  expect(future.remove('new')).toBe('memory');
+  expect(guarded.setItem).not.toHaveBeenCalled();
+});

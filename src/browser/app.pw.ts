@@ -32,8 +32,10 @@ test('B10 retains a fading visual briefly while lost tracking pauses the control
   });
   expect(retained).toBeGreaterThan(0);
   await expect(page.locator('.hud__hint')).toContainText('Отслеживание потеряно');
-  const advice = await page.locator('.hud__hint').boundingBox(), heading = await page.locator('h1').boundingBox();
-  expect(advice!.y + advice!.height).toBeLessThanOrEqual(heading!.y);
+  // The hint floats over the instruction column (no reflow, so flickering tracking cannot shake the layout);
+  // the heading it covers steps aside instead of being pushed down.
+  await expect(page.locator('h1')).toHaveCSS('visibility', 'hidden');
+  expect(await page.locator('.hud__hint').evaluate(e => getComputedStyle(e).position)).toBe('fixed');
   await expect(page.locator('.hand-cursor')).toBeHidden();
   await expect.poll(pixels).toBe(0);
   await page.keyboard.press('x'); await expect.poll(pixels).toBeGreaterThan(0);
@@ -200,8 +202,7 @@ test('B7 tutorial validates geometry for all actions and requires release', asyn
   await page.keyboard.press('x');
   await expect(page.locator('.hud__hint')).toBeVisible();
   await expect(page.locator('.hud__hint')).toContainText('Отслеживание потеряно');
-  const warning = await page.locator('.hud__hint').boundingBox(), title = await page.locator('h1').boundingBox();
-  expect(warning!.y + warning!.height).toBeLessThanOrEqual(title!.y);
+  await expect(page.locator('h1')).toHaveCSS('visibility', 'hidden'); // covered by the floating hint, not displaced
   const panel = await lesson.boundingBox(); expect(panel!.y + panel!.height).toBeLessThanOrEqual(390);
   await page.screenshot({ path: 'test-results/b7-tutorial-landscape.png' });
   await page.keyboard.press('x');

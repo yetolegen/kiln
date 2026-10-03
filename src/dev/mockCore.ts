@@ -127,7 +127,7 @@ export class MockCore implements CoreController {
         break;
       case 'p': this.palmCursor = false; this.gestureName = 'point'; break;
       case 'h': this.palmCursor = true; this.gestureName = 'none'; break;
-      case 'q': this.viewerPinch = !this.viewerPinch; return; // viewer input must not invalidate clay geometry
+      case 'q': this.viewerPinch = !this.viewerPinch; return; // viewer fist grip; must not invalidate clay geometry
       case 'j': this.singleHand = !this.singleHand; return; // one-hand UI testing without a fixed support palm
       case 'x': this.lost = !this.lost; break;
       case 't': this.issue('tear', nowMs); this.clay.damage[24] = this.active.has('tear') ? .8 : .25; break;
@@ -162,10 +162,12 @@ export class MockCore implements CoreController {
 
   private hand(side: -1 | 1): HandFeatures {
     const p = this.projection!;
-    const palmPx = this.palmCursor && side === -1 ? { ...this.cursor } : { x: p.axisXPx + side * 1.1 * p.pixelsPerWorldUnit, y: p.bottomYPx - .8 * p.pixelsPerWorldUnit };
+    // 'q' = viewer fist grip: the left fist follows the cursor (a fist rotates by its palm, not a fingertip)
+    const grip = side === -1 && this.viewerPinch;
+    const palmPx = (this.palmCursor || grip) && side === -1 ? { ...this.cursor } : { x: p.axisXPx + side * 1.1 * p.pixelsPerWorldUnit, y: p.bottomYPx - .8 * p.pixelsPerWorldUnit };
     const landmarksPx = HAND_POINTS.map(([x, y]) => ({ x: palmPx.x + side * x, y: palmPx.y + y }));
     return { trackId: side + 2, palmPx, palmWorld: { x: side * 1.1, y: .8 }, indexTipPx: this.cursor, landmarksPx,
-      palmSizePx: 70, referencePalmSizePx: 70, extension: { index: 1, middle: 1, ring: 1, pinky: 1 }, openness: 1, pinchRatio: side === -1 && this.viewerPinch ? .2 : .7,
+      palmSizePx: 70, referencePalmSizePx: 70, extension: grip ? { index: .4, middle: .4, ring: .4, pinky: .4 } : { index: 1, middle: 1, ring: 1, pinky: 1 }, openness: grip ? .4 : 1, pinchRatio: grip ? .6 : .7,
       pointing: this.gestureName === 'point', velocityWorldPerS: { x: 0, y: 0 }, velocityPalmPerS: { x: 0, y: 0 }, velocityValid: true };
   }
 

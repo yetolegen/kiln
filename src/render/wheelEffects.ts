@@ -23,7 +23,8 @@ export class WheelEffects {
     if (reduced || inspecting || !shaping || permanent) this.life.fill(0);
     if (reduced || inspecting || permanent || snapshot.phase === 'firing') this.speed = 0;
     else {
-      this.speed += ((shaping ? 3.2 : .48) - this.speed) * (1 - Math.exp(-dt * 4));
+      // the menu showcase turns slowly enough to admire, fast enough to read as spinning
+      this.speed += ((shaping ? 3.2 : snapshot.phase === 'menu' ? 1.3 : .48) - this.speed) * (1 - Math.exp(-dt * 4));
       this.angle = (this.angle + dt * this.speed) % (Math.PI * 2);
     }
     for (let i = 0; i < this.capacity; i++) {

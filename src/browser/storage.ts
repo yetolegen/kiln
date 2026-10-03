@@ -90,15 +90,19 @@ export function createGalleryStore(getStorage: () => Pick<Storage, 'getItem' | '
       }
     } else if (raw) protectedData = true;
   } catch { persistent = false; protectedData = true; }
+  function persist(): boolean {
+    if (protectedData) return false;
+    try { getStorage().setItem(GALLERY_KEY, JSON.stringify({ schemaVersion: 4, pots, bestScores: Object.fromEntries(bestScores) })); persistent = true; }
+    catch { persistent = false; }
+    return persistent;
+  }
   function saveDetailed(result: SessionResult): 'saved' | 'memory' | 'duplicate' | 'invalid' {
     if (!isSessionResult(result)) return 'invalid';
     if (pots.some(pot => pot.id === result.id)) return 'duplicate';
     const copy = structuredClone(migrateSessionResult(result)) as SessionResult;
     if (!isSessionResult(copy)) return 'invalid';
     pots = [copy, ...pots].slice(0, MAX_POTS); rememberBest(copy);
-    if (!protectedData) try { getStorage().setItem(GALLERY_KEY, JSON.stringify({ schemaVersion: 4, pots, bestScores: Object.fromEntries(bestScores) })); persistent = true; }
-    catch { persistent = false; }
-    return persistent && !protectedData ? 'saved' : 'memory';
+    return persist() ? 'saved' : 'memory';
   }
   return {
     get persistent(): boolean { return persistent && !protectedData; },
@@ -106,6 +110,12 @@ export function createGalleryStore(getStorage: () => Pick<Storage, 'getItem' | '
     saveDetailed,
     save(result: SessionResult): boolean {
       const status = saveDetailed(result); return status === 'saved' || status === 'memory';
+    },
+    /** Remove one vessel the visitor chose. Best scores stay: they record what was achieved, not what is shown. */
+    remove(id: string): 'removed' | 'memory' | 'missing' {
+      if (!pots.some(pot => pot.id === id)) return 'missing';
+      pots = pots.filter(pot => pot.id !== id);
+      return persist() ? 'removed' : 'memory';
     },
     best(targetId: string): number | null {
       return bestScores.get(targetId) ?? null;

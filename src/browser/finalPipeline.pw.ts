@@ -13,7 +13,7 @@ export class HandTracker {
       window.__fixtureTiming={frame:this.frame,dt:now-(this.last??now)};this.last=now;
       const scale=Math.max(w/video.videoWidth,h/video.videoHeight);
       const specs=window.__fixtureHands ?? [{x:w*.35,y:h*.65},{x:w*.65,y:h*.65}];
-      const hands=specs.map(({x,y,pinch=false,tip=false})=>{
+      const hands=specs.map(({x,y,pinch=false,tip=false,fist=false})=>{
         let u=1-(x+(video.videoWidth*scale-w)/2)/(video.videoWidth*scale),v=(y+(video.videoHeight*scale-h)/2)/(video.videoHeight*scale);
         u+=.0025;v-=.025;
         if(tip){u=1-(x+(video.videoWidth*scale-w)/2)/(video.videoWidth*scale)+.03;v=(y+(video.videoHeight*scale-h)/2)/(video.videoHeight*scale)+.07;}
@@ -21,6 +21,8 @@ export class HandTracker {
         [[-.04,.06],[-.06,.03],[-.08,.01],[-.09,-.01]].forEach(([dx,dy],k)=>p[k+1]={x:u+dx,y:v+dy,z:0});
         [-.03,-.01,.01,.03].forEach((dx,f)=>[0,-.03,-.05,-.07].forEach((dy,k)=>p[5+f*4+k]={x:u+dx,y:v+dy,z:0}));
         if(pinch)p[4]={...p[8],x:p[8].x+.009};
+        // fist: every finger folds back over its knuckle (PIP and DIP angles near 0 deg read as curled)
+        if(fist)[5,9,13,17].forEach(m=>{const b=p[m];p[m+1]={x:b.x+.004,y:b.y-.03,z:0};p[m+2]={x:b.x+.008,y:b.y-.008,z:0};p[m+3]={x:b.x+.006,y:b.y+.012,z:0};});
         return {landmarks:p,handednessScore:1};
       });
       callback({frameId:++this.frame,epoch:this.epoch,capturedAtMs:now,receivedAtMs:performance.now(),mediaTimeMs:now,hands});
@@ -36,7 +38,7 @@ test('M6 real pipeline: landmark dwell, shaping, checkpoint, restore, decoration
   await page.route('**/src/tracking/handTracker.ts*', route => route.fulfill({ contentType: 'text/javascript', body: tracker }));
   await page.goto('/'); await page.getByRole('button', { name: 'Начать', exact: true }).click();
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'menu', { timeout: 12000 });
-  type Hand = { x: number; y: number; pinch?: boolean; tip?: boolean };
+  type Hand = { x: number; y: number; pinch?: boolean; tip?: boolean; fist?: boolean };
   const hands = (value: Hand[]) => page.evaluate(value => { (window as typeof window & { __fixtureHands: Hand[] }).__fixtureHands = value; }, value);
   const select = async (id: string) => {
     await hands([{ x: 50, y: 70 }]); await page.waitForTimeout(300);
@@ -85,7 +87,7 @@ test('M6 real pipeline: landmark dwell, shaping, checkpoint, restore, decoration
   await select('done'); await select('decor-handle-done'); await select('decor-add'); await select('decor-sphere');
   const place = async (x: number) => {
     await hands([{ x, y: 450, tip: true }]); await page.waitForTimeout(800);
-    await hands([{ x, y: 450, tip: true, pinch: true }]);
+    await hands([{ x, y: 450, tip: true, fist: true }]);
     await expect(page.locator('.decoration-editor h2')).toContainText('изменение', { timeout: 10000 }).catch(async cause => {
       const observed = await page.evaluate(() => ({ timing: (window as typeof window & { __fixtureTiming?: unknown }).__fixtureTiming,
         rendering: (document.querySelector('[data-testid="pot-canvas"]') as HTMLElement)?.dataset,

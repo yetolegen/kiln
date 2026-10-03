@@ -175,7 +175,7 @@ test('M3 M4 places an attachment and stamp by hand, finalizes once and round-tri
   await page.screenshot({ path: 'test-results/final-m4-reopened.png' }); expect(errors).toEqual([]);
 });
 
-test('M2 hand pinch drag rotates continuously; shelf viewer leaves the stored work unchanged', async ({ page }) => {
+test('M2 hand fist drag rotates continuously; shelf viewer leaves the stored work unchanged', async ({ page }) => {
   await page.goto('/?dev=1&mock=1'); await expect(page.getByTestId('mock-badge')).toBeVisible(); await page.keyboard.press('h');
   await page.locator('[data-action="free"]').hover();
   await page.locator('[data-action="inspect"]').hover();

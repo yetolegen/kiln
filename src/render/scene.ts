@@ -34,6 +34,15 @@ export function configureCamera(camera: OrthographicCamera, p: ProjectionParams)
   camera.updateMatrixWorld();
 }
 
+function softwareRenderer(renderer: WebGLRenderer | null): boolean {
+  if (!renderer) return true;
+  try {
+    const gl = renderer.getContext(), info = gl.getExtension('WEBGL_debug_renderer_info');
+    const name = String(info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
+    return /swiftshader|llvmpipe|softpipe|software|basic render/i.test(name);
+  } catch { return false; }
+}
+
 export function createScene(parent: HTMLElement) {
   const canvas = document.createElement('canvas');
   canvas.className = 'scene-canvas';
@@ -134,7 +143,10 @@ export function createScene(parent: HTMLElement) {
   let color = '#b9825e';
   let surfaceGloss = 0, surfaceGlow = 0;
   let dpr = 1;
-  let quality = 1, previousRender = 0, slowFrames = 0;
+  // A real GPU never needs to drop below half resolution, where the clay turns visibly soft and stair-stepped.
+  // Software renderers (no GPU) still may fall to a quarter: there, each extra pixel steals time from hand tracking.
+  const MIN_QUALITY = softwareRenderer(renderer) ? .25 : .5;
+  let quality = 1, previousRender = 0, slowFrames = 0, fastFrames = 0, frameEma = 16;
   let appearanceRevision = 0, lastView = '', shadowRevision = '';
   const activeCamera = () => inspecting ? inspectionCamera : camera;
   function applySurface() {
@@ -245,9 +257,15 @@ export function createScene(parent: HTMLElement) {
       const elapsed = nowMs - previousRender; previousRender = nowMs;
       // Video callbacks can arrive every second animation frame. Leave headroom for
       // the unchanged 150 ms track-retention limit, not just the 200 ms stale gate.
-      slowFrames = elapsed > 45 && elapsed < 1500 ? slowFrames + 1 : Math.max(0, slowFrames - 1);
-      if (slowFrames >= 3 && quality > .25 && renderer) {
-        quality = Math.max(.25, quality * .8); slowFrames = 0;
+      // Judge a smoothed frame time, not single hitches: three stray slow frames used to ratchet the
+      // canvas down to a quarter resolution for the rest of the session (the blurry, pixelated clay).
+      if (elapsed > 0 && elapsed < 1500) frameEma += (elapsed - frameEma) * .1;
+      slowFrames = frameEma > 45 ? slowFrames + 1 : Math.max(0, slowFrames - 1);
+      fastFrames = frameEma < 30 ? fastFrames + 1 : 0;
+      const nextQuality = slowFrames >= 20 && quality > MIN_QUALITY ? Math.max(MIN_QUALITY, quality * .85)
+        : fastFrames >= 120 && quality < 1 ? Math.min(1, quality / .85) : quality;
+      if (nextQuality !== quality && renderer) {
+        quality = nextQuality; slowFrames = 0; fastFrames = 0;
         renderer.setPixelRatio(dpr * quality);
         renderer.setSize(projection.viewportWidth, projection.viewportHeight, false);
         const shadowSize = quality <= .41 ? 256 : quality <= .65 ? 512 : 1024;

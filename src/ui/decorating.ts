@@ -38,7 +38,7 @@ export function createDecorating(screens: ReturnType<typeof createScreens>, scen
   function home() {
     if (handleStage) { handleHome(); return; }
     tool = 'inspect'; toolbar(); title.textContent = 'Оформление · вращение';
-    help.textContent = 'Раскройте пальцы, затем зажмите щипок и ведите руку, чтобы осмотреть сосуд. Глина больше не деформируется.';
+    help.textContent = 'Раскройте ладонь, затем сожмите кулак и ведите руку, чтобы осмотреть сосуд. Глина больше не деформируется.';
     button('add', 'Добавить деталь', () => choose(false)); button('stamp', 'Добавить штамп', () => choose(true));
     button('handles', `Ручки · ${data.handles?.length ?? 0}`, () => { handleStage = true; handleHome(); });
     button('list', `Мои детали и штампы · ${data.attachments.length + data.stamps.length}`, () => list(0));
@@ -48,7 +48,7 @@ export function createDecorating(screens: ReturnType<typeof createScreens>, scen
   }
   function handleHome() {
     tool = 'inspect'; toolbar('handles'); title.textContent = data.handles?.length ? 'Ручки · форма готова' : 'Добавить ручку?';
-    help.textContent = 'Основная форма готова. Теперь при желании можно добавить готовую ручку сбоку или сверху. Это необязательно. Щипок вращает сосуд; глина больше не меняется.';
+    help.textContent = 'Основная форма готова. Теперь при желании можно добавить готовую ручку сбоку или сверху. Это необязательно. Кулак вращает сосуд; глина больше не меняется.';
     const add = button('handle-add', data.handles?.length ? 'Добавить ещё' : 'Выбрать ручку', chooseHandles); add.disabled = (data.handles?.length ?? 0) >= HANDLE_LIMIT;
     if (data.handles?.length) button('handle-list', `Мои ручки · ${data.handles.length}`, () => list(0));
     button('handle-done', data.handles?.length ? 'Готово с ручками' : 'Продолжить без ручки', () => { handleStage = false; home(); });
@@ -81,8 +81,8 @@ export function createDecorating(screens: ReturnType<typeof createScreens>, scen
   function place() {
     if (!draft) return; tool = 'size' in draft ? 'stamp' : 'place'; placed = false; toolbar('place');
     title.textContent = `${label(draft)} · размещение`;
-    help.textContent = `Наведите указательный палец на внешнюю стенку${'length' in draft ? ' или ободок' : ''}. Когда деталь станет зелёной, задержите щипок. Затем разомкните пальцы и выберите «Применить».`;
-    if ('preset' in draft) help.textContent = draft.preset === 'arch' ? 'Укажите внешнюю стенку: дуга встанет на две верхние точки. Задержите щипок, затем подтвердите. Можно также нажать на сосуд.' : 'Укажите внешнюю стенку ближе к середине высоты. Задержите щипок, затем подтвердите. Можно также нажать на сосуд.';
+    help.textContent = `Наведите указательный палец на внешнюю стенку${'length' in draft ? ' или ободок' : ''}. Когда деталь станет зелёной, сожмите кулак и задержите. Затем раскройте ладонь и выберите «Применить».`;
+    if ('preset' in draft) help.textContent = draft.preset === 'arch' ? 'Укажите внешнюю стенку: дуга встанет на две верхние точки. Сожмите кулак и задержите, затем подтвердите. Можно также нажать на сосуд.' : 'Укажите внешнюю стенку ближе к середине высоты. Сожмите кулак и задержите, затем подтвердите. Можно также нажать на сосуд.';
     button('cancel', 'Отмена', cancel); screens.refreshTargets();
   }
   const angle = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
@@ -196,6 +196,12 @@ export function createDecorating(screens: ReturnType<typeof createScreens>, scen
       const hands = [input.screenLeft, input.screenRight].filter(h => h !== null);
       const h = orbit.activeTrackId !== null ? hands.find(h => h.trackId === orbit.activeTrackId) : hands.find(h => scene.pickSurface(h.indexTipPx));
       if (!h || !draft || !next.clay) { clearPreview(); return; }
+      // Curling into a fist moves the fingertip: keep the spot that was aimed at while the grip closes.
+      if (orbit.state !== 'idle' && previewVisible) {
+        help.textContent = 'Кулак сжат · деталь закрепляется на отмеченном месте.';
+        if (orbit.state === 'dragging') { placed = true; preview(); edit(); }
+        return;
+      }
       const hit = scene.pickSurface(h.indexTipPx);
       if ('preset' in draft) {
         if (!hit) { clearPreview(); help.textContent = HANDLE_PLACEMENT_HINT; return; }
@@ -203,15 +209,15 @@ export function createDecorating(screens: ReturnType<typeof createScreens>, scen
         if (!fits(candidate)) { clearPreview(); help.textContent = handlePlacementHint(candidate, next.clay); return; }
         const changed = JSON.stringify(candidate) !== JSON.stringify(draft); draft = candidate;
         if (changed || !previewVisible) preview();
-        help.textContent = 'Точки крепления касаются глины. Задержите щипок, затем разомкните пальцы и подтвердите.';
+        help.textContent = 'Точки крепления касаются глины. Сожмите кулак и задержите, затем раскройте ладонь и подтвердите.';
         if (orbit.state === 'dragging') { placed = true; preview(); edit(); }
         return;
       }
       if (!hit || !anchorOnBody(hit, next.clay, 'size' in draft ? draft.size : 0)) { clearPreview(); help.textContent = 'Наведите палец на видимую внешнюю стенку, дальше от края и дна. Внутри сосуда и на круге разместить нельзя.'; return; }
       const changed = Math.hypot(hit.point.x - draft.anchor.point.x, hit.point.y - draft.anchor.point.y, hit.point.z - draft.anchor.point.z) > .002;
       draft = { ...draft, anchor: hit }; if (changed || !previewVisible) preview();
-      help.textContent = 'Место подходит. Соедините большой и указательный и задержите щипок, чтобы закрепить деталь.';
-      if (!orbit.canGrab(h.trackId) && orbit.state === 'idle') help.textContent = 'Разомкните большой и указательный пальцы, затем снова соедините их. После паузы отслеживания нужен новый захват.';
+      help.textContent = 'Место подходит. Сожмите кулак и задержите, чтобы закрепить деталь.';
+      if (!orbit.canGrab(h.trackId) && orbit.state === 'idle') help.textContent = 'Раскройте ладонь, затем снова сожмите кулак. После паузы отслеживания нужен новый захват.';
       if (orbit.state === 'dragging') { placed = true; preview(); edit(); }
     },
     close,

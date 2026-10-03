@@ -27,3 +27,17 @@ it('does not refresh cached hands from stale frames and clears on a new epoch', 
   visuals.update({ ...frame, epoch: 2, status: 'reacquiring' }, 352);
   expect(visuals.hands.every((hand) => hand.opacity === 0)).toBe(true);
 });
+it('holds a still hand steady despite landmark noise', () => {
+  const visuals = new HandVisuals(), frame = input();
+  const base = frame.screenLeft!.landmarksPx.map((p) => ({ ...p }));
+  let seed = 7; const noise = () => ((seed = (seed * 16807) % 2147483647) / 2147483647 - .5) * 6; // ±3 px
+  const shown: number[] = [];
+  for (let i = 0; i < 90; i++) {
+    const next = structuredClone(frame); next.frameId = i + 1; next.tMs = i * 33;
+    next.screenLeft!.landmarksPx = base.map((p) => ({ x: p.x + noise(), y: p.y + noise() }));
+    visuals.update(next, i * 33);
+    if (i >= 30) shown.push(visuals.hands[0].points[16]);
+  }
+  const spread = Math.max(...shown) - Math.min(...shown);
+  expect(spread).toBeLessThan(2.5); // raw input spans ~6 px
+});

@@ -34,6 +34,10 @@ export function createHud(parent: HTMLElement, onLayoutChange: () => void = () =
   let lastHint: Hint | null | undefined;
   let lastDamage: ReturnType<typeof clayDamageReason> | undefined;
   let lastGesture = '', lastTracking = '';
+  // Tracking can drop for single frames; a hint that blinks on and off reads as the screen shaking.
+  // Show at once, but hide only after it has stayed cleared for a moment.
+  const HIDE_GRACE_MS = 700;
+  let wantHidden = true, hideAt: number | null = null;
   return {
     update(snapshot: EngineSnapshot, nowMs: number, activeHint: Hint | null = snapshot.hint): void {
       const shaping = ['studio', 'tutorial'].includes(snapshot.phase);
@@ -55,12 +59,18 @@ export function createHud(parent: HTMLElement, onLayoutChange: () => void = () =
         lastHint = activeHint;
         lastDamage = damage;
         parent.dataset.damaged = String(!!damage);
-        banner.hidden = !damage && (!lastHint || (snapshot.phase === 'tutorial' && typeof lastHint.params.instruction === 'string' && lastHint.params.banner !== 'true'));
+        wantHidden = !damage && (!lastHint || (snapshot.phase === 'tutorial' && typeof lastHint.params.instruction === 'string' && lastHint.params.banner !== 'true'));
         const message = damage ? `${ru.claySpoiled}. ${ru.damage[damage]} Уберите руки от глины и выберите «Начать сначала».` : lastHint ? hintText(lastHint) : '';
-        if (banner.textContent !== message) banner.textContent = message;
+        // keep the last words on screen while the hide grace runs
+        if (message && banner.textContent !== message) banner.textContent = message;
         banner.dataset.severity = damage ? 'error' : lastHint?.severity ?? 'info';
         banner.setAttribute('role', damage ? 'alert' : 'status');
         layout();
+      }
+      if (!wantHidden) { hideAt = null; banner.hidden = false; }
+      else if (!banner.hidden) {
+        hideAt ??= nowMs + HIDE_GRACE_MS;
+        if (nowMs >= hideAt || !shaping) { banner.hidden = true; hideAt = null; if (wantHidden && !lastHint) banner.textContent = ''; }
       }
     },
     destroy(): void { observer.disconnect(); window.removeEventListener('resize', layout); cancelAnimationFrame(layoutFrame); hud.remove(); banner.remove(); },
