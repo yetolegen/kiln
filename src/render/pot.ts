@@ -88,7 +88,8 @@ export function createPotView(sharedFamily?: MaterialFamily) {
         if (key !== geometryKey) {
         const outerCount = (clay.radii.length - 1) * VISUAL_SUBDIVISIONS + 1;
         fillProfile(clay, points, outerCount);
-        {
+        // allocate only when the point count changes; positions, colours and indices are rewritten in place below
+        if (!mesh || mesh.geometry.parameters.points.length !== points.length) {
           const geometry = new LatheGeometry(points, segments);
           geometry.setAttribute('color', new Float32BufferAttribute(new Float32Array(geometry.getAttribute('position').count * 3), 3));
           if (!mesh) { mesh = new Mesh(geometry, material); mesh.name = 'BodyMesh'; mesh.castShadow = mesh.receiveShadow = true; group.add(mesh); }

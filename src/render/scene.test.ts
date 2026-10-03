@@ -73,6 +73,16 @@ it('20 percent pancake uses actual flat geometry without the rupture effect', ()
   view.dispose();
 });
 
+it('shaping updates the existing body geometry instead of allocating a new one each frame', () => {
+  const clay = createClay(), view = createPotView();
+  view.update(clay, null, 0);
+  const geometry = view.mesh!.geometry, before = Array.from(geometry.getAttribute('position').array);
+  for (let i = 0; i < 5; i++) { clay.radii[20] -= .01; clay.revision++; view.update(clay, null, i); }
+  expect(view.mesh!.geometry).toBe(geometry); // a per-frame LatheGeometry re-uploads every buffer and starves tracking
+  expect(Array.from(geometry.getAttribute('position').array)).not.toEqual(before); // ...yet the shape still follows the clay
+  view.dispose();
+});
+
 it('surface rotation reuses the mesh and leaves the actual clay dimensions untouched', () => {
   const clay = createClay(), view = createPotView(), radii = Array.from(clay.radii);
   view.update(clay, null, 0, 0);

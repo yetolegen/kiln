@@ -17,7 +17,8 @@ it('body replacement preserves the assembly, transforms and cached handle geomet
  const handle=handles.meshes.get('a')!,shared=handle.geometry,sharedDisposed=vi.fn();shared.addEventListener('dispose',sharedDisposed);
  expect(handles.meshes.get('b')!.geometry).toBe(shared);const transform=handle.matrix.clone();body.group.position.set(.1,.2,.3);
  clay.radii[20]-=.1;clay.revision++;body.update(clay,null,10,.4);decor.update(c,clay);
- expect(body.mesh).toBe(mesh);expect(mesh.geometry).not.toBe(old);expect(disposed).toHaveBeenCalledOnce();expect(sharedDisposed).not.toHaveBeenCalled();
+ // the body geometry is updated in place (a per-frame replacement re-uploaded every buffer and starved hand tracking)
+ expect(body.mesh).toBe(mesh);expect(mesh.geometry).toBe(old);expect(disposed).not.toHaveBeenCalled();expect(sharedDisposed).not.toHaveBeenCalled();
  expect(handles.meshes.get('a')).toBe(handle);expect(handle.matrix).toEqual(transform);expect(body.group.rotation.y).toBe(.4);expect(body.group.position.toArray()).toEqual([.1,.2,.3]);expect(decor.group.children[0]).toBe(attachment);
  const unchanged=mesh.geometry;body.update(clay,null,20,.4);expect(mesh.geometry).toBe(unchanged);
  const neutral={...clay,radii:clay.radii.slice(),damage:clay.damage.slice(),revision:clay.revision+1,wobble:.2};body.update(neutral,null,30,.4);expect(mesh.geometry).toBe(unchanged);
