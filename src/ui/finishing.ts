@@ -10,15 +10,18 @@ export function createFinishing(screens: ReturnType<typeof createScreens>, dispa
   let revision = -1, savedId: string | null = null, selectedId: string | null = null;
   let confirm: HTMLButtonElement | null = null;
   let jars: HTMLButtonElement[] = [];
+  let glazeStatus: HTMLElement | null = null;
   let saveStatus: 'saved' | 'memory' | 'duplicate' | 'invalid' = 'invalid';
   return {
     setTraining(active: boolean) { training = active; store = active ? createGalleryStore(() => { throw Error('isolated lesson shelf'); }) : personalStore; revision = -1; savedId = null; },
     update(snapshot: EngineSnapshot, enabled: boolean): void {
       if (snapshot.phase === 'result' && snapshot.result && snapshot.result.id !== savedId) { saveStatus = store.saveDetailed(snapshot.result); savedId = snapshot.result.id; }
       if (revision !== screens.contentRevision) {
-        revision = screens.contentRevision; confirm = null; jars = []; selectedId = null;
+        revision = screens.contentRevision; confirm = null; jars = []; selectedId = null; glazeStatus = null;
         if (!enabled) return;
         if (snapshot.phase === 'glaze') {
+          glazeStatus = document.createElement('p'); glazeStatus.className = 'glaze-status'; glazeStatus.setAttribute('role', 'status');
+          glazeStatus.textContent = snapshot.glazeId ? `Выбрана глазурь · ${GLAZES.find(g => g.id === snapshot.glazeId)?.name}` : 'Выберите глазурь · 8 оттенков'; screens.details.append(glazeStatus);
           const choices = document.createElement('div'); choices.className = 'glaze-choices'; screens.details.append(choices);
           let glazePage = Math.max(0, Math.floor(GLAZES.findIndex(g => g.id === snapshot.glazeId) / 3));
           const paging = document.createElement('nav'); paging.className = 'glaze-pages'; screens.details.append(paging);
@@ -70,6 +73,7 @@ export function createFinishing(screens: ReturnType<typeof createScreens>, dispa
       }
       if (snapshot.phase === 'glaze' && selectedId !== snapshot.glazeId) {
         selectedId = snapshot.glazeId;
+        if (glazeStatus) glazeStatus.textContent = `Выбрана глазурь · ${GLAZES.find(g => g.id === selectedId)?.name}`;
         for (const jar of jars) jar.setAttribute('aria-pressed', String(jar.dataset.glazeId === selectedId));
         if (confirm) confirm.disabled = !selectedId;
         screens.refreshTargets();

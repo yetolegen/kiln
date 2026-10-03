@@ -21,7 +21,7 @@ export async function createPublicViewer(root: HTMLElement, hash: string) {
     const main = document.createElement('main'); main.className = 'share-error';
     const h = document.createElement('h1'); h.textContent = 'Не удалось открыть сосуд';
     const p = document.createElement('p'); p.textContent = 'Ссылка повреждена, слишком велика или создана неизвестной версией KILN. Камера не включалась.';
-    const button = document.createElement('button'); button.textContent = 'В мастерскую'; button.onclick = goWorkshop;
+    const button = document.createElement('button'); button.className = 'start-button'; button.textContent = 'В мастерскую'; button.onclick = goWorkshop;
     main.append(h, p, button); root.replaceChildren(main); return () => main.remove();
   }
   const core = createController(), dwell = new DwellController(), orbit = new HandOrbit();
@@ -34,7 +34,8 @@ export async function createPublicViewer(root: HTMLElement, hash: string) {
   const header = document.createElement('header'); header.className = 'inspection__header';
   const title = document.createElement('h2'); title.textContent = 'KILN · сосуд по ссылке';
   const help = document.createElement('p'); help.textContent = 'Только просмотр · вращайте мышью или касанием. Камера выключена. Изделие не добавляется на вашу полку.';
-  header.append(title, help);
+  const mode = document.createElement('span'); mode.className = 'inspection__mode'; mode.textContent = 'Коллекция KILN · только просмотр';
+  header.append(mode, title, help);
   const actions = document.createElement('nav'); actions.className = 'inspection__actions';
   layer.append(surface, header, actions); screens.page.append(layer);
   let tracker: HandTracker | null = null, tracking: ReturnType<typeof connectTracking> | null = null;
@@ -67,7 +68,8 @@ export async function createPublicViewer(root: HTMLElement, hash: string) {
     screens.refreshTargets();
   }
   for (const [id, text] of [['closer', '+'], ['farther', '−'], ['top', 'Сверху'], ['bottom', 'Снизу'], ['reset', 'Сбросить вид']]) {
-    screens.addAction(`public-${id}`, text, () => { orbit.reset(); scene.inspectionView(id); }, actions);
+    const button = screens.addAction(`public-${id}`, text, () => { orbit.reset(); scene.inspectionView(id); }, actions);
+    button.setAttribute('aria-label', id === 'closer' ? 'Приблизить' : id === 'farther' ? 'Отдалить' : text);
   }
   screens.addAction('public-workshop', 'Создать свой сосуд', goWorkshop, actions);
   scene.setArtifact(artifact); scene.setSurface(glazeColor(artifact.glazeId), 1, 0); project(); scene.render(display(performance.now()), performance.now()); scene.setInspection(true, surface);

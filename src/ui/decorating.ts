@@ -6,13 +6,15 @@ import type { createScene } from '../render/scene';
 import type { createScreens } from './screens';
 import type { DwellController } from './dwell';
 import { HandOrbit } from './handOrbit';
+import { createProcess } from './process';
 
 type Tool = 'inspect' | 'place' | 'editAttachment' | 'stamp';
 export function createDecorating(screens: ReturnType<typeof createScreens>, scene: ReturnType<typeof createScene>, core: CoreController, dwell: DwellController, onExit: () => void) {
   const layer = document.createElement('section'); layer.className = 'decoration-editor'; layer.hidden = true;
   const surface = document.createElement('div'); surface.className = 'inspection__surface';
   const header = document.createElement('header'); header.className = 'inspection__header';
-  const title = document.createElement('h2'), help = document.createElement('p'); help.setAttribute('role', 'status'); header.append(title, help);
+  const process = createProcess(); process.update(1);
+  const title = document.createElement('h2'), help = document.createElement('p'); help.setAttribute('role', 'status'); header.append(process.element, title, help);
   const actions = document.createElement('nav'); actions.className = 'inspection__actions';
   layer.append(surface, header, actions); screens.page.append(layer);
   const orbit = new HandOrbit(); let active = false, tool: Tool = 'inspect', contentRevision = -1;
@@ -22,7 +24,7 @@ export function createDecorating(screens: ReturnType<typeof createScreens>, scen
   const label = (value: Attachment | Stamp) => ({ sphere: 'Комок', cylinder: 'Цилиндр', cone: 'Шип', star: 'Звезда', dots: 'Точки', wave: 'Волна' })[value.kind];
   function boundary() { orbit.reset(); dwell.requireRelease(); lastFrame = -1; lastEpoch = -1; }
   function warn(message: string) { help.textContent = message; if (issue !== message) editMistakes++; issue = message; }
-  function toolbar() { screens.removeActions('decor-'); actions.replaceChildren(); boundary(); }
+  function toolbar(mode = 'home') { screens.removeActions('decor-'); actions.replaceChildren(); layer.dataset.panel = mode; boundary(); }
   function button(id: string, text: string, run: () => void) { return screens.addAction(`decor-${id}`, text, run, actions); }
   let previewVisible = false;
   function clearPreview() { if (previewVisible) scene.previewDecoration(null); previewVisible = false; }
@@ -38,7 +40,7 @@ export function createDecorating(screens: ReturnType<typeof createScreens>, scen
     button('close', 'К глазури и обжигу', close); screens.refreshTargets();
   }
   function choose(stamp: boolean) {
-    toolbar(); title.textContent = stamp ? 'Выберите рисунок' : 'Выберите объёмную деталь';
+    toolbar('choose'); title.textContent = stamp ? 'Выберите рисунок' : 'Выберите объёмную деталь';
     help.textContent = stamp ? 'Штамп — рисунок на внешней стенке. Не отверстие и не гравировка. До 8 штампов.' : 'Накладная деталь из глины. До 6 деталей. После установки можно изменить размер и наклон.';
     const kinds = stamp ? ['star', 'dots', 'wave'] as const : ['sphere', 'cylinder', 'cone'] as const;
     for (const kind of kinds) {
@@ -53,9 +55,9 @@ export function createDecorating(screens: ReturnType<typeof createScreens>, scen
     button('cancel', 'Назад', home); screens.refreshTargets();
   }
   function place() {
-    if (!draft) return; tool = 'length' in draft ? 'place' : 'stamp'; placed = false; toolbar();
+    if (!draft) return; tool = 'length' in draft ? 'place' : 'stamp'; placed = false; toolbar('place');
     title.textContent = `${label(draft)} · размещение`;
-    help.textContent = `Ведите указательный палец по внешней стенке${'length' in draft ? ' или ободку' : ''}. На зелёном preview соедините большой и указательный на мгновение. Затем отпустите щипок и выберите «Применить».`;
+    help.textContent = `Наведите указательный палец на внешнюю стенку${'length' in draft ? ' или ободок' : ''}. Когда деталь станет зелёной, задержите щипок. Затем разомкните пальцы и выберите «Применить».`;
     button('cancel', 'Отмена', cancel); screens.refreshTargets();
   }
   const angle = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
@@ -68,8 +70,8 @@ export function createDecorating(screens: ReturnType<typeof createScreens>, scen
     draft = next; issue = ''; preview(); edit();
   }
   function edit() {
-    if (!draft) return; tool = 'editAttachment'; toolbar(); title.textContent = `${label(draft)} · изменение`;
-    help.textContent = 'Изменяйте размер кнопками, затем примените. «Отмена» сохраняет прежний вариант. Это игровые ограничения размеров, не расчёт прочности.';
+    if (!draft) return; tool = 'editAttachment'; toolbar('edit'); title.textContent = `${label(draft)} · изменение`;
+    help.textContent = 'Деталь выбрана. Настройте её кнопками и выберите «Применить». «Отмена» сохранит прежний вариант.';
     if ('length' in draft) {
       button('shorter', 'Длина −', () => change('length', -.04)); button('longer', 'Длина +', () => change('length', .04));
       button('narrower', 'Ширина −', () => change('width', -.04)); button('wider', 'Ширина +', () => change('width', .04));
@@ -97,11 +99,11 @@ export function createDecorating(screens: ReturnType<typeof createScreens>, scen
     commit(next); cancel();
   }
   function list(page: number) {
-    toolbar(); title.textContent = 'Мои детали и штампы'; help.textContent = 'Выберите элемент. Изменения сохранятся только после «Применить».';
+    toolbar('list'); title.textContent = 'Мои детали и штампы'; help.textContent = 'Выберите элемент. Изменения сохранятся только после «Применить».';
     const items = [...data.attachments, ...data.stamps];
     items.slice(page * 3, page * 3 + 3).forEach((value, i) => button(`select-${i}`, `${page * 3 + i + 1}. ${label(value)}`, () => { draft = structuredClone(value); originalId = value.id; placed = true; preview(); edit(); }));
-    const back = button('previous', '←', () => list(page - 1)); back.disabled = page === 0;
-    const next = button('next', '→', () => list(page + 1)); next.disabled = (page + 1) * 3 >= items.length;
+    const back = button('previous', '← Назад', () => list(page - 1)); back.disabled = page === 0;
+    const next = button('next', 'Дальше →', () => list(page + 1)); next.disabled = (page + 1) * 3 >= items.length;
     button('cancel', 'К оформлению', home); screens.refreshTargets();
   }
   function close() {
@@ -154,7 +156,7 @@ export function createDecorating(screens: ReturnType<typeof createScreens>, scen
       if (!hit || !anchorOnBody(hit, next.clay, 'size' in draft ? draft.size : 0)) { clearPreview(); help.textContent = 'Наведите палец на видимую внешнюю стенку, дальше от края и дна. Внутри сосуда и на круге разместить нельзя.'; return; }
       const changed = Math.hypot(hit.point.x - draft.anchor.point.x, hit.point.y - draft.anchor.point.y, hit.point.z - draft.anchor.point.z) > .002;
       draft = { ...draft, anchor: hit }; if (changed || !previewVisible) preview();
-      help.textContent = 'Место подходит. Соедините большой и указательный и задержите щипок, чтобы закрепить preview.';
+      help.textContent = 'Место подходит. Соедините большой и указательный и задержите щипок, чтобы закрепить деталь.';
       if (!orbit.canGrab(h.trackId) && orbit.state === 'idle') help.textContent = 'Разомкните большой и указательный пальцы, затем снова соедините их. После паузы отслеживания нужен новый захват.';
       if (orbit.state === 'dragging') { placed = true; preview(); edit(); }
     },

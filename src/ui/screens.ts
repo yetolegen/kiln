@@ -4,6 +4,7 @@ import type { DwellRegion } from './dwell';
 import { CONFIG } from '../config';
 import { SculptingLock, isDestroyed } from './sculptingLock';
 import { actionIcon } from './icons';
+import { createProcess } from './process';
 
 /** Buttons that end or leave the current shaping session: locked while sculpting, slower to dwell. */
 const SESSION_ACTIONS = ['done', 'restart', 'menu', 'inspect'];
@@ -65,7 +66,8 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
   actions.setAttribute('aria-label', 'Действия');
   const details = document.createElement('section');
   details.className = 'phase-details';
-  content.append(mark, title, description, status, progress, start, actions, details);
+  const process = createProcess(); process.update(-1);
+  content.append(mark, process.element, title, description, status, progress, start, actions, details);
 
   const footer = document.createElement('footer');
   footer.textContent = ru.footer;
@@ -96,8 +98,16 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
     for (const entry of entries) {
       if (!eligible(entry.id, entry.element)) continue;
       const rect = entry.element.getBoundingClientRect();
+      let left = Math.max(0, rect.left), top = Math.max(0, rect.top), right = Math.min(innerWidth, rect.right), bottom = Math.min(innerHeight, rect.bottom);
+      // Scrollable dialogs/toolbars expose only the visible portion of each target.
+      for (let parent = entry.element.parentElement; parent; parent = parent.parentElement) {
+        const style = getComputedStyle(parent), bounds = parent.getBoundingClientRect();
+        if (/auto|scroll|hidden|clip/.test(style.overflowX)) { left = Math.max(left, bounds.left); right = Math.min(right, bounds.right); }
+        if (/auto|scroll|hidden|clip/.test(style.overflowY)) { top = Math.max(top, bounds.top); bottom = Math.min(bottom, bounds.bottom); }
+      }
+      if (right <= left || bottom <= top) continue;
       const slow = SESSION_ACTIONS.includes(entry.id) && (lastPhase === 'studio' || lastPhase === 'tutorial');
-      targets.push({ id: entry.id, x: rect.x, y: rect.y, width: rect.width, height: rect.height, ...(slow ? { dwellMs: CONFIG.DWELL_CONFIRM_MS } : {}) });
+      targets.push({ id: entry.id, x: left, y: top, width: right - left, height: bottom - top, ...(slow ? { dwellMs: CONFIG.DWELL_CONFIRM_MS } : {}) });
     }
   }
   function addAction(id: string, label: string, run: () => void, parent: HTMLElement = actions): HTMLButtonElement {
@@ -167,13 +177,14 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
   page.addEventListener('transitionend', transition);
   layout.observe(content);
   window.addEventListener('resize', refreshTargets);
-  window.addEventListener('scroll', refreshTargets, { passive: true });
+  // Capture nested panel scrolling too: hand regions must follow visible buttons.
+  window.addEventListener('scroll', refreshTargets, { passive: true, capture: true });
   return {
     video, viewport, page, details, actions, addAction, refreshTargets,
     get controlsLocked() { return controlsLocked; },
     get actionScope() { return actionScope; },
     setActionScope(scope: string | null): void {
-      actionScope = scope; screenRevision++; refreshTargets();
+      actionScope = scope; page.dataset.actionScope = scope ?? ''; screenRevision++; refreshTargets();
     },
     removeActions(prefix: string): void {
       for (let i = entries.length - 1; i >= 0; i--) if (entries[i].id.startsWith(prefix)) { entries[i].element.remove(); entries.splice(i, 1); }
@@ -211,6 +222,7 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
       if (snapshot.phase !== lastPhase || snapshot.mode !== lastMode || state.busy !== lastBusy || state.cameraActive !== lastActive || state.error !== lastError) {
         lastPhase = snapshot.phase; lastMode = snapshot.mode; lastBusy = state.busy; lastActive = state.cameraActive; lastError = state.error;
         page.dataset.phase = snapshot.phase;
+        process.update(snapshot.phase === 'glaze' ? 2 : snapshot.phase === 'firing' ? 3 : snapshot.phase === 'result' ? 4 : -1);
         page.classList.toggle('workshop--camera', state.cameraActive);
         page.classList.toggle('workshop--error', state.error !== null);
         start.hidden = state.cameraActive && !state.error;
@@ -222,6 +234,7 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
           status.textContent = '';
         } else {
           [title.textContent, description.textContent] = phaseText[snapshot.phase];
+          if (snapshot.phase === 'glaze') { title.textContent = 'Форма готова'; description.textContent = 'Добавьте детали по желанию, выберите глазурь и отправьте сосуд в печь.'; }
           if (snapshot.phase === 'studio') title.textContent = snapshot.mode === 'commission' ? 'Создаём вазу' : 'Свободная форма';
           status.textContent = state.busy ? ru.requesting : snapshot.phase === 'loading' ? ru.loading : '';
         }
@@ -235,6 +248,6 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
         if (tracking !== lastTracking) { status.textContent = ru.tracking[tracking]; lastTracking = tracking; }
       }
     },
-    destroy(): void { layout.disconnect(); page.removeEventListener('transitionend', transition); window.removeEventListener('resize', refreshTargets); window.removeEventListener('scroll', refreshTargets); start.removeEventListener('click', onStart); page.remove(); },
+    destroy(): void { layout.disconnect(); page.removeEventListener('transitionend', transition); window.removeEventListener('resize', refreshTargets); window.removeEventListener('scroll', refreshTargets, true); start.removeEventListener('click', onStart); page.remove(); },
   };
 }

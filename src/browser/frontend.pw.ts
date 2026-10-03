@@ -46,7 +46,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         } else if (screen === 'damage') {
           await page.locator('[data-action="free"]').click(); await page.mouse.move(0, 0);
           await page.keyboard.press('b');
-          const dialog = page.getByRole('dialog', { name: 'Глина испортилась, начните заново' });
+          const dialog = page.getByRole('dialog', { name: 'Дно пробито' });
           await expect(dialog).toBeVisible(); await expect(dialog).toContainText('Дно пробито');
         } else if (screen === 'glaze' || screen === 'decoration') {
           await page.keyboard.press('6'); await expect(page.locator('.glaze-jar')).toHaveCount(3);

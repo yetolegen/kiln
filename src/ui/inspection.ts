@@ -11,11 +11,14 @@ export function createInspection(screens: ReturnType<typeof createScreens>, scen
   const layer = document.createElement('section'); layer.className = 'inspection'; layer.hidden = true;
   layer.setAttribute('role', 'dialog'); layer.setAttribute('aria-modal', 'true'); layer.setAttribute('aria-labelledby', 'inspection-title');
   const surface = document.createElement('div'); surface.className = 'inspection__surface'; surface.tabIndex = 0;
+  surface.setAttribute('role', 'region');
   surface.setAttribute('aria-label', 'Вращение сосуда: перетаскивайте мышью или пальцем. Стрелки — поворот, плюс и минус — масштаб.');
   const header = document.createElement('header'); header.className = 'inspection__header';
   const title = document.createElement('h2'); title.id = 'inspection-title'; title.textContent = 'Форма со всех сторон';
   const help = document.createElement('p'); help.textContent = 'Раскройте пальцы, соедините большой и указательный вдали от кнопок и ведите руку для вращения. Разомкните щипок, чтобы отпустить. Мышь и касание тоже работают.';
-  header.append(title, help);
+  const mode = document.createElement('span'); mode.className = 'inspection__mode'; mode.textContent = 'Свободное вращение · лепка на паузе';
+  const motion = document.createElement('p'); motion.className = 'inspection__motion'; motion.textContent = 'Щипок → движение руки → поворот сосуда';
+  header.append(mode, title, motion, help);
   const actions = document.createElement('nav'); actions.className = 'inspection__actions'; actions.setAttribute('aria-label', 'Осмотр сосуда');
   layer.append(surface, header, actions); screens.page.append(layer);
   let active = false, phase: EngineSnapshot['phase'] | null = null;
@@ -26,7 +29,7 @@ export function createInspection(screens: ReturnType<typeof createScreens>, scen
     screens.page.querySelector<HTMLButtonElement>('[data-action="inspect"]')?.focus({ preventScroll: true });
   };
   const keyboard = (event: KeyboardEvent) => {
-    if (!active) return;
+    if (!active || (screens.actionScope && screens.actionScope !== 'view-')) return;
     const action = ({ ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down', '+': 'closer', '=': 'closer', '-': 'farther', '0': 'reset' } as Record<string, string>)[event.key];
     if (action || event.key === 'Escape') {
       event.preventDefault(); event.stopImmediatePropagation();
@@ -55,6 +58,7 @@ export function createInspection(screens: ReturnType<typeof createScreens>, scen
       orbit.reset(); inputBoundary(); scene.setArtifact(result ? artifactFromResult(result) : null);
       if (result) shelfViews++;
       title.textContent = result ? 'Сосуд с полки · только просмотр' : 'Форма со всех сторон';
+      mode.textContent = result ? 'Коллекция · только просмотр' : 'Свободное вращение · лепка на паузе';
       screens.setInspection(true); scene.setInspection(true, surface);
       for (const [action, label] of [['left', '←'], ['right', '→'], ['up', '↑'], ['down', '↓'], ['top', 'Сверху'], ['bottom', 'Снизу'], ['closer', '+'], ['farther', '−'], ['reset', 'Сбросить вид']]) {
         const button = screens.addAction(`view-${action}`, label, () => scene.inspectionView(action), actions);
@@ -79,6 +83,8 @@ export function createInspection(screens: ReturnType<typeof createScreens>, scen
         if (wasGrabbing && orbit.state === 'idle') inputBoundary();
         scene.setPointerOrbit(orbit.state === 'idle');
         layer.dataset.grab = orbit.state;
+        const motionText = orbit.state === 'dragging' ? 'Рука вращает сосуд · разомкните пальцы, чтобы отпустить' : orbit.state === 'armed' ? 'Задержите щипок на мгновение' : 'Щипок → движение руки → поворот сосуда';
+        if (motion.textContent !== motionText) motion.textContent = motionText;
         if (!scene.supportsInspection) {
           help.textContent = '3D-графика недоступна. Форма сохранена; показан плоский силуэт. Для вращения обновите страницу после восстановления WebGL.';
           for (const button of actions.querySelectorAll<HTMLButtonElement>('button')) if (!['view-close', 'view-share'].includes(button.dataset.action!)) button.disabled = true;

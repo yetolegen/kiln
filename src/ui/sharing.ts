@@ -3,6 +3,7 @@ import { artifactFromResult } from '../engine/artifact';
 import type { SessionResult } from '../types';
 import type { createScreens } from './screens';
 import type { DwellController } from './dwell';
+import { createDialogFocus } from './dialogFocus';
 
 export function createSharing(screens: ReturnType<typeof createScreens>, dwell: DwellController) {
   const layer = document.createElement('section'); layer.className = 'work-modal share-panel'; layer.hidden = true;
@@ -12,15 +13,16 @@ export function createSharing(screens: ReturnType<typeof createScreens>, dwell: 
   const status = document.createElement('p'); status.setAttribute('role', 'status');
   const link = document.createElement('a'); link.className = 'share-url'; link.target = '_blank'; link.rel = 'noopener';
   const actions = document.createElement('nav'); card.append(title, status, link, actions); layer.append(card); screens.page.append(layer);
+  const focus = createDialogFocus(layer);
   let generation = 0, previousScope: string | null = null;
   let completedLinks = 0;
-  const message = (text: string) => { status.textContent = text; screens.refreshTargets(); };
-  const close = () => { generation++; layer.hidden = true; screens.removeActions('share-'); screens.setActionScope(previousScope); dwell.requireRelease(); };
+  const message = (text: string) => { status.textContent = text; screens.refreshTargets(); dwell.requireRelease(); };
+  const close = () => { generation++; layer.hidden = true; focus.leave(); screens.removeActions('share-'); screens.setActionScope(previousScope); dwell.requireRelease(); };
   return {
     async open(result: SessionResult) {
       const request = ++generation; previousScope = screens.actionScope; layer.hidden = false; link.textContent = ''; link.removeAttribute('href');
       screens.removeActions('share-'); status.textContent = 'Готовим ссылку…'; screens.setActionScope('share-'); dwell.requireRelease();
-      screens.addAction('share-close', 'Вернуться', close, actions); screens.refreshTargets();
+      screens.addAction('share-close', 'Вернуться', close, actions); focus.enter(); screens.refreshTargets();
       try {
         const hash = await encodeShare(artifactFromResult(result)); if (request !== generation) return;
         completedLinks++;
@@ -31,6 +33,8 @@ export function createSharing(screens: ReturnType<typeof createScreens>, dwell: 
           if (!navigator.clipboard) message('Копирование недоступно. Полная ссылка доступна ниже.');
         }, actions);
         screens.refreshTargets();
+        // Async content moves the controls. Resting hands must leave the new targets first.
+        dwell.requireRelease();
       } catch (error) { if (request === generation) status.textContent = error instanceof Error ? error.message : 'Не удалось создать ссылку. Изделие сохранено на полке.'; }
     },
     get active() { return !layer.hidden; }, close,
