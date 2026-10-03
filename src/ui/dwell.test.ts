@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest';
 import { DwellController } from './dwell';
+import { CONFIG } from '../config';
 import { MockCore } from '../dev/mockCore';
 import { cameraProjection } from '../browser/camera';
 import type { FrameInput } from '../types';
@@ -75,6 +76,17 @@ it('resets accumulated progress on stale input, loss, epoch, and screen change',
   for (let t = 2200; t <= 2600; t += 100) f.update(t);
   f.dwell.update(f.core.tick(2700), 2700, f.targets, 1);
   expect(f.dwell.progress).toBe(0);
+});
+
+it('a slow frame keeps a held dwell, crediting at most one freshness window', () => {
+  // slow devices: frames arrive >MAX_INPUT_AGE_MS apart while the palm never leaves; each frame is itself fresh
+  const f = fixture(); let fires = 0;
+  for (let t = 0; t <= 300; t += 100) if (f.update(t)) fires++;
+  const held = f.dwell.progress; expect(held).toBeGreaterThan(0);
+  if (f.update(800)) fires++; // 500ms hitch: progress kept, credited 200ms not 500ms
+  expect(f.dwell.progress).toBeCloseTo(held + CONFIG.MAX_INPUT_AGE_MS / CONFIG.DWELL_MS, 5);
+  for (let t = 1000; t <= 3000; t += 200) if (f.update(t)) fires++; // a steady 5 fps still completes, once
+  expect(fires).toBe(1);
 });
 
 it.each([1, 3])('uses palm track %i over a button without any pointing gesture', (track) => {

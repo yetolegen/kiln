@@ -159,6 +159,7 @@ export const CONFIG = {
   HINT_TTL_MS: 4000,
   TARGET_HINT_INTERVAL_MS: 3000,
   FIRING_MS: 4000,
+  LESSON_DONE_MODAL_DELAY_MS: 2500, // let the learner see the finished result before the "lesson complete" dialog
 
   // score
   HEIGHT_SCORE_WEIGHT: 0.35,

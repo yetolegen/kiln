@@ -21,6 +21,16 @@ it.each([1, 2])('continuously rotates with track %i, suppresses repeats, and req
   feed(.2, 650, id + 10); expect(orbit.state).toBe('idle');
 });
 
+it('a slow frame ends a grab but keeps the open-hand release, so slow devices can still pinch', () => {
+  const orbit = new HandOrbit(); let now = 1000;
+  const feed = (pinch: number, step = 33) => { now += step; return orbit.update(frame(now, hand(0, .6, { pinchRatio: pinch, indexTipPx: { x: 500, y: 300 }, palmPx: { x: 500, y: 320 } }), null), now, [], 1000, 800); };
+  feed(.7); feed(.7, 300); // fingers seen open, then a 300ms render hitch
+  feed(.2, 150); feed(.2, 150); feed(.2, 150);
+  expect(orbit.state).toBe('dragging');
+  feed(.2, 300); expect(orbit.state).toBe('idle'); // a hitch mid-drag still ends the drag (no jump)
+  feed(.2, 150); feed(.2, 150); feed(.2, 150); expect(orbit.state).toBe('dragging'); // re-pinch without re-opening
+});
+
 it('rejects UI grabs, stale frames, jumps and mode resets', () => {
   const orbit = new HandOrbit(); let now = 1000;
   const regions = [{ id: 'button', x: 450, y: 250, width: 100, height: 150 }];

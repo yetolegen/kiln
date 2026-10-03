@@ -24,7 +24,13 @@ export class HandOrbit {
     if (input.frameId <= this.frame) return null;
     this.frame = input.frameId;
     const gap = input.tMs - this.time; this.time = input.tMs;
-    if (gap <= 0 || (Number.isFinite(gap) && gap > CONFIG.MAX_INPUT_AGE_MS)) { this.reset(); this.reason = `gap ${gap}`; return null; }
+    if (gap <= 0) { this.reset(); this.reason = `gap ${gap}`; return null; }
+    // a long gap between fresh frames is a render hitch (stale input and loss reset above): end any grab so it can't
+    // jump, but keep which tracked hands were seen open, or a slow device can never start a pinch
+    if (Number.isFinite(gap) && gap > CONFIG.MAX_INPUT_AGE_MS) {
+      const released = new Set(this.released); // copy: reset() clears the set in place
+      this.reset(); this.released = released; this.time = input.tMs; this.reason = `gap ${gap}`; return null;
+    }
     const hands = [input.screenLeft, input.screenRight].filter(h => h !== null);
     const overUI = (p: Vec2) => targets.some(r => p.x >= r.x && p.x <= r.x + r.width && p.y >= r.y && p.y <= r.y + r.height);
     for (const h of hands) if (h.pinchRatio >= .5) this.released.add(h.trackId);

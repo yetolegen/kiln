@@ -4,12 +4,14 @@ import type { createScreens } from './screens';
 import type { createModal } from './modal';
 import type { DwellController } from './dwell';
 import { isDestroyed } from './sculptingLock';
+import { CONFIG } from '../config';
 
 export function createRecovery(screens: ReturnType<typeof createScreens>, core: CoreController,
     modal: ReturnType<typeof createModal>, dwell: DwellController) {
   const personalStore = createCheckpointStore();
   let store = personalStore, savedCount = 0, restoredCount = 0;
   let revision = -1, terminalKey = '', completionKey = '';
+  let completedAt: number | null = null, trainingRestart: (() => void) | null = null;
   let save: HTMLButtonElement | null = null, restore: HTMLButtonElement | null = null;
   let restoreNotice: string | null = null;
   let last: EngineSnapshot | null = null; // the latest frame's snapshot; ticking the core here would drop its queued events
@@ -51,7 +53,9 @@ export function createRecovery(screens: ReturnType<typeof createScreens>, core: 
   }
   return {
     get savedCount() { return savedCount; }, get restoredCount() { return restoredCount; },
-    setTraining(active: boolean) {
+    /** restart: how "Начать сначала" re-prepares a training pot; a plain core restart would use default clay */
+    setTraining(active: boolean, restart?: () => void) {
+      trainingRestart = active ? restart ?? null : null;
       store = active ? createCheckpointStore(() => { throw Error('isolated lesson memory'); }) : personalStore;
       revision = -1; screens.removeActions('checkpoint-');
     },
@@ -83,14 +87,17 @@ export function createRecovery(screens: ReturnType<typeof createScreens>, core: 
           const correction = cause === 'bottomHole' ? 'Вводите палец медленно, до безопасной отметки.' : cause === 'wallTorn' ? 'Остановите раскрытие раньше, сохраняя толщину стенок.' : 'Остановите давление, когда край достигнет нужной высоты.';
           modal.show('damage', heading, explanation, [
             { id: 'restore', label: 'Восстановить точку', run: restoreNow, disabled: !store.available || snapshot.phase === 'tutorial', reason: snapshot.phase === 'tutorial' ? 'Этот урок повторяется с первого шага; личная точка сохраняется отдельно.' : !store.available ? 'Сначала сохраните точку на целой форме.' : undefined },
-            { id: 'restart', label: 'Начать сначала', run: () => core.dispatch({ type: 'restart', newSessionId: crypto.randomUUID() }, performance.now()) },
+            { id: 'restart', label: 'Начать сначала', run: trainingRestart ?? (() => core.dispatch({ type: 'restart', newSessionId: crypto.randomUUID() }, performance.now())) },
             { id: 'menu', label: 'В мастерскую', run: () => core.dispatch({ type: 'backToMenu' }, performance.now()) },
           ], correction);
         }
       } else if (!isDestroyed(snapshot)) terminalKey = '';
-      if (lessonCompleted && snapshot.phase === 'tutorial' && completionKey !== snapshot.stats?.sessionId && !modal.active) {
+      const fresh = lessonCompleted && snapshot.phase === 'tutorial' && completionKey !== snapshot.stats?.sessionId;
+      completedAt = fresh ? completedAt ?? performance.now() : null;
+      if (fresh && !modal.active && performance.now() - completedAt! >= CONFIG.LESSON_DONE_MODAL_DELAY_MS) {
         completionKey = snapshot.stats?.sessionId ?? '';
         modal.show('lesson-complete', 'Вы справились с обучением!', 'Вы создали форму по образцу. Теперь можно сделать собственный сосуд. Выберите продолжение ладонью.', [
+          { id: 'stay', label: 'Продолжить здесь', run: () => {} },
           { id: 'menu', label: 'В мастерскую', run: () => core.dispatch({ type: 'backToMenu' }, performance.now()) },
         ]);
       }

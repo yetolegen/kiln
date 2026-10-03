@@ -15,10 +15,11 @@ export function createModal(screens: ReturnType<typeof createScreens>, core: Cor
   const actions = document.createElement('nav'); actions.setAttribute('aria-label', 'Продолжить работу');
   card.append(eyebrow, title, text, correction, actions); layer.append(card); screens.page.append(layer);
   const focus = createDialogFocus(layer);
-  let key: string | null = null;
+  let key: string | null = null, previousScope: string | null = null;
   const close = () => {
     if (!key) return;
-    key = null; layer.hidden = true; focus.leave(); screens.removeActions('modal-'); screens.setActionScope(null);
+    // restore the scope the modal interrupted (e.g. the decoration editor's 'decor-'), not null
+    key = null; layer.hidden = true; focus.leave(); screens.removeActions('modal-'); screens.setActionScope(previousScope);
     core.setPaused(false, performance.now()); dwell.requireRelease();
   };
   return {
@@ -26,6 +27,7 @@ export function createModal(screens: ReturnType<typeof createScreens>, core: Cor
     get key() { return key; }, close,
     show(id: string, heading: string, message: string, choices: ModalChoice[], advice = ''): void {
       if (key === id) return;
+      if (!key) previousScope = screens.actionScope;
       screens.removeActions('modal-'); actions.replaceChildren(); key = id;
       layer.hidden = false; title.textContent = heading; text.textContent = message;
       layer.dataset.kind = id;

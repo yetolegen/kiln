@@ -32,6 +32,9 @@ test('V9 workshop artwork, parchment lesson and damage restart stay readable', a
   }
   for (const viewport of [{ width: 800, height: 900 }, { width: 390, height: 844 }, { width: 844, height: 390 }]) {
     await page.setViewportSize(viewport); await page.keyboard.press('n');
+    // boundingBox() does not wait, and the hint is visibility:hidden under the damage modal, so wait for layout, not visibility
+    await expect(page.locator('[data-action="modal-restart"]')).toBeVisible();
+    await expect.poll(() => page.locator('.hud__hint').boundingBox()).not.toBeNull();
     const banner = (await page.locator('.hud__hint').boundingBox())!;
     expect(banner.x).toBeGreaterThanOrEqual(0); expect(banner.y).toBeGreaterThanOrEqual(0);
     expect(banner.x + banner.width).toBeLessThanOrEqual(viewport.width);

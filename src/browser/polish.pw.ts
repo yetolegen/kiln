@@ -39,7 +39,8 @@ for (const viewport of [{width:1440,height:900},{width:1366,height:768},{width:3
     await reachable(page); await page.locator('[data-action="decor-add"]').click();
     await reachable(page); await page.screenshot({path:info.outputPath('decoration.png')});
     await page.locator('[data-action="decor-sphere"]').click();
-    await page.mouse.move(viewport.width/2, viewport.height/2); await page.waitForTimeout(650); await page.keyboard.press('q');
+    // wait for the preview to land on the wall, not a fixed time: slow renderers need more frames
+    await page.mouse.move(viewport.width/2, viewport.height/2); await expect(page.locator('.decoration-editor')).toContainText('Место подходит'); await page.keyboard.press('q');
     await expect(page.locator('.decoration-editor h2')).toContainText('изменение'); await page.keyboard.press('q'); await page.mouse.move(0,0);
     await reachable(page); await page.screenshot({path:info.outputPath('decoration-edit.png')});
     await page.locator('[data-action="decor-cancel"]').click(); await page.locator('[data-action="decor-close"]').click();

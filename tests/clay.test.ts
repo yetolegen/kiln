@@ -9,13 +9,10 @@ import { actionGesture, rng, shapeGesture } from './helpers';
 const EPS = 1e-6; // radii are Float32, so 1.6 is stored as 1.6000000238
 
 export function expectInvariants(c: ClayState) {
-  for (let i = 0; i < c.radii.length; i++) {
-    expect(Number.isFinite(c.radii[i])).toBe(true);
-    expect(c.radii[i]).toBeGreaterThanOrEqual(CONFIG.MIN_R - EPS);
-    expect(c.radii[i]).toBeLessThanOrEqual(CONFIG.MAX_R + EPS);
-    expect(c.damage[i]).toBeGreaterThanOrEqual(0);
-    expect(c.damage[i]).toBeLessThanOrEqual(1);
-  }
+  // one assertion per array, not per band: per-band expect() made T11 (1000 steps) time out under load
+  const badBands = Array.from(c.radii, (r, i) => ({ i, r, d: c.damage[i] })).filter(({ r, d }) =>
+    !Number.isFinite(r) || r < CONFIG.MIN_R - EPS || r > CONFIG.MAX_R + EPS || !(d >= 0 && d <= 1));
+  expect(badBands).toEqual([]);
   expect(c.height).toBeGreaterThanOrEqual(CONFIG.MIN_HEIGHT);
   expect(c.height).toBeLessThanOrEqual(CONFIG.MAX_HEIGHT);
   expect(c.wobble).toBeGreaterThanOrEqual(0);

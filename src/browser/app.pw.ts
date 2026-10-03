@@ -208,9 +208,12 @@ test('B7 tutorial validates geometry for all actions and requires release', asyn
   await page.screenshot({ path: 'test-results/v6-wall-section.png' });
   await page.keyboard.press('d');
   await expect(lesson).toHaveAttribute('data-state', 'completed');
+  // The fixed support palm overlaps dialog choices in landscape; keep only
+  // the controlled palm after the two-hand lesson action has been accepted.
+  await page.keyboard.press('j'); await page.keyboard.press('h'); await page.mouse.move(0, 0);
   await expect(lesson).toHaveAttribute('data-step', '6');
   await expect(page.locator('h1')).toHaveText('Обучение окончено');
-  await expect(page.locator('.work-modal:not(.share-panel)')).toContainText('Вы справились с обучением');
+  await expect(page.locator('.work-modal:not(.share-panel)')).toContainText('Вы справились с обучением', { timeout: 10_000 });
   await page.keyboard.press('x');
   await expect(page.locator('.work-modal:not(.share-panel)')).toContainText('Вы справились с обучением');
   await page.keyboard.press('x');

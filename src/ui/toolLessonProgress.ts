@@ -7,20 +7,28 @@ export interface ToolFacts {
 export class ToolLessonProgress {
   private saved = false;
   private damaged = false;
+  private restoredAtDamage = 0;
   private added = false;
+  private restoredAtAdd = 0;
   complete = false;
   constructor(readonly lesson: ToolLesson, private baseline: ToolFacts) {}
   update(f: ToolFacts): string {
     if (this.complete) return 'Урок выполнен.';
     if (this.lesson === 'recovery') {
       this.saved ||= f.saved > this.baseline.saved;
-      this.damaged ||= this.saved && f.damaged;
-      this.complete = this.damaged && !f.damaged && f.restored > this.baseline.restored;
+      if (this.saved && f.damaged) {
+        this.damaged = true;
+        this.restoredAtDamage = f.restored;
+      }
+      this.complete = this.damaged && !f.damaged && f.restored > this.restoredAtDamage;
       return !this.saved ? 'Сначала выберите «Сохранить точку».' : !this.damaged ? 'Учебный пример: намеренно сплющите глину до лепёшки. Пределы и последствия настоящие.' : !this.complete ? 'В центральном сообщении выберите «Восстановить точку».' : 'Геометрия восстановлена. Ошибки остались в истории этой учебной попытки.';
     }
     if (this.lesson === 'rotation') { this.complete = f.handRotation - this.baseline.handRotation >= .12; return 'Выберите «Осмотреть в 3D». Раскройте пальцы, соедините большой и указательный и плавно проведите рукой. Разомкните щипок для отпускания.'; }
     if (this.lesson === 'attachment') {
-      this.added ||= f.attachments > 0; this.complete = this.added && f.attachments === 0;
+      // a checkpoint restore also empties the list: only a removal without a restore since the add counts as delete
+      if (f.attachments > 0) { this.added = true; this.restoredAtAdd = f.restored; }
+      this.complete = this.added && f.attachments === 0 && f.restored === this.restoredAtAdd;
+      if (this.added && f.restored !== this.restoredAtAdd) this.added = false;
       return !this.added ? 'Выберите «Детали и штампы» → «Добавить деталь». Укажите место на стенке, соедините пальцы и примените.' : 'Откройте «Мои детали и штампы», выберите вашу деталь и удалите её. Только выбранный элемент будет удалён.';
     }
     if (this.lesson === 'stamp') { this.complete = f.stamps > 0 && f.glazed; return !f.stamps ? 'В оформлении добавьте любой штамп и примените. Рисунок остаётся на поверхности при вращении.' : 'Вернитесь «К глазури и обжигу» и выберите цвет глазури. Страницы цветов переключаются ладонью.'; }

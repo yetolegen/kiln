@@ -76,8 +76,10 @@ export class DwellController {
     if (input.frameId === this.frameId) return null;
     const dt = input.tMs - this.capturedAt;
     this.frameId = input.frameId; this.capturedAt = input.tMs;
-    if (dt <= 0 || dt > CONFIG.MAX_INPUT_AGE_MS) { this.elapsed = 0; this.progress = 0; return null; }
-    this.elapsed += dt;
+    if (dt <= 0) return null;
+    // a long gap between two fresh frames on the same target is a render hitch, not a lost palm (stale input and loss
+    // reset above): credit at most one freshness window, so slow devices still finish a dwell but a gap can't skip it
+    this.elapsed += Math.min(dt, CONFIG.MAX_INPUT_AGE_MS);
     this.progress = Math.min(1, this.elapsed / (target.dwellMs ?? CONFIG.DWELL_MS));
     if (this.progress < 1 || this.fired) return null;
     this.fired = true;

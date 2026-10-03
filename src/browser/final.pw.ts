@@ -42,7 +42,7 @@ test('M6 recovery lesson keeps personal checkpoint and shelf isolated and requir
   await expect(page.locator('.checkpoint-status')).toContainText('до закрытия страницы');
   await page.mouse.move(0, 0); await page.keyboard.press('n'); await expect(page.locator('.work-modal:not(.share-panel)')).toContainText('Сосуд сплющен');
   await page.mouse.move(0, 0); await page.waitForTimeout(350); await page.locator('[data-action="modal-restore"]').hover();
-  await expect(page.locator('.work-modal:not(.share-panel)')).toContainText('Вы справились с обучением');
+  await expect(page.locator('.work-modal:not(.share-panel)')).toContainText('Вы справились с обучением', { timeout: 10_000 });
   expect(await page.evaluate(() => localStorage.getItem('kiln.checkpoint.v1'))).toBe(personal);
   expect(await page.evaluate(() => localStorage.getItem('kiln.gallery.v1'))).toBeNull();
   await page.screenshot({ path: 'test-results/final-m6-lesson.png' });
@@ -67,10 +67,13 @@ test('M5 share opens a separate camera-free viewer; denial and invalid links lea
   recipient.on('request', r => { if (/handTracker|hand_landmarker|mediapipe/.test(r.url())) models.push(r.url()); });
   await recipient.addInitScript(() => {
     (window as typeof window & { cameraCalls: number }).cameraCalls = 0;
-    navigator.mediaDevices.getUserMedia = async () => { (window as typeof window & { cameraCalls: number }).cameraCalls++; throw new DOMException('denied', 'NotAllowedError'); };
+    // Windows WebKit may not expose mediaDevices: install the probe without assuming the API exists
+    const media = navigator.mediaDevices ?? {};
+    Object.defineProperty(media, 'getUserMedia', { configurable: true, value: async () => { (window as typeof window & { cameraCalls: number }).cameraCalls++; throw new DOMException('denied', 'NotAllowedError'); } });
+    if (!navigator.mediaDevices) Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: media });
   });
   await recipient.goto(url!);
-  await expect(recipient.locator('.public-viewer')).toContainText('Камера выключена');
+  await expect(recipient.locator('.public-viewer')).toContainText('Камера выключена', { timeout: 15000 }); // cold viewer load, as below
   expect(await recipient.evaluate(() => localStorage.getItem('kiln.gallery.v1'))).toBeNull();
   expect(models).toEqual([]); expect(await recipient.evaluate(() => (window as typeof window & { cameraCalls: number }).cameraCalls)).toBe(0);
   const view = recipient.getByTestId('pot-canvas'); await expect(view).toHaveAttribute('data-view', /,/);

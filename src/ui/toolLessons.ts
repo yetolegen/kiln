@@ -8,6 +8,7 @@ import type { createSharing } from './sharing';
 import { ToolLessonProgress, type ToolFacts, type ToolLesson } from './toolLessonProgress';
 import { createClay, enforceInvariants } from '../engine/clay';
 import { isDestroyed } from './sculptingLock';
+import { CONFIG } from '../config';
 
 const MODULES: { id: ToolLesson; name: string }[] = [
   { id: 'recovery', name: 'Сохранить и восстановить' }, { id: 'rotation', name: 'Вращение руками' },
@@ -21,6 +22,7 @@ export function createToolLessons(screens: ReturnType<typeof createScreens>, cor
   note.className = 'tool-lesson__note'; instruction.setAttribute('role', 'status');
   panel.append(title, note, instruction, actions); screens.page.append(panel);
   let lesson: ToolLessonProgress | null = null, current: ToolLesson | null = null, revision = -1, finished = false, controlsRevision = -1;
+  let completedAt: number | null = null, controlsComplete = false;
   const facts = (s: EngineSnapshot): ToolFacts => ({ saved: recovery.savedCount, restored: recovery.restoredCount, damaged: isDestroyed(s),
     handRotation: inspection.handRotation, attachments: s.customization?.attachments.length ?? 0, stamps: s.customization?.stamps.length ?? 0,
     glazed: !!s.glazeId, shelfViews: inspection.shelfViews, links: sharing.completedLinks });
@@ -28,7 +30,7 @@ export function createToolLessons(screens: ReturnType<typeof createScreens>, cor
     if (!lesson) return;
     if (core.tick(performance.now()).phase === 'firing') return;
     inspection.close(); closeEditor();
-    lesson = null; current = null; finished = false; panel.hidden = true; screens.removeActions('tool-');
+    lesson = null; current = null; finished = false; completedAt = null; panel.hidden = true; screens.removeActions('tool-');
     delete screens.page.dataset.toolLesson;
     recovery.setTraining(false); finishing.setTraining(false); core.dispatch({ type: 'backToMenu' }, performance.now());
   }
@@ -38,7 +40,7 @@ export function createToolLessons(screens: ReturnType<typeof createScreens>, cor
     if (lesson) end();
     core.dispatch({ type: 'backToMenu' }, now);
     core.dispatch({ type: 'start', mode: 'free', sessionId: `lesson-${crypto.randomUUID()}` }, now);
-    recovery.setTraining(true); finishing.setTraining(true);
+    recovery.setTraining(true, () => begin(id)); finishing.setTraining(true);
     const prepared = core.captureCheckpoint(now);
     // the lesson needs its prepared training pot: if it cannot be set up, say so instead of silently returning
     const unavailable = () => {
@@ -55,7 +57,7 @@ export function createToolLessons(screens: ReturnType<typeof createScreens>, cor
     if (!core.restoreCheckpoint(prepared, now)) { unavailable(); return; } // else the lesson would run on the wrong pot
     if (id !== 'recovery') core.dispatch({ type: 'finishShaping' }, now);
     screens.invalidateContent();
-    current = id; lesson = new ToolLessonProgress(id, facts(core.tick(now))); finished = false; controlsRevision = -1;
+    current = id; lesson = new ToolLessonProgress(id, facts(core.tick(now))); finished = false; completedAt = null; controlsRevision = -1;
     screens.page.dataset.toolLesson = id;
     title.textContent = MODULES.find(m => m.id === id)!.name;
     note.textContent = id === 'recovery' ? 'Отдельный учебный черновик: подготовлена низкая форма. Повреждение создаёте вы настоящим нажимом; физические правила не изменены.' :
@@ -78,16 +80,19 @@ export function createToolLessons(screens: ReturnType<typeof createScreens>, cor
       if (!lesson || !current) return;
       if (snapshot.phase === 'menu') { end(); return; }
       panel.hidden = false;
-      if (controlsRevision !== screens.contentRevision) {
-        screens.removeActions('tool-'); actions.replaceChildren(); controlsRevision = screens.contentRevision;
+      instruction.textContent = lesson.update(facts(snapshot)); panel.dataset.module = current; panel.dataset.complete = String(lesson.complete);
+      if (controlsRevision !== screens.contentRevision || controlsComplete !== lesson.complete) {
+        screens.removeActions('tool-'); actions.replaceChildren(); controlsRevision = screens.contentRevision; controlsComplete = lesson.complete;
         const repeat = screens.addAction('tool-repeat', 'Повторить урок', () => begin(current!), actions);
-        const skip = screens.addAction('tool-skip', 'Пропустить · в мастерскую', end, actions);
+        const skip = screens.addAction('tool-skip', lesson.complete ? 'В мастерскую' : 'Пропустить · в мастерскую', end, actions);
         repeat.disabled = skip.disabled = snapshot.phase === 'firing'; screens.refreshTargets();
       }
-      instruction.textContent = lesson.update(facts(snapshot)); panel.dataset.module = current; panel.dataset.complete = String(lesson.complete);
-      if (lesson.complete && !finished && !modal.active && !sharing.active) {
+      if (lesson.complete) completedAt ??= performance.now();
+      // never mid-firing: the modal pauses the core and its choices are refused while firing; it shows once firing ends
+      if (completedAt !== null && !finished && !modal.active && !sharing.active && snapshot.phase !== 'firing' && performance.now() - completedAt >= CONFIG.LESSON_DONE_MODAL_DELAY_MS) {
         finished = true;
         modal.show('tool-completed', 'Вы справились с обучением!', 'Действие выполнено и результат проверен. Учебная работа остаётся отдельной от вашей мастерской.', [
+          { id: 'stay', label: 'Продолжить здесь', run: () => {} },
           { id: 'again', label: 'Повторить', run: () => begin(current!) }, { id: 'next', label: 'Другой урок', run: () => { end(); choose(); } },
           { id: 'menu', label: 'В мастерскую', run: end },
         ]);
