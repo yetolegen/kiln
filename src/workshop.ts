@@ -24,6 +24,7 @@ import './ui/styles.css';
 import './ui/workshopTheme.css';
 import './ui/atelierTheme.css';
 import './ui/final.css';
+import './ui/paper.css';
 
 const root = document.querySelector<HTMLDivElement>('#app');
 if (!root) throw new Error('KILN app root is missing.');
