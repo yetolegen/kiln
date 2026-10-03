@@ -49,6 +49,8 @@ test('V8 workshop layout keeps the tablet lesson beside the clay and captures al
 test('V8 inspecting glaze and results preserves controls and selection across reentry', async ({ page }) => {
   await page.goto('/?dev=1&mock=1');
   await expect(page.getByTestId('mock-badge')).toBeVisible();
+  // click-driven test: drop the fixed support palm and park the controlled one, so neither dwells on paper-layout buttons
+  await page.keyboard.press('j'); await page.keyboard.press('h');
   await page.keyboard.press('6'); await page.mouse.move(0, 0);
   const jars = page.locator('.glaze-jar'); await expect(jars).toHaveCount(3);
   await jars.nth(1).click();
