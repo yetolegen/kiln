@@ -2,8 +2,9 @@ import {
   ACESFilmicToneMapping, BoxGeometry, CylinderGeometry, DirectionalLight, HemisphereLight, Mesh, MeshStandardMaterial,
   OrthographicCamera, PerspectiveCamera, Scene, SRGBColorSpace, WebGLRenderer, TorusGeometry,
   IcosahedronGeometry, InstancedMesh, Object3D, Spherical, Vector3, Group,
-  PMREMGenerator, PCFShadowMap, WebGLRenderTarget, Box3, Sphere,
+  PMREMGenerator, PCFShadowMap, WebGLRenderTarget, Box3, Sphere, PlaneGeometry, ShadowMaterial,
 } from 'three';
+import { createBackdrop } from './backdrop';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import type { ClayState, EngineSnapshot, ProjectionParams } from '../types';
@@ -44,6 +45,7 @@ function softwareRenderer(renderer: WebGLRenderer | null): boolean {
 }
 
 export function createScene(parent: HTMLElement) {
+  const backdrop = createBackdrop(parent);
   const canvas = document.createElement('canvas');
   canvas.className = 'scene-canvas';
   canvas.dataset.testid = 'pot-canvas';
@@ -66,7 +68,7 @@ export function createScene(parent: HTMLElement) {
     renderer.setClearColor(0, 0);
     renderer.outputColorSpace = SRGBColorSpace;
     renderer.toneMapping = ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1;
+    renderer.toneMappingExposure = .94;
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = PCFShadowMap;
   } catch { useFallback(); }
   canvas.addEventListener('webglcontextlost', useFallback);
@@ -87,12 +89,13 @@ export function createScene(parent: HTMLElement) {
   const family = createMaterialFamily(), pot = createPotView(family);
   const handles = createHandleView(pot.group, family);
   const decoration = createDecorationView(pot.group, family), emptyDecor = emptyCustomization();
-  scene.add(pot.group, new HemisphereLight('#f1ede4', '#28392e', 1.1));
-  const key = new DirectionalLight('#fff2e4', 2.6);
-  key.position.set(-3, 5, 6);
+  // Window light from the upper left over a warm plaster room (the backdrop paints the same light).
+  scene.add(pot.group, new HemisphereLight('#f6efe4', '#cbbba8', 1.05));
+  const key = new DirectionalLight('#fff0dc', 2.9);
+  key.position.set(-4.5, 6, 5);
   key.castShadow = true; key.shadow.mapSize.set(1024, 1024);
-  Object.assign(key.shadow.camera, { left: -3, right: 3, top: 4, bottom: -2, near: .1, far: 16 });
-  key.shadow.bias = -.0004; key.shadow.normalBias = .018;
+  Object.assign(key.shadow.camera, { left: -4, right: 4, top: 4, bottom: -3, near: .1, far: 20 });
+  key.shadow.bias = -.0004; key.shadow.normalBias = .018; key.shadow.radius = 4;
   scene.add(key);
   const rim = new DirectionalLight('#e8d6b8', .9);
   rim.position.set(4, 2, -3);
@@ -100,7 +103,8 @@ export function createScene(parent: HTMLElement) {
   const inspectionFill = new DirectionalLight('#f3e6d4', 1.2);
   inspectionFill.visible = false; scene.add(inspectionFill, inspectionFill.target);
   const wheelGeometry = new CylinderGeometry(1.75, 1.8, .13, 64);
-  const wheelMaterial = new MeshStandardMaterial({ color: '#aa8b61', roughness: .78, metalness: .12 });
+  // Pale stone bat with thin turned rings and clay smears, on a graphite base.
+  const wheelMaterial = new MeshStandardMaterial({ color: '#bfb4a4', roughness: .82, metalness: 0 });
   const wheel = new Mesh(wheelGeometry, wheelMaterial);
   wheel.position.y = -.065;
   wheel.receiveShadow = true;
@@ -108,14 +112,19 @@ export function createScene(parent: HTMLElement) {
   const stand = new Group();
   const spindleGeometry = new CylinderGeometry(.13, .21, .65, 24);
   const baseGeometry = new CylinderGeometry(.88, 1.14, .16, 48);
-  const standMaterial = new MeshStandardMaterial({ color: '#4a3526', roughness: .6, metalness: .25 });
+  const standMaterial = new MeshStandardMaterial({ color: '#57524d', roughness: .55, metalness: .35 });
   const spindle = new Mesh(spindleGeometry, standMaterial), base = new Mesh(baseGeometry, standMaterial);
   spindle.position.y = -.43; base.position.y = -.77;
   spindle.castShadow = true; base.receiveShadow = true;
   stand.add(spindle, base); scene.add(stand);
+  // Invisible floor that only receives the wheel's soft shadow, grounding it on the painted studio floor.
+  const floorGeometry = new PlaneGeometry(14, 14), floorMaterial = new ShadowMaterial({ color: '#5c4a38', opacity: .22 });
+  const floor = new Mesh(floorGeometry, floorMaterial);
+  floor.rotation.x = -Math.PI / 2; floor.position.y = -.851; floor.receiveShadow = true; scene.add(floor);
+  wheel.castShadow = true; base.castShadow = true;
   const grooveGeometry = new TorusGeometry(1, .009, 4, 96);
-  const grooveMaterial = new MeshStandardMaterial({ color: '#755837', roughness: .75, metalness: .15 });
-  for (const radius of [1.3, 1.48, 1.68]) {
+  const grooveMaterial = new MeshStandardMaterial({ color: '#b3a796', roughness: .85, metalness: 0 });
+  for (const radius of [1.12, 1.3, 1.48, 1.68]) {
     const groove = new Mesh(grooveGeometry, grooveMaterial);
     groove.rotation.x = Math.PI / 2; groove.position.y = .068; groove.scale.setScalar(radius); wheel.add(groove);
   }
@@ -125,7 +134,7 @@ export function createScene(parent: HTMLElement) {
     mark.position.set(Math.sin(angle) * 1.57, .068, Math.cos(angle) * 1.57); mark.rotation.y = angle + Math.PI / 2; wheel.add(mark);
   }
   const slipGeometry = new TorusGeometry(1, .018, 5, 32, Math.PI * .7);
-  const slipMaterial = new MeshStandardMaterial({ color: '#b9825e', roughness: .6 });
+  const slipMaterial = new MeshStandardMaterial({ color: '#bd7a55', roughness: .9, transparent: true, opacity: .55 });
   for (let i = 0; i < 3; i++) {
     const slip = new Mesh(slipGeometry, slipMaterial);
     slip.rotation.set(Math.PI / 2, 0, i * 2.1); slip.position.y = .074;
@@ -226,6 +235,7 @@ export function createScene(parent: HTMLElement) {
       }
     },
     setProjection(p: ProjectionParams): void {
+      backdrop.setProjection(p);
       const aspect = p.viewportWidth / p.viewportHeight;
       if (inspecting && controls) {
         // Retain the chosen angle and relative zoom when the viewport narrows.
@@ -281,7 +291,7 @@ export function createScene(parent: HTMLElement) {
       const visible = !!artifact || !['loading', 'permission', 'calibrate', 'gallery'].includes(snapshot.phase);
       pot.group.visible = visible && !!clay;
       wheel.visible = visible && !inspecting;
-      stand.visible = wheel.visible;
+      stand.visible = wheel.visible; floor.visible = wheel.visible;
       effects.update(snapshot, nowMs, reduced.matches, inspecting);
       if (clay && visible) pot.update(clay, inspecting ? null : snapshot.hint?.band ?? snapshot.gesture?.contact.activeBand ?? null, nowMs, effects.angle, reduced.matches || inspecting);
       if (clay) { const decor = artifact?.customization ?? snapshot.customization ?? emptyDecor; decoration.update(decor, clay); handles.update(decor.handles ?? []); canvas.dataset.handles = String(decor.handles?.length ?? 0); }
@@ -346,16 +356,16 @@ export function createScene(parent: HTMLElement) {
           photoCamera.position.copy(bounds.center).addScaledVector(direction, bounds.radius / Math.sin(19 * Math.PI / 180) * 1.12);
           photoCamera.lookAt(bounds.center); photoCamera.updateMatrixWorld();
           const target = new WebGLRenderTarget(1024, 1024); target.texture.colorSpace = SRGBColorSpace;
-          const previous = renderer.getRenderTarget(), visibility = [wheel.visible, stand.visible, drops.visible];
+          const previous = renderer.getRenderTarget(), visibility = [wheel.visible, stand.visible, drops.visible, floor.visible];
           const lightPosition = inspectionFill.position.clone(), lightTarget = inspectionFill.target.position.clone(), lightVisible = inspectionFill.visible;
           const pixels = new Uint8Array(1024 * 1024 * 4);
           try {
-            wheel.visible = stand.visible = drops.visible = false;
+            wheel.visible = stand.visible = drops.visible = floor.visible = false;
             inspectionFill.visible = true; inspectionFill.position.copy(photoCamera.position); inspectionFill.target.position.copy(bounds.center);
             renderer.setRenderTarget(target); renderer.render(scene, photoCamera); renderer.readRenderTargetPixels(target, 0, 0, 1024, 1024, pixels);
           } finally {
             renderer.setRenderTarget(previous); target.dispose();
-            [wheel.visible, stand.visible, drops.visible] = visibility;
+            [wheel.visible, stand.visible, drops.visible, floor.visible] = visibility;
             inspectionFill.visible = lightVisible; inspectionFill.position.copy(lightPosition); inspectionFill.target.position.copy(lightTarget);
           }
           const photo = document.createElement('canvas'); photo.width = photo.height = 1024;
@@ -377,7 +387,7 @@ export function createScene(parent: HTMLElement) {
       decoration.dispose(); handles.dispose(); family.dispose();
       grooveGeometry.dispose(); grooveMaterial.dispose(); markGeometry.dispose(); dropGeometry.dispose(); dropMaterial.dispose();
       slipGeometry.dispose(); slipMaterial.dispose();
-      spindleGeometry.dispose(); baseGeometry.dispose(); standMaterial.dispose();
+      spindleGeometry.dispose(); baseGeometry.dispose(); standMaterial.dispose(); floorGeometry.dispose(); floorMaterial.dispose(); backdrop.dispose();
       canvas.remove(); fallback.remove();
     },
   };

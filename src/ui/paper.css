@@ -410,3 +410,12 @@ progress { accent-color: var(--ochre-edge); }
   .workshop:is([data-phase='studio'], [data-phase='tutorial']) .phase-actions > [data-action='rotate'] { right: 112px; }
   .workshop:is([data-phase='studio'], [data-phase='tutorial']) .phase-actions > :is([data-action='rotate'], [data-action='focus']) .action-icon { display: none; }
 }
+
+/* ---------- B · studio backdrop under the clay (render layer, not layout) ---------- */
+.backdrop-canvas { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none; }
+.camera-video { z-index: 1; opacity: .07; }
+.workshop[data-preview='true'] .camera-video, .workshop[data-phase='calibrate'] .camera-video { opacity: .85; }
+/* Damaged clay: "Начать сначала" stays the solid red call to action inside the calmer shaping column too. */
+.workshop[data-damaged='true']:is([data-phase='studio'], [data-phase='tutorial']) .phase-actions > [data-action='restart']:not(.sound-toggle):not(.camera-toggle) {
+  background: var(--danger); border-color: var(--danger); color: #fff6ee;
+}

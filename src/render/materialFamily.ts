@@ -7,11 +7,11 @@ export function createMaterialFamily() {
   function apply(material: MeshPhysicalMaterial, color: string, gloss = 0, glow = 0) {
     // Only reinterpret the existing unglazed display color; glaze catalog/data stay untouched.
     const raw = color === '#b9825e';
-    material.color.set(raw ? '#bd7049' : color); material.metalness = 0;
+    material.color.set(raw ? '#b05d3a' : color); material.metalness = 0;
     material.map = raw ? surface.map : surface.glazeMap;
-    material.roughness = .90 - gloss * .59;
-    material.bumpScale = raw ? .009 : .006 - gloss * .004;
-    material.clearcoat = .02 + gloss * .68;
+    material.roughness = raw ? .96 : .90 - gloss * .59;
+    material.bumpScale = raw ? .013 : .006 - gloss * .004;
+    material.clearcoat = raw ? 0 : .02 + gloss * .68;
     material.clearcoatRoughness = .5 - gloss * .3;
     material.emissive.set('#ff640b'); material.emissiveIntensity = glow;
   }
