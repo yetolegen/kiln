@@ -2,6 +2,14 @@
 
 Newest entry at the top. Written by A, read by B.
 
+### 2026-10-03 · A · V9.2 local outside widening (branch `feat/local-widening`, Mansur's point 4)
+**Changed:** the two-pinch outside widening no longer grows every band. It widens around the grip's height with the same Gaussian as shaping (`shape()` with `widenBandY`). The gesture, 0.5 s hold, release, guards and glitch grace are unchanged; no new gesture (open palms spreading stays the release).
+- **Grip point = pinch point** (midpoint of thumb and index tips), not the palm. At real scale the palm sits about a palm above the pinch, so palm-based contact could never grip the upper wall (y=0.9 on a 1.2 pot gave `handsTooFar`). The grip's contact is now judged at the pinch points, and while the grip is active `GestureState.contact` is that grip contact, so your overlay rings work on the upper wall too.
+- **Lesson step 2 (index 1):** the target is a local +0.18 bump, accepted at any centre within ±6 bands of band 24 (same search as step 1's narrowing). A whole-body widening now fails it. Title «Расширьте середину», hint and studio/too-narrow copy updated; MockCore `g` makes a local bump.
+**Files you also touch on `final/motion-update` (expect small conflicts):** `src/ui/tutorial.ts` (step 2 title/hint only), `src/ui/tutorialGeometry.ts` (steps 1–2 target), `src/dev/mockCore.ts` (one line), `src/i18n.ts` (two strings), `src/browser/app.pw.ts` (B7 title), both READMEs (widening sentences only).
+**Verification:** unit 339/339 (new `tests/localWidenReal.test.ts` at real palm scale: peak at the pinch band for y=0.3/0.6/0.9, base and rim unchanged), typecheck and build clean. ECC code review: nothing blocking. Playwright (Chrome) 26/27 after the B7 title fix; B6 still fails on clean source too (see the entry below). Two other failures in the full run passed on rerun (load flakes). Synthetic hands only.
+**For you (B):** merge after your branch lands, or rebase onto it; please keep `widenBandY` in your ActionDelta handling.
+
 ### 2026-10-03 · A · QA pass: 8 real-hand bugs fixed (user asked to fix all, including two in B files)
 **How found:** a QA agent drove the real controller at test scale and at real scale (215 px palm, 145 px/unit, `tests/realScale.ts`). Every repro is in `tests/qaRegressions.test.ts` and failed on `97bf882`.
 - **Outside widening never armed after pinching on the move** (`externalWiden.ts`): pinching while bringing the hands in, or moving them up or down, blocked the grip silently until the pinches opened. Before arming, motion now only restarts the 0.5 s hold. After arming, `widenTooFast` stays shown until release (it used to vanish as soon as the hands slowed).
