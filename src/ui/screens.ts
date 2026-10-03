@@ -35,13 +35,19 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
   label.textContent = ru.eyebrow;
   header.append(brand, label);
 
+  // Decorative welcome illustration: shown before the camera starts, never behind controls.
+  const art = document.createElement('img');
+  art.className = 'welcome-art';
+  art.src = '/art/clay-wheel.webp';
+  art.alt = '';
+  art.width = 882;
+  art.height = 665;
+  art.decoding = 'async';
+  art.setAttribute('fetchpriority', 'high');
+  art.setAttribute('aria-hidden', 'true');
+
   const content = document.createElement('section');
   content.className = 'workshop__content';
-  const mark = document.createElement('img');
-  mark.src = '/favicon.svg';
-  mark.alt = '';
-  mark.width = 88;
-  mark.height = 88;
   const title = document.createElement('h1');
   title.textContent = ru.title;
   const description = document.createElement('p');
@@ -55,6 +61,7 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
   start.className = 'start-button';
   start.type = 'button';
   start.textContent = ru.start;
+  start.insertAdjacentHTML('beforeend', '<svg class="start-button__arrow" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 12h15M13 6l6 6-6 6"/></svg>');
   start.addEventListener('click', onStart);
   const progress = document.createElement('progress');
   progress.max = 1;
@@ -67,11 +74,11 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
   const details = document.createElement('section');
   details.className = 'phase-details';
   const process = createProcess(); process.update(-1);
-  content.append(mark, process.element, title, description, status, progress, start, actions, details);
+  content.append(process.element, title, description, status, progress, start, actions, details);
 
   const footer = document.createElement('footer');
   footer.textContent = ru.footer;
-  page.append(viewport, header, content, footer);
+  page.append(viewport, header, art, content, footer);
   root.replaceChildren(page);
   let lastPhase: AppPhase | null = null;
   let lastMode: EngineSnapshot['mode'] = null;
@@ -228,7 +235,7 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
         start.hidden = state.cameraActive && !state.error;
         start.disabled = state.busy || (snapshot.phase === 'loading' && !state.error);
         progress.hidden = snapshot.phase !== 'calibrate' || !!state.error;
-        mark.hidden = state.cameraActive;
+        art.hidden = state.cameraActive;
         if (state.error) {
           [title.textContent, description.textContent] = ru.errors[state.error];
           status.textContent = '';
@@ -236,7 +243,8 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
           [title.textContent, description.textContent] = phaseText[snapshot.phase];
           if (snapshot.phase === 'glaze') { title.textContent = 'Форма готова'; description.textContent = 'Добавьте детали по желанию, выберите глазурь и отправьте сосуд в печь.'; }
           if (snapshot.phase === 'studio') title.textContent = snapshot.mode === 'commission' ? 'Создаём вазу' : 'Свободная форма';
-          status.textContent = state.busy ? ru.requesting : snapshot.phase === 'loading' ? ru.loading : '';
+          // While loading, the description already says ru.loading; the status line only reports the camera request.
+          status.textContent = state.busy ? ru.requesting : '';
         }
         footer.textContent = state.cameraActive ? ru.live : ru.footer;
         lastTracking = '';

@@ -1,0 +1,334 @@
+/* Paper studio: warm paper, walnut type, ochre actions, terracotta clay.
+   Loaded last; restyles the shared UI chrome without changing hit regions, dwell timing or gameplay. */
+
+/* Self-hosted Golos Text (SIL OFL 1.1, public/fonts/OFL.txt), split by script so a Russian page
+   downloads only the Cyrillic file plus Latin for the wordmark and numerals. */
+@font-face {
+  font-family: 'Golos Text';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('/fonts/golos-text-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Golos Text';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('/fonts/golos-text-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  --paper: #efeeea;
+  --paper-raised: #f8f7f4;
+  --paper-sunk: #e8e5df;
+  --walnut: #58402e;
+  --walnut-2: #69584b;
+  --walnut-ink: #3e2d20;
+  --ochre: #d4ae57;
+  --ochre-hover: #dcb967;
+  --ochre-press: #c9a148;
+  --ochre-edge: #a8822f;
+  --ochre-text: #9a7124;
+  --clay-accent: #bf704e;
+  --clay-text: #9e5534;
+  --rule: #cdc8c1;
+  --control-edge: #8e8377;
+  --ok: #3e6b52;
+  --danger: #a2412b;
+  --teal: #2f6f6b;
+  --font-ui: 'Golos Text', 'Segoe UI', system-ui, sans-serif;
+  --radius-s: 6px;
+  --radius-m: 8px;
+  --lift: 0 1px 2px #3e2d200f, 0 10px 28px -14px #3e2d2040;
+
+  /* Earlier theme tokens, remapped so existing rules land on the paper palette. */
+  --canvas: var(--paper);
+  --panel: var(--paper-raised);
+  --edge: var(--control-edge);
+  --ink: var(--walnut);
+  --muted: var(--walnut-2);
+  --sage: var(--ok);
+  --clay: var(--clay-accent);
+  --target: var(--teal);
+  --surface-raised: var(--paper-raised);
+  --surface-paper: var(--paper-raised);
+  --text-on-paper: var(--walnut);
+  --text-secondary-paper: var(--walnut-2);
+  --accent-primary: var(--ochre);
+  --accent-secondary: var(--ok);
+  --success: var(--ok);
+  --warning: var(--ochre-text);
+  --destructive: var(--danger);
+  --border-soft: var(--rule);
+  --radius-panel: var(--radius-m);
+  --radius-control: var(--radius-s);
+  --shadow-panel: var(--lift);
+
+  color: var(--walnut);
+  background: var(--paper);
+  font-family: var(--font-ui);
+  accent-color: var(--ochre-edge);
+  caret-color: var(--clay-text);
+  scrollbar-color: #b3aa9e transparent;
+}
+body { background: var(--paper); }
+body::before { display: none; }
+::selection { background: #d4ae5766; color: var(--walnut-ink); }
+a { color: var(--walnut); text-underline-offset: .22em; text-decoration-thickness: 1px; }
+
+/* ---------- Stage ---------- */
+.workshop { background: var(--paper); }
+.workshop--camera, .workshop[data-viewer='true'] { background: transparent; }
+.camera-viewport { background: var(--paper); }
+.camera-viewport::after, .workshop[data-preview='true'] .camera-viewport::after { background: none; }
+.workshop[data-inspecting='true'] .camera-viewport { background: var(--paper-sunk); }
+.camera-video { opacity: .12; }
+.workshop[data-preview='true'] .camera-video, .workshop[data-phase='calibrate'] .camera-video { opacity: .85; }
+
+/* ---------- Header, type, footer ---------- */
+/* The rule stays beneath the welcome illustration (the arms cross it, as in the reference); the header text stays above. */
+.workshop__header { border-bottom: 1px solid var(--rule); }
+.workshop__header > * { position: relative; z-index: 2; }
+.wordmark { font: 500 30px/1 var(--font-ui); letter-spacing: .14em; color: var(--ochre-text); text-shadow: none; }
+.workshop__label { color: var(--walnut-2); font-size: 13px; letter-spacing: .01em; text-transform: none; text-shadow: none; }
+h1, .workshop--camera h1 {
+  font-family: var(--font-ui); font-weight: 400; color: var(--walnut);
+  letter-spacing: -.022em; line-height: 1.06; text-shadow: none; text-wrap: balance;
+}
+.workshop__description, .workshop--camera .workshop__description { color: var(--walnut-2); text-shadow: none; }
+.workshop:not(.workshop--camera) .workshop__description { line-height: 1.55; }
+footer { position: relative; z-index: 2; color: var(--walnut-2); font-size: 12px; letter-spacing: .02em; text-shadow: none; }
+.workshop__status, .workshop--camera .workshop__status {
+  border: 1px solid var(--rule); border-radius: var(--radius-s); background: var(--paper-raised); color: var(--walnut-2);
+}
+progress { accent-color: var(--ochre-edge); }
+
+/* ---------- Welcome (before the camera starts) ---------- */
+.welcome-art, .workshop[data-viewer='true'] .welcome-art { display: none; }
+.workshop:not(.workshop--camera) .welcome-art {
+  /* Ends exactly on the footer rule: footer = 28px page padding + 17px text + 16px padding + 1px rule. */
+  display: block; position: absolute; z-index: 1; top: 0; right: 0; width: 62vw; height: calc(100% - 62px);
+  object-fit: cover; object-position: 100% 100%; pointer-events: none; user-select: none;
+  /* Feather only the cut left edge; the arms already enter from the top edge and the wheel rests on the footer rule. */
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%); mask-image: linear-gradient(90deg, transparent, #000 12%);
+}
+.workshop:not(.workshop--camera) footer { border-top: 1px solid var(--rule); padding-top: 16px; text-align: left; }
+.workshop:not(.workshop--camera) .workshop__content {
+  position: relative; z-index: 2; align-items: flex-start; text-align: left; justify-content: center;
+  width: min(580px, 40vw); padding: 48px 0;
+}
+.workshop:not(.workshop--camera) h1 { font-size: clamp(40px, 4.1vw, 66px); margin: 0 0 24px; }
+.workshop:not(.workshop--camera) .workshop__description { max-width: 34ch; font-size: 18px; }
+.workshop:not(.workshop--camera) .workshop__status { margin-top: 24px; }
+.workshop--error:not(.workshop--camera) h1 { font-size: clamp(32px, 3.4vw, 52px); }
+
+.start-button {
+  display: inline-flex; align-items: center; gap: 18px; min-height: 60px; margin-top: 32px; padding: 0 28px 0 32px;
+  border: 1px solid var(--ochre-edge); border-radius: var(--radius-s); background: var(--ochre); color: var(--walnut-ink);
+  font: 500 19px/1.2 var(--font-ui); box-shadow: none; transition: background-color .15s ease-out;
+}
+.start-button__arrow { width: 22px; height: 22px; flex: none; stroke: currentColor; stroke-width: 1.6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.start-button:hover { background: var(--ochre); }
+.start-button:active { background: var(--ochre-press); }
+.start-button:focus-visible { outline: 2px solid var(--walnut); outline-offset: 3px; }
+.start-button:disabled { opacity: .55; }
+
+/* ---------- Controls ---------- */
+.dwell-button {
+  border: 1px solid var(--control-edge); border-radius: var(--radius-s); background: var(--paper-raised); color: var(--walnut);
+  font: 500 15px/1.35 var(--font-ui); text-shadow: none; box-shadow: none;
+  transition: background-color .15s ease-out, border-color .15s ease-out, opacity .2s;
+}
+.dwell-button:hover { background: var(--paper-raised); border-color: var(--control-edge); }
+.dwell-button::after { height: 4px; background: var(--ochre-edge); }
+.dwell-button.is-dwelling { border-color: var(--walnut); box-shadow: inset 0 0 0 1px var(--walnut); }
+.dwell-button:focus-visible { outline: 2px solid var(--walnut); outline-offset: 3px; }
+.dwell-button:disabled { opacity: .5; }
+.action-icon { color: var(--clay-text); }
+
+/* Primary: one ochre action per surface. */
+.start-button, [data-action='done'], [data-action='fire'], [data-action='view-close'], [data-action='decor-apply'], [data-action='decor-close'], [data-action='view-share'] {
+  background: var(--ochre); color: var(--walnut-ink); border-color: var(--ochre-edge); font-weight: 500;
+}
+:is([data-action='done'], [data-action='fire'], [data-action='view-close'], [data-action='decor-apply'], [data-action='decor-close'], [data-action='view-share']) .action-icon { color: inherit; }
+:is([data-action='done'], [data-action='fire'], [data-action='view-close'], [data-action='decor-apply'], [data-action='decor-close'], [data-action='view-share']):hover { background: var(--ochre); }
+:is([data-action='done'], [data-action='fire'], [data-action='view-close'], [data-action='decor-apply'], [data-action='decor-close'], [data-action='view-share'])::after { background: var(--walnut); }
+
+/* Restart and delete keep their warning colour without shouting. */
+[data-action='restart']:enabled, [data-action='decor-delete']:enabled { color: var(--danger); border-color: var(--danger); background: var(--paper-raised); }
+.workshop[data-damaged='true'] [data-action='restart'] { background: var(--danger); border-color: var(--danger); color: #fff6ee; }
+:is(.workshop[data-damaged='true'] [data-action='restart'], .work-modal [data-action^='modal-']:enabled, .work-modal [data-action='share-copy']:enabled) .action-icon { color: inherit; }
+[data-action='checkpoint-save'] { border-color: var(--control-edge); }
+
+/* Hover only where a real pointer can hover; touch devices keep the resting state. */
+@media (hover: hover) {
+  .start-button:hover { background: var(--ochre-hover); }
+  .dwell-button:hover:not(:disabled) { background: var(--paper-sunk); border-color: var(--walnut-2); }
+  :is([data-action='done'], [data-action='fire'], [data-action='view-close'], [data-action='decor-apply'], [data-action='decor-close'], [data-action='view-share']):hover:not(:disabled) { background: var(--ochre-hover); border-color: var(--ochre-edge); }
+  [data-action='restart']:hover:enabled, [data-action='decor-delete']:hover:enabled { background: #f6e7e1; border-color: var(--danger); }
+}
+
+.sound-toggle, .camera-toggle { background: var(--paper-raised); border-color: var(--rule); color: var(--walnut-2); font-size: 13px; box-shadow: none; }
+
+/* ---------- Menu: a list of choices, not a grid of cards ---------- */
+.workshop[data-phase='menu'] .phase-actions { gap: 0; }
+.workshop[data-phase='menu'] .phase-actions > .dwell-button:not(.sound-toggle):not(.camera-toggle) {
+  margin: 0; border: 0; border-top: 1px solid var(--rule); border-radius: 0; background: transparent; padding-inline: 8px;
+}
+.workshop[data-phase='menu'] .phase-actions > .dwell-button:not(.sound-toggle):not(.camera-toggle):last-of-type { border-bottom: 1px solid var(--rule); }
+.workshop[data-phase='menu'] .phase-actions > .dwell-button.is-dwelling:not(.sound-toggle):not(.camera-toggle) { background: var(--paper-raised); box-shadow: inset 0 0 0 1px var(--walnut); }
+.workshop[data-phase='menu'] [data-action='tutorial'], .workshop[data-phase='menu'] [data-action='gallery'] { background: transparent; border-color: var(--rule); margin-top: 0; }
+.workshop[data-phase='menu'] .phase-actions strong { font: 500 21px/1.25 var(--font-ui); color: var(--walnut); }
+.workshop[data-phase='menu'] .phase-actions small { color: var(--walnut-2); font-size: 14px; }
+.workshop[data-phase='menu'] .action-icon { color: var(--clay-text); }
+@media (hover: hover) {
+  .workshop[data-phase='menu'] .phase-actions > .dwell-button:not(.sound-toggle):not(.camera-toggle):hover { background: var(--paper-raised); }
+}
+.phase-actions small { color: var(--walnut-2); }
+
+/* ---------- Panels over the stage ---------- */
+.tutorial-card, .result-summary, .tool-lesson, .work-modal__card, .gallery-card {
+  background: var(--paper-raised); color: var(--walnut); border: 1px solid var(--rule); border-radius: var(--radius-m); box-shadow: var(--lift);
+}
+.tutorial-card > span, .work-modal__eyebrow { color: var(--walnut-2); font-size: 13px; font-weight: 500; letter-spacing: .01em; text-transform: none; }
+.tutorial-card h2, .tool-lesson h2, .work-modal h2, .gallery-card h2, .inspection__header h2, .decoration-editor .inspection__header h2 {
+  font-family: var(--font-ui); font-weight: 500; color: var(--walnut); letter-spacing: -.012em; text-wrap: balance;
+}
+.tutorial-card p, .tool-lesson p, .work-modal p { color: var(--walnut-2); }
+.tutorial-card .tutorial-feedback { color: var(--walnut); border-color: var(--rule); }
+.tutorial-card .tutorial-match { color: var(--teal); }
+.tutorial-card[data-state='matched'] { border-color: var(--ok); box-shadow: inset 0 0 0 1px var(--ok), var(--lift); }
+.tutorial-card[data-state='failed'] { border-color: var(--danger); }
+.tutorial-card[data-state='failed'] .tutorial-feedback { color: var(--danger); }
+.tutorial-card progress { accent-color: var(--teal); }
+.ghost-hands { color: var(--clay-text); }
+.ghost-hands svg { stroke: var(--clay-text); fill: #bf704e14; }
+.tool-lesson nav { background: transparent; }
+@media (max-width: 600px) and (min-height: 501px) { .tool-lesson nav { background: var(--paper-raised); border: 1px solid var(--rule); } }
+
+.hud__hint { background: var(--paper-raised); color: var(--walnut); border: 1px solid var(--rule); border-radius: var(--radius-m); box-shadow: var(--lift); }
+.hud__hint[data-severity='warn'] { background: #fbf3df; border-color: var(--ochre-edge); color: var(--walnut-ink); }
+.hud__hint[data-severity='error'] { background: #f8e6df; border: 1px solid var(--danger); color: #7e2f1f; }
+.hud__gesture, .hud__tracking, .hud__activity {
+  background: var(--paper-raised); color: var(--walnut-2); border: 1px solid var(--rule); border-radius: var(--radius-s); box-shadow: none;
+}
+.hud__tracking[data-ready='true'], .hud__activity[data-active='true'] { color: var(--ok); border-color: var(--ok); }
+
+.checkpoint-status { color: var(--walnut-2); background: var(--paper-raised); border: 1px solid var(--rule); border-radius: var(--radius-s); }
+.checkpoint-status[data-tone='success'] { color: var(--ok); border-color: var(--ok); }
+.checkpoint-status[data-tone='warning'] { color: var(--walnut-ink); border-color: var(--ochre-edge); background: #fbf3df; }
+
+.pottery-process { color: var(--walnut-2); }
+.pottery-process li:not(:last-child)::after { color: var(--control-edge); }
+.pottery-process [aria-current] { color: var(--walnut); font-weight: 600; }
+.pottery-process [data-complete='true'] { color: var(--ok); }
+
+/* ---------- Dialogs ---------- */
+.work-modal { background: #3e2d2061; backdrop-filter: none; }
+.work-modal .dwell-button { background: var(--paper-raised); border-color: var(--control-edge); color: var(--walnut); }
+.work-modal button:disabled { color: var(--walnut-2); background: var(--paper-sunk); border-style: dashed; }
+.work-modal small { color: var(--walnut-2); }
+.work-modal .work-modal__correction { border: 1px solid var(--ok); border-radius: var(--radius-s); background: #3e6b520d; color: var(--walnut-ink); }
+.work-modal [data-action='modal-restore']:enabled, .work-modal [data-action='share-copy']:enabled, .work-modal[data-kind*='complet'] .dwell-button:first-child { background: var(--ok); color: #fff6ee; border-color: var(--ok); }
+.work-modal [data-action='modal-restart']:enabled, .work-modal [data-action='modal-replace']:enabled { background: var(--danger); color: #fff6ee; border-color: var(--danger); }
+.work-modal .dwell-button.is-dwelling { outline: 2px solid var(--walnut); outline-offset: 3px; }
+.work-modal[data-kind='damage'] .work-modal__eyebrow { color: var(--danger); }
+.work-modal[data-kind*='complet'] .work-modal__eyebrow { color: var(--ok); }
+.work-modal[data-kind*='complet'] .work-modal__card { border-top: 1px solid var(--ok); }
+.share-url { color: var(--teal); background: var(--paper); border-color: var(--rule); }
+
+/* ---------- Glaze, firing, result, shelf ---------- */
+.glaze-status { color: var(--walnut); }
+.glaze-jar, .glaze-jar:hover {
+  background: radial-gradient(circle at 50% 34%, var(--glaze) 0 21%, #3e2d2026 21.5% 23%, transparent 23.5%), var(--paper-raised);
+}
+@media (hover: hover) { .glaze-jar:hover:not(:disabled) { background: radial-gradient(circle at 50% 34%, var(--glaze) 0 21%, #3e2d2026 21.5% 23%, transparent 23.5%), var(--paper-sunk); } }
+.glaze-jar[aria-pressed='true'] { border-color: var(--walnut); outline: 0; box-shadow: inset 0 0 0 1px var(--walnut); }
+.glaze-jar[aria-pressed='true']::before { color: var(--paper-raised); background: var(--walnut); }
+.result-score { font: 400 52px/1 var(--font-ui); color: var(--clay-text); }
+.result-summary > span, .result-tracking, .storage-status { color: var(--walnut-2); }
+.result-summary .storage-status { color: var(--ok); border-color: var(--rule); }
+.gallery-card canvas { background: var(--paper-sunk); border-bottom: 1px solid var(--rule); }
+.gallery-card h2 { color: var(--walnut); }
+.gallery-card p, .gallery-count, .gallery-card .gallery-card__glaze { color: var(--walnut-2); }
+.gallery-card:focus-within, .gallery-card:has(.is-dwelling) { border-color: var(--walnut); box-shadow: inset 0 0 0 1px var(--walnut), var(--lift); }
+.gallery-card__glaze::before { border-color: var(--control-edge); }
+
+/* ---------- 3D inspection, decoration, shared viewer ---------- */
+.inspection, .decoration-editor, .public-viewer { background: transparent; }
+.inspection__header h2 { color: var(--walnut); }
+.inspection__header p, .inspection__header .inspection__motion, .public-viewer .inspection__header { color: var(--walnut-2); }
+.inspection__mode { color: var(--teal); background: var(--paper-raised); border-color: var(--rule); border-radius: var(--radius-s); }
+.inspection[data-grab='dragging'] .inspection__mode { border-color: var(--teal); }
+.inspection__surface:focus-visible { outline: 2px solid var(--walnut); }
+.inspection__actions, .decoration-editor .inspection__actions { background: var(--paper-raised); border: 1px solid var(--rule); border-radius: var(--radius-m); box-shadow: var(--lift); }
+.decoration-editor[data-panel='choose'] .dwell-button:not([data-action='decor-cancel']) { border-top: 1px solid var(--control-edge); }
+
+.share-error { color: var(--walnut); border-color: var(--rule); }
+.share-error p { color: var(--walnut-2); }
+
+/* The shared viewer has no camera either; it shows the shared vessel, never the welcome art. */
+.workshop[data-viewer='true']:not(.workshop--camera) .welcome-art { display: none; }
+
+/* ---------- Responsive welcome ---------- */
+/* Phones and portrait tablets stack the illustration above the copy instead of cropping it beside it. */
+@media (max-width: 700px), (orientation: portrait) and (max-width: 1100px) {
+  .workshop:not(.workshop--camera) .welcome-art {
+    position: relative; inset: auto; order: 0; width: calc(100% + 32px); height: 34svh; margin: 0 -16px;
+    object-position: 82% 100%; -webkit-mask-image: none; mask-image: none; border-bottom: 1px solid var(--rule);
+  }
+  .workshop:not(.workshop--camera) .workshop__content { width: 100%; padding: 28px 0 32px; justify-content: flex-start; }
+  .workshop:not(.workshop--camera) h1 { font-size: clamp(32px, 9vw, 40px); margin-bottom: 14px; }
+  .workshop:not(.workshop--camera) .workshop__description { font-size: 16px; }
+  .start-button { margin-top: 24px; }
+}
+@media (min-width: 701px) and (orientation: portrait) and (max-width: 1100px) {
+  .workshop:not(.workshop--camera) .welcome-art { width: calc(100% + 48px); margin: 0 -24px; height: 42svh; object-position: 75% 100%; }
+  .workshop:not(.workshop--camera) h1 { font-size: 52px; }
+  .workshop:not(.workshop--camera) .workshop__description { font-size: 18px; }
+}
+@media (max-width: 700px) {
+  .start-button { width: 100%; justify-content: space-between; }
+  .wordmark { font-size: 26px; }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .workshop:not(.workshop--camera) .welcome-art { width: 52vw; height: calc(100% - 41px); }
+  .workshop:not(.workshop--camera) .workshop__content { width: 44vw; padding: 12px 0; }
+  .workshop:not(.workshop--camera) h1 { font-size: 30px; margin-bottom: 10px; }
+  .workshop:not(.workshop--camera) .workshop__description { font-size: 14px; }
+  .start-button { min-height: 48px; margin-top: 16px; font-size: 17px; }
+  .workshop:not(.workshop--camera) footer { padding-top: 8px; }
+}
+
+/* One authored moment: the illustration settles in once; nothing else moves on arrival. */
+@media (prefers-reduced-motion: no-preference) {
+  .workshop:not(.workshop--camera) .welcome-art { animation: paper-art-in .9s cubic-bezier(.16, 1, .3, 1) both; }
+  @keyframes paper-art-in { from { opacity: 0; translate: 0 10px; } to { opacity: 1; translate: 0 0; } }
+}
+
+@media (forced-colors: active) {
+  .dwell-button, .start-button { border: 1px solid ButtonText; }
+  .dwell-button.is-dwelling { outline: 2px solid Highlight; }
+}
+
+/* Live video behind type (calibration, camera preview): a paper scrim keeps the header, footer and instructions
+   legible over any room. Functional, not decorative; the video itself stays untouched in the middle. */
+.workshop:is([data-phase='calibrate'], [data-preview='true']) .camera-viewport::after {
+  background: linear-gradient(180deg, #efeeeaf2 0, #efeeea00 150px, #efeeea00 calc(100% - 90px), #efeeeaf2 100%);
+}
+.workshop[data-phase='calibrate'] .workshop__content {
+  align-self: center; flex: 0 0 auto; width: fit-content; max-width: min(640px, calc(100% - 16px)); margin: 24px auto auto; padding: 20px 32px 24px;
+  background: #f8f7f4eb; border: 1px solid var(--rule); border-radius: var(--radius-m); box-shadow: var(--lift);
+}
+.workshop[data-phase='calibrate'] h1 { margin-top: 0; }
+.workshop[data-phase='calibrate'] :is(.phase-actions, .phase-details):empty { display: none; }
+.workshop[data-phase='calibrate'] progress { margin-bottom: 0; }
+@media (max-width: 420px) {
+  .workshop__label { max-width: none; white-space: nowrap; font-size: 12px; }
+  .workshop__header { align-items: center; }
+}
+/* Phone menu: the camera and sound toggles are pinned to the bottom edge; keep the camera notice readable above them. */
+@media (max-width: 600px) { .workshop--camera[data-phase='menu'] footer { padding-bottom: 52px; } }

@@ -6,6 +6,12 @@ import { HandVisuals } from './handVisuals';
 import { drawCavitySection } from './cavitySection';
 import { drawHandGlove } from './handGlove';
 
+/** Guide labels sit on paper, clay or the camera preview: a paper-coloured halo keeps them legible on all three. */
+function haloText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number): void {
+  ctx.save(); ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.strokeStyle = '#f8f7f4e6'; ctx.setLineDash([]); ctx.strokeText(text, x, y); ctx.restore();
+  ctx.fillText(text, x, y);
+}
+
 export function createOverlay(parent: HTMLElement, cursorParent: HTMLElement = parent) {
   const canvas = document.createElement('canvas');
   canvas.className = 'overlay-canvas';
@@ -39,13 +45,13 @@ export function createOverlay(parent: HTMLElement, cursorParent: HTMLElement = p
         const p = projection, c = snapshot.clay, scale = p.pixelsPerWorldUnit;
         if (snapshot.phase === 'studio') {
           const y = p.bottomYPx - c.maxHeightWorld * scale;
-          ctx.strokeStyle = '#e6aa7480'; ctx.fillStyle = '#e6aa74'; ctx.lineWidth = 1; ctx.setLineDash([3, 7]);
+          ctx.strokeStyle = '#8a611c99'; ctx.fillStyle = '#8a611c'; ctx.lineWidth = 1; ctx.setLineDash([3, 7]);
           ctx.beginPath(); ctx.moveTo(p.axisXPx - 1.6 * scale, y); ctx.lineTo(p.axisXPx + 1.6 * scale, y); ctx.stroke();
-          ctx.font = '11px system-ui'; ctx.fillText('Предел высоты', Math.max(8, p.axisXPx - 1.6 * scale - ctx.measureText('Предел высоты').width - 8), y - 7);
+          ctx.font = '11px system-ui'; haloText(ctx, 'Предел высоты', Math.max(8, p.axisXPx - 1.6 * scale - ctx.measureText('Предел высоты').width - 8), y - 7);
         }
         if (c.bottomHole) {
           const r = c.cavityRadiusWorld * scale, top = p.bottomYPx - c.height * scale;
-          ctx.strokeStyle = '#ff927c'; ctx.fillStyle = '#ffb6a5'; ctx.lineWidth = 2; ctx.setLineDash([4, 4]);
+          ctx.strokeStyle = '#a8432c'; ctx.fillStyle = '#ffb6a5'; ctx.lineWidth = 2; ctx.setLineDash([4, 4]);
           for (const side of [-1, 1]) {
             ctx.beginPath(); ctx.moveTo(p.axisXPx + side * r, top); ctx.lineTo(p.axisXPx + side * r, p.bottomYPx + 8); ctx.stroke();
           }
@@ -61,8 +67,8 @@ export function createOverlay(parent: HTMLElement, cursorParent: HTMLElement = p
       }
       if (snapshot.phase === 'tutorial' && goal && projection) {
         const p = projection, t = goal.target, scale = p.pixelsPerWorldUnit;
-        const color = lessonStatus === 'failed' ? '#ff9c85' : lessonStatus === 'matched' ? '#9ee3c4' : '#a5e9ed';
-        ctx.fillStyle = lessonStatus === 'failed' ? '#ff9c8510' : '#a5e9ed1c';
+        const color = lessonStatus === 'failed' ? '#a8432c' : lessonStatus === 'matched' ? '#2f6b4e' : '#2f6f6b';
+        ctx.fillStyle = lessonStatus === 'failed' ? '#a8432c14' : '#2f6f6b1a';
         ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.setLineDash([7, 5]); ctx.beginPath();
         for (let i = 0; i < t.radii.length; i++) {
           const x = p.axisXPx - t.radii[i] * scale, y = p.bottomYPx - t.height * i / (t.radii.length - 1) * scale;
@@ -85,16 +91,16 @@ export function createOverlay(parent: HTMLElement, cursorParent: HTMLElement = p
         section(t, color);
         if (snapshot.clay?.cavityDepthWorld) {
           ctx.setLineDash([]); ctx.lineWidth = 1;
-          section(snapshot.clay, snapshot.clay.bottomHole ? '#ff927c' : '#ffd4a0', snapshot.clay.bottomHole);
+          section(snapshot.clay, snapshot.clay.bottomHole ? '#a8432c' : '#8a611c', snapshot.clay.bottomHole);
         }
         ctx.setLineDash([]); ctx.fillStyle = color; ctx.font = '12px system-ui';
         const total = LESSON_FINISH_STEP + 1;
         const label = goal.step === LESSON_FINISH_STEP ? `${total}/${total} · Обучение окончено` : `Цель ${goal.step + 1}/${total}${t.cavityDepthWorld ? ' · глубина в разрезе' : ''}`;
-        ctx.fillText(label, p.axisXPx - t.radii.at(-1)! * scale, top - 22);
+        haloText(ctx, label, p.axisXPx - t.radii.at(-1)! * scale, top - 22);
       }
       if (snapshot.phase === 'studio' && snapshot.target && projection) {
         const target = snapshot.target, p = projection;
-        ctx.strokeStyle = '#cce5dfbb'; ctx.lineWidth = 2; ctx.setLineDash([6, 6]);
+        ctx.strokeStyle = '#2f6f6bbb'; ctx.lineWidth = 2; ctx.setLineDash([6, 6]);
         for (const side of [-1, 1]) {
           ctx.beginPath();
           for (let i = 0; i < target.radii.length; i++) {
@@ -104,8 +110,8 @@ export function createOverlay(parent: HTMLElement, cursorParent: HTMLElement = p
           }
           ctx.stroke();
         }
-        ctx.setLineDash([]); ctx.fillStyle = '#cce5df'; ctx.font = '12px system-ui';
-        ctx.fillText('Образец', p.axisXPx + target.radii.at(-1)! * p.pixelsPerWorldUnit + 10, p.bottomYPx - target.height * p.pixelsPerWorldUnit);
+        ctx.setLineDash([]); ctx.fillStyle = '#2f6f6b'; ctx.font = '12px system-ui';
+        haloText(ctx, 'Образец', p.axisXPx + target.radii.at(-1)! * p.pixelsPerWorldUnit + 10, p.bottomYPx - target.height * p.pixelsPerWorldUnit);
       }
       if (projection && snapshot.clay && ['studio', 'tutorial'].includes(snapshot.phase)) {
         const thumbLimit = snapshot.phase === 'tutorial' ? goal?.step === 3 : snapshot.gesture?.gesture === 'indent' || snapshot.clay.cavityDepthWorld === 0;
@@ -140,14 +146,14 @@ export function createOverlay(parent: HTMLElement, cursorParent: HTMLElement = p
           const active = dualGrip || hand.trackId === action.activeTrackId, support = hand.trackId === action.supportTrackId;
           if (!active && !support) continue;
           const { x, y } = hand.palmPx;
-          ctx.strokeStyle = support ? '#9ee3c4' : '#ffffff66'; ctx.lineWidth = 2;
+          ctx.strokeStyle = support ? '#2f6b4e' : '#58402e66'; ctx.lineWidth = 2;
           ctx.beginPath(); ctx.arc(x, y, 32, 0, Math.PI * 2); ctx.stroke();
           if (active) {
-            ctx.strokeStyle = '#ffe0a2'; ctx.lineWidth = 5;
+            ctx.strokeStyle = '#a8822f'; ctx.lineWidth = 5;
             ctx.beginPath(); ctx.arc(x, y, 32, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * action.activationProgress); ctx.stroke();
           }
-          ctx.fillStyle = support ? '#9ee3c4' : '#ffe0a2'; ctx.font = '12px system-ui';
-          ctx.fillText(support ? 'Опора' : action.activationProgress >= 1 ? 'Медленно' : `${Math.round(action.activationProgress * 100)}%`, x - 22, y + 50);
+          ctx.fillStyle = support ? '#2f6b4e' : '#7a5a1a'; ctx.font = '12px system-ui';
+          haloText(ctx, support ? 'Опора' : action.activationProgress >= 1 ? 'Медленно' : `${Math.round(action.activationProgress * 100)}%`, x - 22, y + 50);
         }
       }
       const cursor = uiCursor ?? (['ready', 'oneHand'].includes(input.status) && snapshot.gesture?.sourceFrameId === input.frameId ? snapshot.gesture.cursorPx : null);
