@@ -16,12 +16,15 @@ function fixture(mode: SessionMode = 'free', swapped = false) {
   return { core, feed, hold, now: () => now };
 }
 
-for (const mode of ['free', 'commission', 'tutorial'] as const) it.each([false, true])(`widens the entire solid profile in ${mode}, swapped=%s`, (swapped) => {
+for (const mode of ['free', 'commission', 'tutorial'] as const) it.each([false, true])(`widens the profile locally at the grip height in ${mode}, swapped=%s`, (swapped) => {
   const f = fixture(mode, swapped), before = f.core.tick(f.now()).clay!;
   f.hold(); expect(f.core.tick(f.now()).gesture?.activationProgress).toBe(1);
   for (let i = 0; i < 40; i++) f.feed(1.05 + i * .008, undefined, true, .6, .44);
   const after = f.core.tick(f.now()).clay!;
-  expect(after.radii.every((r, i) => r > before.radii[i] + .16)).toBe(true);
+  const grip = Math.round(.6 / before.height * (before.radii.length - 1)), top = before.radii.length - 1;
+  expect(after.radii[grip]).toBeGreaterThan(before.radii[grip] + .16); // the gripped band widens
+  expect(after.radii[0] - before.radii[0]).toBeLessThan(.02);           // the base and the rim stay put
+  expect(after.radii[top] - before.radii[top]).toBeLessThan(.02);
   expect(after.height).toBe(before.height);
   expect(after.cavityRadiusWorld).toBe(0); expect(after.cavityDepthWorld).toBe(0);
   const held = Array.from(after.radii);

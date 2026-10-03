@@ -12,7 +12,7 @@ import type {
 } from '../types';
 import { pxToWorld } from './coordinates';
 import { isPointingPose } from './features';
-import { ExternalWiden } from './externalWiden';
+import { ExternalWiden, gripPoint } from './externalWiden';
 
 const NO_CONTACT: ContactState = {
   valid: false, activeBand: null, bandY: null, leftErrorWorld: null, rightErrorWorld: null, reason: null,
@@ -202,8 +202,11 @@ export class GestureRecognizer {
     const keep = (g: ActionGesture) => allowed(g) || (ctx.phase === 'tutorial' && ctx.expectedGesture === undefined);
     const c = both ? computeContact(l, r, clay, proj.pixelsPerWorldUnit, this.contactValid) : null;
     this.contactValid = !!c?.contact.valid;
+    // the outside grip touches the walls with its pinch points, so its contact is judged there, not at the palms
+    const atGrip = (h: HandFeatures) => ({ ...h, palmWorld: gripPoint(h, proj) });
+    const gripContact = both ? computeContact(atGrip(l), atGrip(r), clay, proj.pixelsPerWorldUnit, cur === 'widen') : null;
     const external = this.externalWiden.update(frame, proj, !!(both && shapingPhase && keep('widen') && !clay.collapsed &&
-      c?.contact.valid && isPinch(l, cur === 'widen') && isPinch(r, cur === 'widen')));
+      gripContact?.contact.valid && isPinch(l, cur === 'widen') && isPinch(r, cur === 'widen')));
     if (external) this.engagement = null;
     else if (both && shapingPhase && !pointer) act = this.runAction(l, r, clay, proj, dtS, t, allowed, keep);
 
@@ -269,7 +272,8 @@ export class GestureRecognizer {
       }
     } else this.resetShapeContact();
     if (external && allowed('widen') && external.push > 0) {
-      this.delta = { ...NO_DELTA, externalWidenWorld: external.push };
+      // v9.2: local, at the grip's height (it used to widen every band equally)
+      this.delta = { ...NO_DELTA, externalWidenWorld: external.push, widenBandY: Math.max(0, Math.min(1, (external.y ?? 0) / clay.height)) };
       deforming = true;
       motionStrength = Math.min(1, external.push / Math.max(.001, dtS));
     }
@@ -302,7 +306,7 @@ export class GestureRecognizer {
       targetRadiusWorld: shapeTarget,
       centerOffsetPalm: c?.centerOffsetPalm ?? null,
       speedPalmPerS: speed,
-      contact: c?.contact ?? NO_CONTACT,
+      contact: (external ? gripContact?.contact : c?.contact) ?? NO_CONTACT, // the overlay's grip rings follow the pinch contact
       cursorPx: pointerNow ? ({ ...pointerNow.indexTipPx } as Vec2) : null,
       nearMiss: external?.tooFast ? { intended: 'widen', reason: 'widenTooFast', params: {} } : external ? null : both ? this.nearMiss(ctx, t, g, l, r, clay, c, act, proj) : null,
     };

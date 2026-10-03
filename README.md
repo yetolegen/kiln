@@ -84,12 +84,12 @@ To stop: stop when the top aligns with the silhouette, then move the working han
 
 ### 6. Widen the vessel's body
 
-To increase the overall width, no opening is required:
+To widen the wall at a chosen height, no opening is required:
 
-1. Place your hands outside the left and right walls, at roughly the same height.
+1. Place your hands outside the left and right walls, at the height you want to widen.
 2. Pinch the thumb and index finger of each hand together, as though gripping the vessel from both sides.
 3. Hold still for about 0.5 seconds, until the preparation circles fill.
-4. Slowly spread both hands sideways, keeping both pinches closed. The entire outer profile widens; this action does not expand the cavity itself.
+4. Slowly spread both hands sideways, keeping both pinches closed. The wall widens around the height of your pinches, blending smoothly into the bands above and below; this action does not expand the cavity itself.
 5. Open both pinches, then move your hands away. This stops widening. Moving only one hand does not widen the body.
 
 Ordinary open palms still narrow the vessel when brought together and release it when moved outward. Use two closed pinches for deliberate widening. A sudden movement cancels the action: open your fingers and prepare again.
@@ -105,13 +105,13 @@ This method is available in Free Sculpting and Reference mode. It requires an ex
 
 To stop: withdraw the finger. Returning toward the center adds no further widening. Work in short strokes at nearby heights for a smooth profile.
 
-Action differences: outside palms narrow the shape; two outside pinches widen the whole body; spreading two fingers of one hand inside enlarges the cavity; an inside index finger widens the wall at a chosen height.
+Action differences: outside palms narrow the shape; two outside pinches widen the wall at their height; spreading two fingers of one hand inside enlarges the cavity; an inside index finger widens the wall at a chosen height.
 
 ## From the first movement to a finished vessel
 
 ### A lesson with transparent targets
 
-The lesson teaches narrowing, widening the whole body, lifting, making an indentation, opening the cavity and compressing the rim. It has seven screens: six actions followed by Training Complete («Обучение окончено»). Widening is step 2, immediately after narrowing.
+The lesson teaches narrowing, widening the middle, lifting, making an indentation, opening the cavity and compressing the rim. It has seven screens: six actions followed by Training Complete («Обучение окончено»). Widening is step 2, immediately after narrowing.
 
 Each action has a cyan target silhouette and a Shape («Форма») indicator. Progress depends on the resulting geometry: height, wall profile, cavity width and cavity depth. Once the shape matches, stop moving and release the gesture to continue. Holding one pose does not skip several steps.
 

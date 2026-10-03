@@ -175,7 +175,7 @@ test('B7 tutorial validates geometry for all actions and requires release', asyn
   };
   await expect(lesson).toHaveAttribute('data-step', '0');
   await complete('s', 0);
-  await expect(lesson.locator('h2')).toHaveText('Расширьте весь корпус');
+  await expect(lesson.locator('h2')).toHaveText('Расширьте середину');
   await expect(lesson).toContainText('2 / 7');
   await expect(lesson.locator('.tutorial-instruction')).toContainText('разомкните щипки');
   await page.screenshot({ path: 'test-results/v91-widen-lesson.png' });

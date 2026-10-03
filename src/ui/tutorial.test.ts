@@ -37,7 +37,7 @@ it('completion replaces all gesture instructions, even when hands are lost or ra
   }
 });
 
-it('completes all six lesson actions including whole-body widening and then finishes', () => {
+it('completes all six lesson actions including local widening and then finishes', () => {
   const f = fixture();
   f.complete('s'); expect(f.script.step).toBe(1);
   f.hold('s'); expect(f.script.step).toBe(1);

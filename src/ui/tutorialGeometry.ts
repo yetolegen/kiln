@@ -19,11 +19,13 @@ export interface ShapeAssessment {
   instruction: string;
 }
 export const LESSON_FINISH_STEP = 6;
-// Lesson step 1: a 0.20 narrowing centred on band 24. The dent lands wherever the hands touch, so any centre
-// within NARROW_SHIFT_BANDS of it counts (±6 bands ≈ ±0.15 of the height, ~±30 px on a laptop webcam).
-const NARROW_DEPTH = .20, NARROW_BAND = 24, NARROW_SHIFT_BANDS = 6;
-const narrowed = (start: readonly number[], centre: number) =>
-  start.map((r, i) => r - NARROW_DEPTH * Math.exp(-.5 * ((i - centre) / CONFIG.SIGMA_BANDS) ** 2));
+// Lesson steps 1 and 2: a 0.20 narrowing, then a 0.18 widening, centred on band 24. Both land wherever the
+// hands touch, so any centre within NARROW_SHIFT_BANDS of it counts (±6 bands ≈ ±0.15 of the height,
+// ~±30 px on a laptop webcam). v9.2: the widening is local like the narrowing (it used to be the whole body).
+const NARROW_DEPTH = .20, WIDEN_DEPTH = .18, NARROW_BAND = 24, NARROW_SHIFT_BANDS = 6;
+const bumped = (start: readonly number[], centre: number, depth: number) =>
+  start.map((r, i) => r + depth * Math.exp(-.5 * ((i - centre) / CONFIG.SIGMA_BANDS) ** 2));
+const depthOf = (step: number) => (step === 0 ? -NARROW_DEPTH : WIDEN_DEPTH);
 const maxError = (radii: ArrayLike<number>, target: readonly number[]) => Math.max(...Array.from(radii, (r, i) => Math.abs(r - target[i])));
 
 export const copyShape = (c: LessonShape | ClayState): LessonShape => ({ radii: Array.from(c.radii), height: c.height, cavityRadiusWorld: c.cavityRadiusWorld, cavityDepthWorld: c.cavityDepthWorld });
@@ -31,8 +33,7 @@ export const copyShape = (c: LessonShape | ClayState): LessonShape => ({ radii: 
 /** Curriculum goals; these never change the engine's clay or follow a moving target. */
 export function createLessonGoal(step: number, clay: LessonShape | ClayState): LessonGoal {
   const start = copyShape(clay), target = copyShape(clay);
-  if (step === 0) target.radii = narrowed(start.radii, NARROW_BAND);
-  if (step === 1) target.radii = start.radii.map((r) => r + .18);
+  if (step === 0 || step === 1) target.radii = bumped(start.radii, NARROW_BAND, depthOf(step));
   if (step === 2) { target.height += .30; target.radii = start.radii.map((r) => r * .977); }
   if (step === 3) { target.cavityRadiusWorld = CONFIG.INDENT_RADIUS_WORLD; target.cavityDepthWorld = CONFIG.INDENT_DEPTH_WORLD; }
   if (step === 4) { target.cavityRadiusWorld += .26; target.cavityDepthWorld += .468; }
@@ -47,11 +48,11 @@ export function createLessonGoal(step: number, clay: LessonShape | ClayState): L
 export function assessLessonShape(clay: ClayState, goal: LessonGoal): ShapeAssessment {
   const { start: s, step } = goal;
   let t = goal.target;
-  if (step === 0) {
-    // Compare against the narrowing moved to where the user actually made it, if that is close enough.
+  if (step === 0 || step === 1) {
+    // Compare against the narrowing / widening moved to where the user actually made it, if that is close enough.
     let best = maxError(clay.radii, t.radii);
     for (let c = NARROW_BAND - NARROW_SHIFT_BANDS; c <= NARROW_BAND + NARROW_SHIFT_BANDS; c++) {
-      const radii = narrowed(s.radii, c), e = maxError(clay.radii, radii);
+      const radii = bumped(s.radii, c, depthOf(step)), e = maxError(clay.radii, radii);
       if (e < best) { best = e; t = { ...t, radii }; }
     }
   }

@@ -22,7 +22,7 @@ export interface ActionDelta {
   stretchMs: number;     // how long the opening has been engaged (armed), for the v5 over-stretch
   widenWorld: number;    // v8.2: outward fingertip push from inside the opening this observation
   widenBandY: number;    // ... at this relative height 0..1
-  externalWidenWorld: number; // two pinched outside grips spread the whole profile
+  externalWidenWorld: number; // two pinched outside grips spread the wall around widenBandY (v9.2: no longer the whole profile)
 }
 export const NO_DELTA: ActionDelta = { shapeWorld: 0, liftWorld: 0, indentWorld: 0, spreadRatio: 0, compressWorld: 0, stretchMs: 0, widenWorld: 0, widenBandY: 0, externalWidenWorld: 0 };
 
@@ -163,8 +163,8 @@ export function stepClay(
       changed = true;
     }
     if (acting && g.gesture === 'widen' && d.externalWidenWorld > 0 && Number.isFinite(d.externalWidenWorld)) {
-      const increase = Math.min(CONFIG.WIDEN_GAIN * d.externalWidenWorld, CONFIG.MAX_DR_PER_S * dtS);
-      for (let i = 0; i < c.radii.length; i++) c.radii[i] += increase;
+      // v9.2: the outside grip widens around its own height, like shaping and the inside push
+      shape(c, d.widenBandY, CONFIG.WIDEN_GAIN * d.externalWidenWorld, dtS);
       changed = true;
     }
     if (acting && g.gesture === 'open' && d.spreadRatio > 0 && c.cavityDepthWorld > 0) {

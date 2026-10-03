@@ -86,7 +86,7 @@ export class MockCore implements CoreController {
       case 'g': {
         if (this.phase === 'tutorial' && this.expected === 'widen') {
           this.gestureName = 'widen';
-          for (let i = 0; i < this.clay.radii.length; i++) this.clay.radii[i] += .18;
+          for (let i = 0; i < this.clay.radii.length; i++) this.clay.radii[i] += .18 * Math.exp(-.5 * ((i - 24) / CONFIG.SIGMA_BANDS) ** 2); // v9.2: local, like the core
           break;
         }
         if (this.clay.cavityDepthWorld <= 0) { this.gestureName = 'none'; return; }

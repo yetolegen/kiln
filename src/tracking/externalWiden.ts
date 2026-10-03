@@ -1,5 +1,16 @@
 import { CONFIG } from '../config';
-import type { FrameInput, ProjectionParams } from '../types';
+import type { FrameInput, HandFeatures, ProjectionParams, Vec2 } from '../types';
+import { pxToWorld } from './coordinates';
+
+/**
+ * The pinch point (between thumb and index tips): the clay widens there, not at the palm centre, which on a
+ * real hand sits about a palm above it (so palm-based contact could never grip the upper wall).
+ */
+export function gripPoint(h: HandFeatures, projection: ProjectionParams): Vec2 {
+  if (h.landmarksPx.length !== 21) return h.palmWorld;
+  const a = h.landmarksPx[4], b = h.landmarksPx[8];
+  return pxToWorld({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, projection);
+}
 
 interface Grip {
   left: number; right: number; y: number; travel: number; since: number; last: number; epoch: number; projection: number;
@@ -21,7 +32,7 @@ export class ExternalWiden {
       // progress 0 while paused: a real release (opening the fingers) must read as released at once
       return { progress: 0, push: 0, tooFast: e.tooFast };
     }
-    const left = -l.palmWorld.x, right = r.palmWorld.x, y = (l.palmWorld.y + r.palmWorld.y) / 2;
+    const left = -l.palmWorld.x, right = r.palmWorld.x, y = (gripPoint(l, projection).y + gripPoint(r, projection).y) / 2;
     const ids = `${l.trackId}:${r.trackId}`, palm = (l.referencePalmSizePx + r.referencePalmSizePx) / (2 * projection.pixelsPerWorldUnit);
     const deadband = Math.max(.012, palm * .035);
     if (!e || e.ids !== ids || e.epoch !== frame.epoch || e.projection !== projection.revision || t <= e.last ||
@@ -53,6 +64,6 @@ export class ExternalWiden {
     const travel = Math.min(left - e.left, right - e.right);
     const push = travel > e.travel + (e.travel === 0 ? deadband : 0) ? travel - e.travel : 0;
     if (push > 0) e.travel = travel;
-    return { progress: 1, push, tooFast: false };
+    return { progress: 1, push, tooFast: false, y: e.y };
   }
 }

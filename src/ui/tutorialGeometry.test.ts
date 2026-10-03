@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest';
+import { CONFIG } from '../config';
 import { MockCore } from '../dev/mockCore';
 import { assessLessonShape, createLessonGoal } from './tutorialGeometry';
 
@@ -53,4 +54,13 @@ it('accepts the first narrowing wherever the hands made it near the middle, not 
   }
   expect(assessLessonShape(dent(40, .20), goal).matched).toBe(false);
   expect(assessLessonShape(dent(27, .40), goal).failure).toContain('Стенки');
+});
+
+it('step 2 widening is local: a bump where the hands grip matches, a whole-body widening does not', () => {
+  const c = new MockCore().tick(0).clay!;
+  const goal = createLessonGoal(1, c);
+  const bump = (centre: number) => Float32Array.from(c.radii, (r, i) => r + .18 * Math.exp(-.5 * ((i - centre) / CONFIG.SIGMA_BANDS) ** 2));
+  for (const centre of [24, 19, 29]) expect(assessLessonShape({ ...c, radii: bump(centre) }, goal)).toMatchObject({ matched: true, failure: null });
+  expect(assessLessonShape({ ...c, radii: bump(10) }, goal).matched).toBe(false); // far from the marked middle
+  expect(assessLessonShape({ ...c, radii: c.radii.map((r) => r + .18) }, goal).matched).toBe(false);
 });
