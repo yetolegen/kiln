@@ -225,8 +225,13 @@
 @media (max-height: 500px) and (orientation: landscape) {
   .dwell-button { min-height: 44px; }
   .workshop[data-phase='studio'] .workshop__description { font-size: 11px; line-height: 1.4; }
-  .workshop[data-phase='studio'] .phase-actions { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); width: 100%; gap: 8px; }
-  .workshop[data-phase='studio'] .phase-actions > .dwell-button:not(.sound-toggle):not(.camera-toggle) { min-height: 44px; padding: 6px; font-size: 11px; }
+  /* the paper type runs taller: keep a failed lesson's card, with its retry button, inside a 390px screen */
+  .tutorial-card h2 { font-size: 16px; line-height: 1.15; margin: 2px 0 4px; }
+  .tutorial-card .dwell-button { margin-top: 6px; }
+  .workshop[data-phase='tutorial'] .workshop__description { display: none; } /* the card's step title says it */
+  /* tutorial too: its three actions otherwise wrap to two rows and push the lesson card below a 390px screen */
+  .workshop:is([data-phase='studio'], [data-phase='tutorial']) .phase-actions { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); width: 100%; gap: 8px; }
+  .workshop:is([data-phase='studio'], [data-phase='tutorial']) .phase-actions > .dwell-button:not(.sound-toggle):not(.camera-toggle) { min-height: 44px; padding: 6px; font-size: 11px; }
   .workshop[data-phase='studio'] .checkpoint-status { font-size: 11px; margin: 8px 0; padding: 6px; }
   .workshop[data-phase='studio'] .hud { left: auto; right: 24px; top: 66px; bottom: auto; gap: 6px; }
   .pottery-process { font-size: 11px; margin-bottom: 4px; }

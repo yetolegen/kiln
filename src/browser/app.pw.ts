@@ -357,10 +357,7 @@ test('B2 loads the real model, starts a mirrored camera, and resizes', async ({ 
   try { await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'calibrate', { timeout: 20_000 }); }
   catch (error) { throw new Error(`Camera startup failed: ${startupErrors.join('\n')}`, { cause: error }); }
   await expect(page.locator('footer')).toContainText('KILN FINAL');
-  await expect(page.locator('.camera-viewport')).toHaveCSS('background-image', /workshop-dusk\.png/);
-  await page.evaluate(() => new Promise<void>((resolve, reject) => {
-    const art = new Image(); art.onload = () => resolve(); art.onerror = () => reject(new Error('Workshop artwork missing')); art.src = '/workshop-dusk.png';
-  }));
+  await expect(page.locator('.camera-viewport')).toHaveCSS('background-image', 'none'); // paper redesign retired the dusk artwork
   const video = page.locator('video');
   await expect(video).toBeVisible();
   expect(await video.evaluate((element: HTMLVideoElement) => ({
