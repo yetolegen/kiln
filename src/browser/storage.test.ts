@@ -15,11 +15,12 @@ function storage(raw: string | null = null) {
 }
 it('a shelved pot keeps its handles across a reload', () => {
   const pot = result(), clay = artifactFromResult(pot).clay;
-  pot.customization.handles = [placeHandle('round', { point: { x: 1, y: .6, z: 0 }, normal: { x: 1, y: 0, z: 0 } }, clay, 'h0')];
+  const handles = [placeHandle('round', { point: { x: 1, y: .6, z: 0 }, normal: { x: 1, y: 0, z: 0 } }, clay, 'h0')];
+  pot.customization = { ...pot.customization!, handles };
   const backend = storage(); expect(createGalleryStore(() => backend).saveDetailed(pot)).toBe('saved');
   const loaded = createGalleryStore(() => backend).list();
   expect(loaded).toHaveLength(1); // an invalid record would be silently dropped from the shelf
-  expect(loaded[0].customization.handles).toEqual(pot.customization.handles);
+  expect(loaded[0].customization?.handles).toEqual(handles);
 });
 
 it('validates persisted profiles, finite stats and schema while retaining valid records', () => {

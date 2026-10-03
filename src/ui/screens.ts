@@ -8,6 +8,8 @@ import { createProcess } from './process';
 
 /** Buttons that end or leave the current shaping session: locked while sculpting, slower to dwell. */
 const SESSION_ACTIONS = ['done', 'restart', 'menu', 'inspect'];
+/** Shaping-screen actions folded behind «Ещё» on wide screens (studio.css); choosing one folds it back. */
+const OVERFLOW_ACTIONS = ['restart', 'checkpoint-restore', 'camera-preview'];
 
 export interface StartupState {
   busy: boolean;
@@ -121,10 +123,19 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
     const button = document.createElement('button');
     button.type = 'button'; button.className = 'dwell-button'; button.textContent = label; button.dataset.action = id;
     button.insertAdjacentHTML('afterbegin', actionIcon(id));
-    const guarded = () => { if (eligible(id, button)) run(); };
+    const guarded = () => {
+      if (!eligible(id, button)) return;
+      if (OVERFLOW_ACTIONS.includes(id)) setMore(false);
+      run();
+    };
     button.addEventListener('click', guarded);
     entries.push({ id, element: button, run: guarded }); parent.append(button);
     return button;
+  }
+  function setMore(open: boolean): void {
+    page.dataset.more = String(open);
+    entries.find(entry => entry.id === 'more')?.element.setAttribute('aria-expanded', String(open));
+    screenRevision++; refreshTargets(); // the folded buttons appear or vanish as hand targets
   }
   const newSession = () => crypto.randomUUID();
   const back = () => dispatch({ type: 'backToMenu' });
@@ -155,6 +166,8 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
       addAction('gallery', 'Моя полка', () => dispatch({ type: 'openGallery' }));
     } else if (snapshot.phase === 'glaze' || snapshot.phase === 'gallery') addAction('menu', 'В мастерскую', back);
     if (['studio', 'tutorial', 'glaze', 'result'].includes(snapshot.phase)) addAction('inspect', 'Осмотреть в 3D', onInspect);
+    page.dataset.more = 'false';
+    if (snapshot.phase === 'studio' || snapshot.phase === 'tutorial') addAction('more', 'Ещё', () => setMore(page.dataset.more !== 'true')).setAttribute('aria-expanded', 'false');
     if (!['loading', 'permission', 'calibrate', 'firing'].includes(snapshot.phase)) {
       const mute = addAction('mute', muted ? 'Звук выключен' : 'Звук включён', () => {
         muted = toggleMute(); mute.textContent = muted ? 'Звук выключен' : 'Звук включён';
@@ -229,7 +242,7 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
       if (snapshot.phase !== lastPhase || snapshot.mode !== lastMode || state.busy !== lastBusy || state.cameraActive !== lastActive || state.error !== lastError) {
         lastPhase = snapshot.phase; lastMode = snapshot.mode; lastBusy = state.busy; lastActive = state.cameraActive; lastError = state.error;
         page.dataset.phase = snapshot.phase;
-        process.update(snapshot.phase === 'glaze' ? 2 : snapshot.phase === 'firing' ? 3 : snapshot.phase === 'result' ? 4 : -1);
+        process.update(snapshot.phase === 'studio' ? 0 : snapshot.phase === 'glaze' ? 2 : snapshot.phase === 'firing' ? 3 : snapshot.phase === 'result' ? 4 : -1);
         page.classList.toggle('workshop--camera', state.cameraActive);
         page.classList.toggle('workshop--error', state.error !== null);
         start.hidden = state.cameraActive && !state.error;

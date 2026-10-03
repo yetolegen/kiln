@@ -7,6 +7,8 @@ const PATHS: Record<string, string> = {
   restart: 'M6 8a10 10 0 1 1-2 12 M6 2v7H0',
   menu: 'M3 3h8v8H3z M17 3h8v8h-8z M3 17h8v8H3z M17 17h8v8h-8z',
   inspect: 'M4 8l10-5 10 5v12l-10 5-10-5z M4 8l10 6 10-6 M14 14v11',
+  more: 'M5 14a1.6 1.6 0 1 0 3.2 0a1.6 1.6 0 1 0-3.2 0 M12.4 14a1.6 1.6 0 1 0 3.2 0a1.6 1.6 0 1 0-3.2 0 M19.8 14a1.6 1.6 0 1 0 3.2 0a1.6 1.6 0 1 0-3.2 0',
+  'checkpoint-save': 'M5 4h15l4 4v16H5z M9 4v6h9V4 M9 24v-8h10v8',
 };
 
 export function actionIcon(id: string): string {

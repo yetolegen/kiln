@@ -80,7 +80,7 @@ test('M6 real pipeline: landmark dwell, shaping, checkpoint, restore, decoration
   await select('checkpoint-save'); await expect(page.locator('.checkpoint-status')).toContainText('Точка сохранена');
   const checkpoint = await page.evaluate(() => JSON.parse(localStorage.getItem('kiln.checkpoint.v1')!));
   expect(Math.min(...checkpoint.clay.radii.slice(20, 29))).toBeLessThan(.99);
-  await select('checkpoint-restore'); await select('modal-restore');
+  await select('more'); await select('checkpoint-restore'); await select('modal-restore'); // «Восстановить» is folded under «Ещё» on wide screens
   await expect(page.locator('.checkpoint-status')).toContainText('Точка восстановлена');
   await select('done'); await select('decor-handle-done'); await select('decor-add'); await select('decor-sphere');
   const place = async (x: number) => {

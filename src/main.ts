@@ -3,6 +3,7 @@ import './ui/workshopTheme.css';
 import './ui/atelierTheme.css';
 import './ui/final.css';
 import './ui/paper.css';
+import './ui/studio.css';
 
 // Route selection precedes the camera-first workshop and its model bootstrap.
 if (location.hash.startsWith('#pot=')) {
