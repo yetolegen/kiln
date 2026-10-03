@@ -1,0 +1,9 @@
+/* Used only by Playwright toHaveScreenshot, never imported by the application.
+   Keep all production instructions and controls visible. Rendering/hand tracking
+   have their own regression tests; GPU frames and the dev badge are not baselines. */
+canvas,
+video,
+.hand-cursor,
+[data-testid="mock-badge"] {
+  visibility: hidden !important;
+}

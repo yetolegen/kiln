@@ -13,7 +13,7 @@ function storage(raw: string | null = null) {
 }
 it('validates persisted profiles, finite stats and schema while retaining valid records', () => {
   const valid = result(); expect(isSessionResult(valid)).toBe(true);
-  const invalid = [ { ...valid, schemaVersion: 4 }, { ...valid, height: Infinity }, { ...valid, finalProfile: [1] },
+  const invalid = [ { ...valid, schemaVersion: 99 }, { ...valid, height: Infinity }, { ...valid, finalProfile: [1] },
     { ...valid, damage: Array(48).fill(-1) }, { ...valid, thickness: 3 }, { ...valid, completedAtIso: 'yesterday' },
     { ...valid, stats: { ...valid.stats, durationMs: -1 } }, { ...valid, stats: { ...valid.stats, similarity: { ...valid.stats.similarity, score: 101 } } } ];
   for (const item of invalid) expect(isSessionResult(item)).toBe(false);
@@ -24,7 +24,7 @@ it('migrates schema 1 pots as solid, preserves scores and drops retired gesture 
   const old = { ...result(), schemaVersion: 1, thickness: .25, cavityRadiusWorld: undefined, cavityDepthWorld: undefined };
   Object.assign(old.stats.gestureMs, { pressDown: 4000 });
   const store = createGalleryStore(() => storage(JSON.stringify({ schemaVersion: 1, pots: [old], bestScores: { 'vase@1': 95 } })));
-  expect(store.list()[0]).toMatchObject({ schemaVersion: 3, cavityRadiusWorld: 0, cavityDepthWorld: 0, floorThicknessWorld: old.height, bottomHole: false, thickness: 1 });
+  expect(store.list()[0]).toMatchObject({ schemaVersion: 4, cavityRadiusWorld: 0, cavityDepthWorld: 0, floorThicknessWorld: old.height, bottomHole: false, thickness: 1 });
   expect(store.list()[0].stats.gestureMs).not.toHaveProperty('pressDown');
   expect(store.best('vase@1')).toBe(95);
 });
@@ -33,7 +33,7 @@ it('migrates schema 2 cavities and preserves a schema 3 through-hole without acc
   const core = new MockCore(); core.key('i', 0); core.key('o', 0); core.key('8', 0);
   const old = { ...core.tick(0).result!, schemaVersion: 2, floorThicknessWorld: undefined, bottomHole: undefined };
   const migrated = createGalleryStore(() => storage(JSON.stringify({ schemaVersion: 2, pots: [old], bestScores: { 'vase@1': 90 } })));
-  expect(migrated.list()[0]).toMatchObject({ schemaVersion: 3, cavityDepthWorld: old.cavityDepthWorld, floorThicknessWorld: old.height - old.cavityDepthWorld, bottomHole: false });
+  expect(migrated.list()[0]).toMatchObject({ schemaVersion: 4, cavityDepthWorld: old.cavityDepthWorld, floorThicknessWorld: old.height - old.cavityDepthWorld, bottomHole: false });
   expect(migrated.best('vase@1')).toBe(90);
   core.key('b', 0); core.key('8', 0);
   const hole = core.tick(0).result!, backend = storage();
@@ -56,7 +56,7 @@ it.each([2, 3])('retains a 20-percent pancake in schema %i through loading and s
   const old = { ...pot, schemaVersion, ...(schemaVersion === 2 ? { floorThicknessWorld: undefined, bottomHole: undefined } : {}) };
   const backend = storage(JSON.stringify({ schemaVersion, pots: [old] }));
   const loaded = createGalleryStore(() => backend).list()[0];
-  expect(loaded).toMatchObject({ schemaVersion: 3, height: .24, cavityDepthWorld: 0, cavityRadiusWorld: 0, floorThicknessWorld: .24, collapsed: true });
+  expect(loaded).toMatchObject({ schemaVersion: 4, height: .24, cavityDepthWorld: 0, cavityRadiusWorld: 0, floorThicknessWorld: .24, collapsed: true });
   const saved = storage(); expect(createGalleryStore(() => saved).save(loaded)).toBe(true);
   expect(createGalleryStore(() => saved).list()[0]).toEqual(loaded);
 });

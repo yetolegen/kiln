@@ -1,12 +1,8 @@
 import { CONFIG } from '../config';
 import type { AppPhase, EngineSnapshot } from '../types';
 
-export const GLAZES = [
-  { id: 'amber', name: 'Янтарь', color: '#ba713d' },
-  { id: 'jade', name: 'Нефрит', color: '#638976' },
-  { id: 'chalk', name: 'Молоко', color: '#dfd9c8' },
-] as const;
-export const glazeColor = (id: string | null) => GLAZES.find((glaze) => glaze.id === id)?.color ?? '#b9825e';
+import { glazeColor } from '../engine/materials';
+export { GLAZES, glazeColor } from '../engine/materials';
 
 export function createKiln(parent: HTMLElement, setSurface: (color: string, gloss: number, glow: number) => void) {
   const glow = document.createElement('div'); glow.className = 'kiln-glow'; glow.hidden = true; parent.append(glow);

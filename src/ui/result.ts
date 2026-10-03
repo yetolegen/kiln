@@ -25,6 +25,8 @@ export function renderResult(parent: HTMLElement, result: SessionResult, persist
   const duration = document.createElement('p');
   duration.textContent = `У круга · ${Math.round(result.stats.durationMs / 1000)} с`;
   summary.append(duration);
+  if (result.stats.restores) { const restores = document.createElement('p'); restores.textContent = `Восстановлений: ${result.stats.restores} · ошибки и время сохранены`; summary.append(restores); }
+  if (result.customization) { const decor = document.createElement('p'); decor.textContent = `Оформление: ${result.customization.attachments.length} деталей · ${result.customization.stamps.length} штампов · исправлений при оформлении: ${result.customization.editMistakes}`; summary.append(decor); }
   if (result.stats.mode === 'commission' && result.stats.similarity) {
     const score = document.createElement('strong'); score.className = 'result-score';
     score.textContent = `${Math.round(result.stats.similarity.score)}%`;

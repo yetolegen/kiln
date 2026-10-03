@@ -213,6 +213,7 @@ export interface SimilarityResult {
   signedHeightDeltaWorld: number;
 }
 export interface SessionStats {
+  restores?: number;               // recovery does not erase mistakes or elapsed time
   sessionId: string;
   mode: SessionMode;
   durationMs: number;
@@ -224,7 +225,9 @@ export interface SessionStats {
   similarity?: SimilarityResult;
 }
 export interface SessionResult {
-  schemaVersion: 3;                 // 3 = v5 floor/hole; 2 = v4 cavity (migrate: floor = height − depth, no hole); 1 = solid
+  schemaVersion: 3 | 4;             // 4 adds confirmed customization and explicit failure cause
+  customization?: import('./engine/customization').Customization;
+  collapseCause?: CollapseCause | null;
   id: string;
   completedAtIso: string;           // supplied by browser adapter on finalization
   stats: SessionStats;
@@ -240,6 +243,7 @@ export interface SessionResult {
   glazeId: string;
 }
 export type AppCommand =
+  | { type: 'customize'; value: import('./engine/customization').Customization }
   // hand model loaded: 'loading' → 'permission'. The first updateProjection() (camera running) → 'calibrate'
   | { type: 'modelReady' }
   | { type: 'start'; mode: SessionMode; sessionId: string; targetId?: string }
@@ -257,6 +261,7 @@ export interface DwellTarget {
   command: AppCommand;
 }
 export interface EngineSnapshot {
+  customization?: import('./engine/customization').Customization;
   phase: AppPhase;
   mode: SessionMode | null;
   calibrationProgress: number;       // 0..1 during 'calibrate'
@@ -277,6 +282,8 @@ export interface EngineSnapshot {
  * Implemented by engine/controller.ts (A). B uses dev/mockCore.ts with the same interface until A's is ready.
  */
 export interface CoreController {
+  captureCheckpoint(nowMs: number): import('./engine/checkpoint').Checkpoint | null;
+  restoreCheckpoint(value: unknown, nowMs: number, sessionId?: string): boolean;
   observe(frame: FrameInput): void;
   dispatch(command: AppCommand, nowMs: number): void;
   tick(nowMs: number): EngineSnapshot;

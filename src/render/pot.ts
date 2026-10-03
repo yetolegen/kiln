@@ -64,6 +64,7 @@ export function createPotView() {
 
   return {
     group, material,
+    get mesh() { return mesh; },
     update(clay: ClayState, band: number | null, nowMs: number, rotation = nowMs * .00016, reducedMotion = false): void {
       if (revision !== clay.revision || radii !== clay.radii) {
         fillProfile(clay, points);

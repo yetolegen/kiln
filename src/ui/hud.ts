@@ -8,9 +8,10 @@ export function createHud(parent: HTMLElement, onLayoutChange: () => void = () =
   hud.className = 'hud';
   const gesture = document.createElement('span'); gesture.className = 'hud__gesture';
   const tracking = document.createElement('span'); tracking.className = 'hud__tracking';
+  const activity = document.createElement('span'); activity.className = 'hud__activity';
   const banner = document.createElement('p'); banner.className = 'hud__hint'; banner.setAttribute('role', 'status');
   banner.hidden = true;
-  hud.append(gesture, tracking); parent.append(hud);
+  hud.append(gesture, activity, tracking); parent.append(hud);
   const heading = parent.querySelector('h1');
   if (heading) heading.before(banner); else parent.prepend(banner);
   let layoutFrame = 0;
@@ -42,6 +43,11 @@ export function createHud(parent: HTMLElement, onLayoutChange: () => void = () =
       const currentGesture = pointer ? 'point' : snapshot.gesture?.inputUsable ? snapshot.gesture.gesture : 'none';
       if (currentGesture !== lastGesture) { gesture.textContent = gestureText[currentGesture]; lastGesture = currentGesture; }
       const status = snapshot.input && nowMs - snapshot.input.tMs <= CONFIG.MAX_INPUT_AGE_MS ? snapshot.input.status : 'stale';
+      const deforming = !!snapshot.gesture?.deforming && ['ready', 'oneHand'].includes(status);
+      const activityText = deforming ? 'Глина меняется' : 'Глина на паузе';
+      activity.hidden = !shaping; activity.dataset.active = String(deforming);
+      if (activity.textContent !== activityText) activity.textContent = activityText;
+      tracking.dataset.ready = String(status === 'ready');
       const label = pointer ? 'Указатель готов' : ru.tracking[status];
       if (label !== lastTracking) { tracking.textContent = label; lastTracking = label; }
       const damage = clayDamageReason(snapshot);

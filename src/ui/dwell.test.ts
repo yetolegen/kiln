@@ -37,6 +37,18 @@ it('does not repeatedly restart a session while the same button stays held', () 
   expect(fires).toBe(1);
 });
 
+it('requires release after an activated control rebuilds its page', () => {
+  const f = fixture(); let revision = 0, fires = 0;
+  for (let t = 0; t <= 3500; t += 100) {
+    if (f.dwell.update(f.core.tick(t), t, f.targets, revision)) { fires++; revision++; }
+  }
+  expect(fires).toBe(1);
+  f.core.setCursor(200, 200); f.dwell.update(f.core.tick(3600), 3600, f.targets, revision);
+  f.core.setCursor(50, 50);
+  for (let t = 3700; t <= 5000; t += 100) if (f.dwell.update(f.core.tick(t), t, f.targets, revision)) fires++;
+  expect(fires).toBe(2);
+});
+
 it('accepts a trusted one-hand pointer even when two-hand shaping is unusable', () => {
   const f = fixture(); let fires = 0;
   for (let t = 0; t <= 1400; t += 100) {
@@ -88,4 +100,32 @@ it('resets a palm hold on hand switch, leaving the button and invalid tracking',
   update(700, 3); expect(f.dwell.progress).toBe(0);
   update(800, 3, 150); expect(f.dwell.activeId).toBeNull();
   update(900, 3); update(1000, 3, 50, 'reacquiring'); expect(f.dwell.progress).toBe(0);
+});
+
+it('does not carry a pinch drag into a newly opened dialog', () => {
+  const f = fixture(); f.core.key('Escape', 0);
+  const update = (t: number, x: number, pinchRatio: number) => {
+    const s = f.core.tick(t); s.input!.screenRight = null;
+    s.input!.screenLeft!.palmPx = { x, y: 50 }; s.input!.screenLeft!.pinchRatio = pinchRatio;
+    s.gesture = null; return f.dwell.update(s, t, f.targets);
+  };
+  f.dwell.requireRelease(); update(0, 200, .2);
+  for (let t = 100; t <= 2000; t += 100) expect(update(t, 50, .2)).toBeNull();
+  for (let t = 2100; t <= 4000; t += 100) expect(update(t, 50, .8)).toBeNull();
+  update(4100, 200, .8); let fires = 0;
+  for (let t = 4200; t <= 5500; t += 100) if (update(t, 50, .8)) fires++;
+  expect(fires).toBe(1);
+});
+
+it('does not let an absent old pinch block a fresh pointing hand', () => {
+  const f = fixture(); f.core.key('p', 0); f.dwell.requireRelease();
+  const update = (t: number, trackId: number, pinchRatio: number) => {
+    const s = f.core.tick(t); s.input!.screenRight = null;
+    Object.assign(s.input!.screenLeft!, { trackId, pinchRatio, palmPx: { x: 200, y: 200 } });
+    return f.dwell.update(s, t, f.targets);
+  };
+  update(0, 1, .2); f.core.setCursor(200, 200); update(100, 2, .8);
+  f.core.setCursor(50, 50); let fires = 0;
+  for (let t = 200; t <= 1800; t += 100) if (update(t, 2, .8)) fires++;
+  expect(fires).toBe(1);
 });

@@ -1,5 +1,6 @@
 import type { SessionResult } from '../types';
-import { glazeColor } from '../render/kiln';
+import { glazeColor, GLAZES } from '../render/kiln';
+import { thumbnailDecoration } from '../render/thumbnailDecoration';
 
 export function renderGallery(parent: HTMLElement, pots: readonly SessionResult[], page: number, best: (target: string) => number | null): void {
   parent.replaceChildren();
@@ -24,10 +25,13 @@ export function renderGallery(parent: HTMLElement, pots: readonly SessionResult[
         ctx.fillStyle = `rgba(49, 28, 18, ${Math.min(.95, .35 + pot.cavityDepthWorld / pot.height)})`;
         ctx.beginPath(); ctx.ellipse(center, bottom - pot.height * scale, pot.cavityRadiusWorld * scale, pot.cavityRadiusWorld * scale * .15, 0, 0, Math.PI * 2); ctx.fill();
       }
+      thumbnailDecoration(ctx, pot, scale, bottom, center);
     }
     const title = document.createElement('h2'); title.textContent = pot.stats.mode === 'commission' ? 'Ваза по образцу' : 'Свободная форма';
-    const date = document.createElement('p'); date.textContent = new Date(pot.completedAtIso).toLocaleDateString('ru-RU');
-    card.append(canvas, title, date);
+    const date = document.createElement('p'); date.className = 'gallery-card__date'; date.textContent = new Date(pot.completedAtIso).toLocaleDateString('ru-RU');
+    const glaze = document.createElement('p'); glaze.className = 'gallery-card__glaze'; glaze.textContent = `Глазурь · ${GLAZES.find(g => g.id === pot.glazeId)?.name ?? pot.glazeId}`;
+    glaze.style.setProperty('--glaze', glazeColor(pot.glazeId));
+    card.append(canvas, title, glaze, date);
     if (pot.bottomHole) { const state = document.createElement('p'); state.textContent = 'Сквозное отверстие в дне'; card.append(state); }
     if (pot.stats.mode === 'commission' && pot.stats.targetId && pot.stats.similarity) {
       const score = document.createElement('p'); score.textContent = `${Math.round(pot.stats.similarity.score)}% · лучший здесь: ${Math.round(best(pot.stats.targetId) ?? 0)}%`;

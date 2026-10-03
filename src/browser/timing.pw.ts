@@ -56,7 +56,7 @@ for (const narrowBand of [24, 27]) test(`camera observations newer than the anim
   const button = page.locator('[data-action="tutorial"]');
   await expect(button).toHaveClass(/is-dwelling/);
   const pointer = page.locator('.workshop > .hand-cursor');
-  await expect(pointer).toBeVisible(); await expect(pointer).toHaveCSS('z-index', '6');
+  await expect(pointer).toBeVisible(); await expect(pointer).toHaveCSS('z-index', '90');
   await expect.poll(() => pointer.locator('.hand-cursor__progress').getAttribute('stroke-dashoffset')).not.toBe('126');
   await page.screenshot({ path: `test-results/v82-palm-cursor-${narrowBand}.png` });
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'tutorial', { timeout: 8000 });
