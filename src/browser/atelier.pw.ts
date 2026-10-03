@@ -4,10 +4,10 @@ test('V9 workshop artwork, parchment lesson and damage restart stay readable', a
   const errors: string[] = []; page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/?dev=1&mock=1');
   await expect(page.getByTestId('mock-badge')).toBeVisible();
-  await page.evaluate(() => new Promise<void>((resolve, reject) => {
-    const art = new Image(); art.onload = () => resolve(); art.onerror = () => reject(new Error('Workshop artwork missing')); art.src = '/workshop-dusk.png';
-  }));
-  await expect(page.locator('.camera-viewport')).toHaveCSS('background-image', /workshop-dusk\.png/);
+  // keyboard-driven test: drop the fixed support palm, which the paper layout puts over the damage modal's menu button
+  await page.keyboard.press('j'); await page.keyboard.press('h'); await page.mouse.move(0, 0); // palm follows the parked mouse
+  // paper redesign: the workshop sits on flat paper (paper.css), the V9 dusk artwork is retired
+  await expect(page.locator('.camera-viewport')).toHaveCSS('background-image', 'none');
   await expect(page.locator('.phase-actions > .dwell-button .action-icon')).toHaveCount(4);
   await page.mouse.move(0, 0); await page.screenshot({ path: 'test-results/v9-menu.png' });
   await page.locator('[data-action="tutorial"]').click(); await page.mouse.move(0, 0);
