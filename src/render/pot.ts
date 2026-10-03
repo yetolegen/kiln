@@ -3,7 +3,8 @@ import type { ClayState } from '../types';
 import { createMaterialFamily, type MaterialFamily } from './materialFamily';
 
 export const BODY_RADIAL_SEGMENTS = 96;
-export const VISUAL_SUBDIVISIONS = 3;
+// 2 keeps the smooth redesigned profile; 3 cost ~4x frame time on software GL and starved hand tracking
+export const VISUAL_SUBDIVISIONS = 2;
 /** Monotone cubic interpolation: passes every logical sample and cannot overshoot either neighbour. */
 export function visualRadius(radii: Float32Array, band: number): number {
   const i = Math.min(radii.length - 2, Math.floor(band)), t = band - i;

@@ -3,7 +3,7 @@ import { Group, MeshPhysicalMaterial, Vector3 } from 'three';
 import { createClay } from '../engine/clay';
 import { emptyCustomization } from '../engine/customization';
 import { placeHandle, handleEndpoints } from '../engine/handles';
-import { createPotView, visualRadius } from './pot';
+import { createPotView, visualRadius, VISUAL_SUBDIVISIONS } from './pot';
 import { createHandleView, HandleCurve, handleMatrix } from './handles';
 import { createMaterialFamily } from './materialFamily';
 import { createDecorationView, stampGeometry } from './decoration';
@@ -44,7 +44,7 @@ it('visual interpolation passes all 48 samples without overshoot, drift, or lost
  const clay=createClay();for(let i=0;i<48;i++)clay.radii[i]=.7+.24*Math.sin(i*.7);const original=Array.from(clay.radii);
  for(let i=0;i<48;i++)expect(visualRadius(clay.radii,i)).toBeCloseTo(clay.radii[i],7);
  for(let i=0;i<47;i++)for(let s=0;s<=10;s++){const r=visualRadius(clay.radii,i+s/10);expect(r).toBeGreaterThanOrEqual(Math.min(clay.radii[i],clay.radii[i+1])-1e-7);expect(r).toBeLessThanOrEqual(Math.max(clay.radii[i],clay.radii[i+1])+1e-7);}
- const view=createPotView();view.update(clay,null,0);expect(view.mesh!.geometry.parameters.points).toHaveLength(200);expect(view.mesh!.geometry.parameters.segments).toBe(96);expect(Array.from(clay.radii)).toEqual(original);view.dispose();
+ const view=createPotView();view.update(clay,null,0);expect(view.mesh!.geometry.parameters.points).toHaveLength(47*VISUAL_SUBDIVISIONS+1+48+10);expect(view.mesh!.geometry.parameters.segments).toBe(96);expect(Array.from(clay.radii)).toEqual(original);view.dispose();
 });
 it('stamps follow the smoothed surface through a neck without changing their anchor or footprint',()=>{
  const clay=createClay();for(let i=0;i<48;i++)clay.radii[i]=.8+.1*Math.cos(i*.5);
