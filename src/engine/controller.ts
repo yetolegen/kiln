@@ -24,6 +24,16 @@ export interface ControllerOptions {
   nowIso?: () => string;
 }
 
+/** Snapshots hand out the controller's own customization: a frozen copy so no consumer can change it in place. */
+function sealed<T>(value: T): T {
+  const freeze = (v: unknown): void => {
+    if (v === null || typeof v !== 'object' || Object.isFrozen(v)) return;
+    for (const k of Object.keys(v)) freeze((v as Record<string, unknown>)[k]);
+    Object.freeze(v);
+  };
+  const copy = structuredClone(value); freeze(copy); return copy;
+}
+
 export function createController(options: ControllerOptions = {}): CoreController {
   return new Controller(options.nowIso ?? (() => ''));
 }
@@ -57,7 +67,7 @@ class Controller implements CoreController {
   private safeIndentDepthWorld: number = CONFIG.SAFE_INDENT_MIN_WORLD;
   private restoredAtMs = -Infinity;
   private needsRelease = false;
-  private customization = emptyCustomization();
+  private customization = sealed(emptyCustomization());
 
   /**
    * v5 limits from outside the clay: the screen ceiling (75 % of the space above the pot base) and the
@@ -174,7 +184,7 @@ class Controller implements CoreController {
     switch (command.type) {
       case 'customize': {
         const value = readCustomization(command.value);
-        if (this.phase === 'glaze' && value && customizationFits(value, this.clay)) this.customization = { ...value, revision: this.customization.revision + 1 };
+        if (this.phase === 'glaze' && value && customizationFits(value, this.clay)) this.customization = sealed({ ...value, revision: this.customization.revision + 1 });
         break;
       }
       case 'modelReady':
@@ -226,6 +236,7 @@ class Controller implements CoreController {
   }
 
   resetInput(epoch: number): void {
+    this.restoredAtMs = -Infinity; // a new input epoch may restart its clock
     this.epoch = epoch;
     this.input = null;
     this.gesture = null;
@@ -250,13 +261,14 @@ class Controller implements CoreController {
     const session = new SessionTracker(sessionId ?? this.session?.sessionId ?? saved.stats.sessionId,
       saved.mode, nowMs, saved.targetId, previous);
     if (saved.stage === 'glaze') session.freeze(nowMs, saved.mode === 'commission' ? similarity(saved.clay.radii, saved.clay.height, getTarget(saved.targetId)) : undefined);
-    this.rules.closeAll(nowMs);
+    // end (not just forget) whatever was running: consumers must never see a begin without an end
+    const ended = this.rules.closeAll(nowMs);
     this.clay = { ...saved.clay, revision: Math.max(this.clay.revision, saved.clay.revision) + 1,
       radii: Float32Array.from(saved.clay.radii), damage: Float32Array.from(saved.clay.damage), touching: false, activeBand: null };
     this.session = session; this.mode = saved.mode; this.phase = saved.stage;
-    this.customization = { ...saved.customization, editMistakes, revision: this.customization.revision + 1 };
+    this.customization = sealed({ ...saved.customization, editMistakes, revision: this.customization.revision + 1 });
     this.target = saved.mode === 'commission' ? getTarget(saved.targetId) : null;
-    this.glazeId = saved.glazeId; this.result = null; this.pendingEvents = []; this.activeIssues = [];
+    this.glazeId = saved.glazeId; this.result = null; this.pendingEvents = ended; this.activeIssues = [];
     this.effects = NO_EFFECTS; this.hint = null; this.hints.reset(); this.gestures.reset();
     this.input = null; this.gesture = null; this.expectedGesture = undefined; this.tutorialStepIndex = null;
     this.raiseArmed = true; this.firingStartMs = 0; this.needsRelease = true; this.restoredAtMs = nowMs;
@@ -311,7 +323,8 @@ class Controller implements CoreController {
   }
 
   private startSession(mode: SessionMode, sessionId: string, targetId: string | undefined, nowMs: number): void {
-    this.customization = emptyCustomization();
+    this.customization = sealed(emptyCustomization());
+    this.restoredAtMs = -Infinity; // a new session never inherits the previous restore's frame cut-off
     this.needsRelease = false;
     // a new session never inherits the previous one's mistakes (tutorial tears don't count later)
     this.target = mode === 'commission' ? getTarget(targetId) : null;
