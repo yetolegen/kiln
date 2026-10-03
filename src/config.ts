@@ -120,6 +120,13 @@ export const CONFIG = {
   FIST_FINGER_ON: 0.75,
   FIST_FINGER_OFF: 0.85,
   FIST_RELEASED_MEAN: 0.78,       // seen open (mean above this) before a new grip may start
+  // fingertip reach (wrist→tip ÷ wrist→knuckle): open ≈ 1.7–2.1, curled ≈ 0.8–1.2
+  FIST_REACH_MEAN_ON: 1.3,
+  FIST_REACH_MEAN_OFF: 1.45,
+  FIST_REACH_MAX_ON: 1.5,
+  FIST_REACH_MAX_OFF: 1.7,
+  FIST_REACH_OPEN: 1.55,
+  FIST_RELEASE_FRAMES: 3,         // a grip ends only after this many fresh frames without a fist
   FINGER_OPEN_ON: 0.6,
   FINGER_OPEN_OFF: 0.5,
   // pointing = index clearly straighter than the AVERAGE of the other three. Measured on a real laptop

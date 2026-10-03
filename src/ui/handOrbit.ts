@@ -17,10 +17,11 @@ export class HandOrbit {
   private armedAt = 0;
   private last: Vec2 | null = null;
   private reason = '';
+  private lostGrip = 0; // fresh frames in a row without a fist while holding
   get activeTrackId() { return this.track; }
   canGrab(trackId: number) { return this.released.has(trackId); }
   get diagnostic() { return { released: [...this.released], frame: this.frame, time: this.time, reason: this.reason }; }
-  reset(): void { this.state = 'idle'; this.track = null; this.released.clear(); this.last = null; this.time = -Infinity; }
+  reset(): void { this.state = 'idle'; this.track = null; this.released.clear(); this.last = null; this.time = -Infinity; this.lostGrip = 0; }
   update(input: FrameInput | null, nowMs: number, targets: readonly DwellRegion[], width: number, height: number): Vec2 | null {
     if (!input || !['ready', 'oneHand'].includes(input.status) || nowMs < input.tMs || nowMs - input.tMs > CONFIG.MAX_INPUT_AGE_MS ||
         input.receivedAtMs - input.tMs > CONFIG.MAX_INPUT_AGE_MS) { this.reset(); return null; }
@@ -39,7 +40,10 @@ export class HandOrbit {
     const overUI = (p: Vec2) => targets.some(r => p.x >= r.x && p.x <= r.x + r.width && p.y >= r.y && p.y <= r.y + r.height);
     for (const h of hands) if (isOpenForGrip(h)) this.released.add(h.trackId);
     const active = hands.find(h => h.trackId === this.track);
-    if (this.track !== null && (!active || overUI(active.palmPx) || !isFistGrip(active, true))) { this.reset(); this.reason = `release ui ${active && overUI(active.palmPx)}`; return null; }
+    // One misread frame must not drop the vessel: let go only after the fist is gone for several fresh frames.
+    if (this.track !== null && active && !overUI(active.palmPx)) this.lostGrip = isFistGrip(active, true) ? 0 : this.lostGrip + 1;
+    if (this.track !== null && (!active || overUI(active.palmPx) || this.lostGrip >= CONFIG.FIST_RELEASE_FRAMES)) { this.reset(); this.reason = `release ui ${active && overUI(active.palmPx)}`; return null; }
+    if (this.lostGrip > 0) { this.last = active ? { ...active.palmPx } : this.last; return null; } // hold still while unsure
     if (!active) {
       const hand = hands.find(h => this.released.has(h.trackId) && isFistGrip(h, false) && !overUI(h.palmPx));
       if (hand) { this.track = hand.trackId; this.state = 'armed'; this.armedAt = input.tMs; this.last = { ...hand.palmPx }; }

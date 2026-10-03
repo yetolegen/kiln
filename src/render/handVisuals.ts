@@ -8,7 +8,7 @@ export interface VisualHand { trackId: number; points: Float32Array; lastSeenMs:
  * One Euro per landmark coordinate (px). A still hand gets a ~1.2 Hz cutoff, so webcam landmark noise of a few
  * pixels no longer makes the glove shimmer; a fast hand raises the cutoff (beta) and the glove keeps up.
  */
-const VISUAL_FILTER = { minCutoff: 1.2, beta: 0.012, dCutoff: 1 };
+const VISUAL_FILTER = { minCutoff: 1.6, beta: 0.02, dCutoff: 1 }; // follows a closing fist without shimmering at rest
 const newFilters = () => Array.from({ length: 42 }, () => new OneEuro(VISUAL_FILTER));
 
 // Display-only history. These points never enter recognition or clay deformation.

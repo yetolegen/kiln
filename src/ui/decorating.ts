@@ -6,8 +6,9 @@ import type { createScene } from '../render/scene';
 import type { createScreens } from './screens';
 import type { DwellController } from './dwell';
 import { HandOrbit } from './handOrbit';
+import { OneEuroVec2 } from '../tracking/filters';
 import { createProcess } from './process';
-import { HANDLE_LIMIT, HANDLE_MIN_SCALE, HANDLE_PLACEMENT_HINT, HANDLE_PRESETS, handleFits, handlePlacementHint, placeHandle, type PotteryHandle } from '../engine/handles';
+import { HANDLE_LIMIT, HANDLE_MIN_SCALE, HANDLE_PLACEMENT_HINT, HANDLE_PRESETS, handleEndpoints, handleFits, handlePlacementHint, placeHandle, type PotteryHandle } from '../engine/handles';
 
 type Tool = 'inspect' | 'place' | 'editAttachment' | 'stamp';
 type Draft = Attachment | Stamp | PotteryHandle;
@@ -24,6 +25,13 @@ export function createDecorating(screens: ReturnType<typeof createScreens>, scen
   let handleStage = false, previousPhase: EngineSnapshot['phase'] | null = null;
   let data: Customization = emptyCustomization(), snapshot: EngineSnapshot | null = null;
   let lastFrame = -1, lastEpoch = -1, issue = '', editMistakes = 0;
+  // placement steadiness: smoothed aim, a small dead band (world units) and a short grace for missed frames
+  const AIM_FILTER = { minCutoff: 1.4, beta: .012, dCutoff: 1 }, AIM_DEADBAND = .012, MISS_GRACE_MS = 700;
+  let aimFilter = new OneEuroVec2(AIM_FILTER), aimTrack = -1, aimAt = 0, lastValidAt = -Infinity;
+  // direct selection of placed pieces: within this distance of a piece (world units), held this long
+  const PICK_RADIUS = .3, SELECT_HOLD_MS = 900;
+  let hover: { id: string; since: number } | null = null;
+  const INSPECT_HELP = 'Раскройте ладонь, затем сожмите кулак и ведите руку, чтобы осмотреть сосуд. Наведите палец на деталь или ручку и задержите — она откроется для изменения.';
   const handleNames = { round: 'Круглая боковая', angular: 'Угловая боковая', arch: 'Верхняя дуга' };
   const label = (value: Draft) => 'preset' in value ? handleNames[value.preset] : ({ sphere: 'Комок', cylinder: 'Цилиндр', cone: 'Шип', star: 'Звезда', dots: 'Точки', wave: 'Волна' })[value.kind];
   const fits = (value: Draft) => !!snapshot?.clay && ('preset' in value ? handleFits(value, snapshot.clay) : anchorOnBody(value.anchor, snapshot.clay, 'size' in value ? value.size : 0));
@@ -38,7 +46,7 @@ export function createDecorating(screens: ReturnType<typeof createScreens>, scen
   function home() {
     if (handleStage) { handleHome(); return; }
     tool = 'inspect'; toolbar(); title.textContent = 'Оформление · вращение';
-    help.textContent = 'Раскройте ладонь, затем сожмите кулак и ведите руку, чтобы осмотреть сосуд. Глина больше не деформируется.';
+    help.textContent = INSPECT_HELP;
     button('add', 'Добавить деталь', () => choose(false)); button('stamp', 'Добавить штамп', () => choose(true));
     button('handles', `Ручки · ${data.handles?.length ?? 0}`, () => { handleStage = true; handleHome(); });
     button('list', `Мои детали и штампы · ${data.attachments.length + data.stamps.length}`, () => list(0));
@@ -58,7 +66,8 @@ export function createDecorating(screens: ReturnType<typeof createScreens>, scen
   function chooseHandles() {
     toolbar('handle-presets'); title.textContent = 'Три готовые ручки'; help.textContent = 'Выберите форму → укажите место на глине → подтвердите. Затем ручку можно удалить или добавить ещё. До четырёх ручек.';
     for (const preset of HANDLE_PRESETS) { const b = button(`handle-${preset}`, handleNames[preset], () => {
-      if (!snapshot?.clay) return; draft = placeHandle(preset, { point: { x: 0, y: snapshot.clay.height / 2, z: 1 }, normal: { x: 0, y: 0, z: 1 } }, snapshot.clay, crypto.randomUUID());
+      if (!snapshot?.clay) return; // start on the right side, in profile: a side handle at the front points at the viewer and nearly vanishes
+      draft = placeHandle(preset, { point: { x: 1, y: snapshot.clay.height / 2, z: 0 }, normal: { x: 1, y: 0, z: 0 } }, snapshot.clay, crypto.randomUUID());
       originalId = null; place();
     }); b.dataset.handlePreset = preset; }
     button('cancel', 'Назад', home); screens.refreshTargets();
@@ -83,6 +92,8 @@ export function createDecorating(screens: ReturnType<typeof createScreens>, scen
     title.textContent = `${label(draft)} · размещение`;
     help.textContent = `Наведите указательный палец на внешнюю стенку${'length' in draft ? ' или ободок' : ''}. Когда деталь станет зелёной, сожмите кулак и задержите. Затем раскройте ладонь и выберите «Применить».`;
     if ('preset' in draft) help.textContent = draft.preset === 'arch' ? 'Укажите внешнюю стенку: дуга встанет на две верхние точки. Сожмите кулак и задержите, затем подтвердите. Можно также нажать на сосуд.' : 'Укажите внешнюю стенку ближе к середине высоты. Сожмите кулак и задержите, затем подтвердите. Можно также нажать на сосуд.';
+    // Show the piece straight away where it already fits (a new handle starts at the front), then let the aim move it.
+    if (fits(draft)) { preview(); lastValidAt = performance.now(); }
     button('cancel', 'Отмена', cancel); screens.refreshTargets();
   }
   const angle = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
@@ -97,6 +108,19 @@ export function createDecorating(screens: ReturnType<typeof createScreens>, scen
     if (!readCustomization(c)) { warn('size' in next ? 'Размер штампа должен быть от 0,08 до 0,45. Верните размер в эти границы.' : 'Слишком длинная или тонкая деталь. Допустимы длина 0,08–0,8, ширина 0,08–0,45 и отношение сторон до 4:1. Уменьшите размер или наклон.'); return; }
     if (!anchorOnBody(next.anchor, snapshot.clay, 'size' in next ? next.size : 0)) { warn('Штамп пересекает край или дно. Уменьшите его либо переместите к середине стенки.'); return; }
     draft = next; issue = ''; preview(); edit();
+  }
+  /** Open a placed piece for changes: move, rotate, resize, recolour or delete. */
+  function select(value: Draft) { draft = structuredClone(value); originalId = value.id; placed = true; preview(); edit(); }
+  /** The placed piece nearest a point on the vessel (handles also by their two attachment points), if close enough. */
+  function placedNear(point: { x: number; y: number; z: number }): Draft | null {
+    let best: Draft | null = null, bestDistance = PICK_RADIUS;
+    const consider = (value: Draft, p: { x: number; y: number; z: number }) => {
+      const d = Math.hypot(p.x - point.x, p.y - point.y, p.z - point.z); if (d < bestDistance) { bestDistance = d; best = value; }
+    };
+    for (const a of data.attachments) consider(a, a.anchor.point);
+    for (const st of data.stamps) consider(st, st.anchor.point);
+    for (const h of data.handles ?? []) { consider(h, h.anchor.point); for (const e of handleEndpoints(h)) consider(h, e); }
+    return best;
   }
   function edit() {
     if (!draft) return; tool = 'editAttachment'; toolbar('edit'); title.textContent = `${label(draft)} · изменение`;
@@ -132,9 +156,9 @@ export function createDecorating(screens: ReturnType<typeof createScreens>, scen
     commit(next); cancel();
   }
   function list(page: number) {
-    toolbar('list'); title.textContent = handleStage ? 'Мои ручки' : 'Мои детали и штампы'; help.textContent = 'Выберите элемент. Изменения сохранятся только после «Применить».';
-    const items = handleStage ? data.handles ?? [] : [...data.attachments, ...data.stamps];
-    items.slice(page * 3, page * 3 + 3).forEach((value, i) => button(`select-${i}`, `${page * 3 + i + 1}. ${label(value)}`, () => { draft = structuredClone(value); originalId = value.id; placed = true; preview(); edit(); }));
+    toolbar('list'); title.textContent = handleStage ? 'Мои ручки' : 'Мои детали, штампы и ручки'; help.textContent = 'Выберите элемент. Изменения сохранятся только после «Применить».';
+    const items = handleStage ? data.handles ?? [] : [...data.attachments, ...data.stamps, ...(data.handles ?? [])];
+    items.slice(page * 3, page * 3 + 3).forEach((value, i) => button(`select-${i}`, `${page * 3 + i + 1}. ${label(value)}`, () => select(value)));
     const back = button('previous', '← Назад', () => list(page - 1)); back.disabled = page === 0;
     const next = button('next', 'Дальше →', () => list(page + 1)); next.disabled = (page + 1) * 3 >= items.length;
     button('cancel', 'К оформлению', home); screens.refreshTargets();
@@ -147,6 +171,15 @@ export function createDecorating(screens: ReturnType<typeof createScreens>, scen
   const reset = () => { boundary(); if (active && (tool === 'place' || tool === 'stamp')) clearPreview(); };
   window.addEventListener('resize', reset); document.addEventListener('visibilitychange', reset);
   surface.addEventListener('pointerdown', reset);
+  const pointerSelect = (event: PointerEvent) => {
+    if (!active || screens.actionScope !== 'decor-' || tool !== 'inspect' || orbitMoved) return;
+    const hit = scene.pickSurface({ x: event.clientX, y: event.clientY }), found = hit && placedNear(hit.point);
+    if (found) select(found);
+  };
+  let orbitMoved = false;
+  surface.addEventListener('pointerdown', () => { orbitMoved = false; });
+  surface.addEventListener('pointermove', (event) => { if (event.buttons) orbitMoved = true; });
+  surface.addEventListener('pointerup', pointerSelect);
   const pointerPlace = (event: PointerEvent) => {
     if (!active || screens.actionScope !== 'decor-' || tool !== 'place' || !draft || !('preset' in draft) || !snapshot?.clay) return;
     const hit = scene.pickSurface({x:event.clientX,y:event.clientY});
@@ -188,34 +221,57 @@ export function createDecorating(screens: ReturnType<typeof createScreens>, scen
       const delta = orbit.update(document.hidden ? null : input, performance.now(), screens.targets, rect.width, rect.height);
       layer.dataset.grab = orbit.state; layer.dataset.tool = tool;
       scene.setPointerOrbit(tool === 'inspect' && orbit.state === 'idle');
-      if (tool === 'inspect') { if (delta) scene.rotateInspection(delta.x, delta.y); return; }
+      if (tool === 'inspect') {
+        if (delta) { scene.rotateInspection(delta.x, delta.y); hover = null; return; }
+        // Point at a placed piece and hold still: it opens for changes (a fist keeps rotating the vessel).
+        const pointer = orbit.state === 'idle' && input && ['ready', 'oneHand'].includes(input.status) && performance.now() - input.tMs <= CONFIG.MAX_INPUT_AGE_MS
+          ? [input.screenLeft, input.screenRight].find(hand => hand?.pointing) ?? null : null;
+        const hit = pointer && scene.pickSurface(pointer.indexTipPx), found = hit ? placedNear(hit.point) : null;
+        if (!found || !input) { if (hover) help.textContent = INSPECT_HELP; hover = null; return; }
+        if (hover?.id !== found.id) hover = { id: found.id, since: input.tMs };
+        const progress = Math.min(1, (input.tMs - hover.since) / SELECT_HOLD_MS);
+        help.textContent = `${label(found)} · задержите палец, чтобы изменить или удалить (${Math.round(progress * 100)}%)`;
+        if (progress >= 1) { hover = null; select(found); }
+        return;
+      }
       if (tool !== 'place' && tool !== 'stamp') return;
-      if (!input || !['ready', 'oneHand'].includes(input.status) || performance.now() - input.tMs > CONFIG.MAX_INPUT_AGE_MS) { clearPreview(); help.textContent = 'Отслеживание потеряно. Покажите руку, раскройте пальцы и начните новый захват.'; return; }
+      // Losing the hand never erases the piece being placed: it waits where it was until aimed again or cancelled.
+      if (!input || !['ready', 'oneHand'].includes(input.status) || performance.now() - input.tMs > CONFIG.MAX_INPUT_AGE_MS) { help.textContent = 'Отслеживание потеряно. Покажите руку, раскройте пальцы и начните новый захват.'; return; }
       if (input.epoch !== lastEpoch) { lastEpoch = input.epoch; lastFrame = -1; }
       if (input.frameId === lastFrame) return; lastFrame = input.frameId;
       const hands = [input.screenLeft, input.screenRight].filter(h => h !== null);
       const h = orbit.activeTrackId !== null ? hands.find(h => h.trackId === orbit.activeTrackId) : hands.find(h => scene.pickSurface(h.indexTipPx));
-      if (!h || !draft || !next.clay) { clearPreview(); return; }
+      if (!h || !draft || !next.clay) return; // no hand on the vessel: keep the piece where it is
       // Curling into a fist moves the fingertip: keep the spot that was aimed at while the grip closes.
       if (orbit.state !== 'idle' && previewVisible) {
         help.textContent = 'Кулак сжат · деталь закрепляется на отмеченном месте.';
         if (orbit.state === 'dragging') { placed = true; preview(); edit(); }
         return;
       }
-      const hit = scene.pickSurface(h.indexTipPx);
+      // Aim with a smoothed fingertip: raw landmarks shiver by a few pixels, which made pieces twitch on the pot.
+      if (h.trackId !== aimTrack || input.tMs - aimAt > 400) { aimFilter = new OneEuroVec2(AIM_FILTER); aimTrack = h.trackId; aimAt = input.tMs; }
+      const aim = aimFilter.filter(h.indexTipPx, Math.max(0, input.tMs - aimAt) / 1000); aimAt = input.tMs;
+      const hit = scene.pickSurface(aim), now = input.tMs;
+      // A single missed frame no longer erases the preview: keep the last good spot briefly, then let it go.
+      const miss = (message: string) => {
+        if (previewVisible && now - lastValidAt < MISS_GRACE_MS) { help.textContent = message; return; }
+        clearPreview(); help.textContent = message;
+      };
       if ('preset' in draft) {
-        if (!hit) { clearPreview(); help.textContent = HANDLE_PLACEMENT_HINT; return; }
+        if (!hit) { miss(HANDLE_PLACEMENT_HINT); return; }
         const candidate = placeHandle(draft.preset, hit, next.clay, draft.id, draft.scale, draft.rotation);
-        if (!fits(candidate)) { clearPreview(); help.textContent = handlePlacementHint(candidate, next.clay); return; }
-        const changed = JSON.stringify(candidate) !== JSON.stringify(draft); draft = candidate;
-        if (changed || !previewVisible) preview();
+        if (!fits(candidate)) { miss(handlePlacementHint(candidate, next.clay)); return; }
+        const moved = Math.hypot(candidate.anchor.point.x - draft.anchor.point.x, candidate.anchor.point.y - draft.anchor.point.y, candidate.anchor.point.z - draft.anchor.point.z);
+        lastValidAt = now;
+        if (moved > AIM_DEADBAND || !previewVisible) { draft = candidate; preview(); }
         help.textContent = 'Точки крепления касаются глины. Сожмите кулак и задержите, затем раскройте ладонь и подтвердите.';
         if (orbit.state === 'dragging') { placed = true; preview(); edit(); }
         return;
       }
-      if (!hit || !anchorOnBody(hit, next.clay, 'size' in draft ? draft.size : 0)) { clearPreview(); help.textContent = 'Наведите палец на видимую внешнюю стенку, дальше от края и дна. Внутри сосуда и на круге разместить нельзя.'; return; }
-      const changed = Math.hypot(hit.point.x - draft.anchor.point.x, hit.point.y - draft.anchor.point.y, hit.point.z - draft.anchor.point.z) > .002;
-      draft = { ...draft, anchor: hit }; if (changed || !previewVisible) preview();
+      if (!hit || !anchorOnBody(hit, next.clay, 'size' in draft ? draft.size : 0)) { miss('Наведите палец на видимую внешнюю стенку, дальше от края и дна. Внутри сосуда и на круге разместить нельзя.'); return; }
+      const moved = Math.hypot(hit.point.x - draft.anchor.point.x, hit.point.y - draft.anchor.point.y, hit.point.z - draft.anchor.point.z);
+      lastValidAt = now;
+      if (moved > AIM_DEADBAND || !previewVisible) { draft = { ...draft, anchor: hit }; preview(); }
       help.textContent = 'Место подходит. Сожмите кулак и задержите, чтобы закрепить деталь.';
       if (!orbit.canGrab(h.trackId) && orbit.state === 'idle') help.textContent = 'Раскройте ладонь, затем снова сожмите кулак. После паузы отслеживания нужен новый захват.';
       if (orbit.state === 'dragging') { placed = true; preview(); edit(); }

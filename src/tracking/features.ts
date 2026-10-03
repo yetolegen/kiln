@@ -184,19 +184,40 @@ function buildFeatures(
   };
 }
 
+/** Knuckle (MCP) and fingertip landmark ids for index, middle, ring and little finger. */
+const REACH_CHAINS: readonly [number, number][] = [[5, 8], [9, 12], [13, 16], [17, 20]];
 /**
- * Fist grip for viewer controls (3D rotation, decoration placement): every finger curled and the hand not pointing.
- * Relative to real webcam readings, where relaxed curled fingers measure 0.36–0.66 (see config), so the mean and
- * the straightest finger are tested, not an absolute "every finger < 0.35". Sticky = looser threshold to stay closed.
+ * Fingertip reach: wrist→tip distance over wrist→knuckle distance, per finger, in screen px.
+ * Open finger ≈ 1.7–2.1, curled ≈ 0.8–1.2. Unlike joint angles, the ratio survives a fist turned toward the
+ * camera, where the finger segments fold onto each other in 2-D and every angle reading becomes noise.
  */
-export function isFistGrip(h: Pick<HandFeatures, 'extension' | 'pinchRatio'>, sticky: boolean): boolean {
+export function fingertipReach(landmarksPx: readonly Vec2[]): number[] | null {
+  if (landmarksPx.length !== 21) return null;
+  const w = landmarksPx[0];
+  return REACH_CHAINS.map(([m, t]) => Math.hypot(landmarksPx[t].x - w.x, landmarksPx[t].y - w.y) /
+    Math.max(1, Math.hypot(landmarksPx[m].x - w.x, landmarksPx[m].y - w.y)));
+}
+type GripHand = Pick<HandFeatures, 'extension' | 'pinchRatio'> & Partial<Pick<HandFeatures, 'landmarksPx'>>;
+/**
+ * Fist grip for viewer controls (3D rotation, decoration placement): fingers folded in and the hand not pointing.
+ * Either cue counts: fingertips pulled back to the knuckles (robust to orientation), or bent joints (relative to
+ * real webcam readings, where relaxed curled fingers measure 0.36–0.66). Sticky = looser thresholds to stay closed.
+ */
+export function isFistGrip(h: GripHand, sticky: boolean): boolean {
+  if (isPointingPose(h.extension, h.pinchRatio, false)) return false;
+  const reach = h.landmarksPx ? fingertipReach(h.landmarksPx) : null;
+  if (reach) {
+    const mean = reach.reduce((a, b) => a + b, 0) / 4, farthest = Math.max(...reach);
+    if (mean < (sticky ? CONFIG.FIST_REACH_MEAN_OFF : CONFIG.FIST_REACH_MEAN_ON) && farthest < (sticky ? CONFIG.FIST_REACH_MAX_OFF : CONFIG.FIST_REACH_MAX_ON)) return true;
+  }
   const e = h.extension, values = [e.index, e.middle, e.ring, e.pinky];
   const mean = values.reduce((a, b) => a + b, 0) / 4, straightest = Math.max(...values);
-  return mean < (sticky ? CONFIG.FIST_MEAN_OFF : CONFIG.FIST_MEAN_ON) && straightest < (sticky ? CONFIG.FIST_FINGER_OFF : CONFIG.FIST_FINGER_ON) &&
-    !isPointingPose(e, h.pinchRatio, false);
+  return mean < (sticky ? CONFIG.FIST_MEAN_OFF : CONFIG.FIST_MEAN_ON) && straightest < (sticky ? CONFIG.FIST_FINGER_OFF : CONFIG.FIST_FINGER_ON);
 }
 /** Clearly open hand: required before a new fist grip, so a hand that arrives already closed never grabs. */
-export function isOpenForGrip(h: Pick<HandFeatures, 'extension'>): boolean {
+export function isOpenForGrip(h: Pick<HandFeatures, 'extension'> & Partial<Pick<HandFeatures, 'landmarksPx'>>): boolean {
+  const reach = h.landmarksPx ? fingertipReach(h.landmarksPx) : null;
+  if (reach && reach.reduce((a, b) => a + b, 0) / 4 >= CONFIG.FIST_REACH_OPEN) return true;
   const e = h.extension;
   return (e.index + e.middle + e.ring + e.pinky) / 4 >= CONFIG.FIST_RELEASED_MEAN;
 }
