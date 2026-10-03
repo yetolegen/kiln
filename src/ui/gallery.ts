@@ -12,7 +12,8 @@ export function renderGallery(parent: HTMLElement, pots: readonly SessionResult[
     canvas.setAttribute('role', 'img'); canvas.setAttribute('aria-label', 'Сохранённый сосуд');
     const ctx = canvas.getContext('2d');
     if (ctx) {
-      const scale = Math.min(52, 174 / pot.height), bottom = 198, center = 140;
+      const topHandle = Math.max(0, ...(pot.customization?.handles ?? []).filter(h => h.preset === 'arch').map(h => h.scale));
+      const scale = Math.min(52, 174 / (pot.height + topHandle)), bottom = 198, center = 140;
       const gradient = ctx.createLinearGradient(60, 0, 220, 0);
       gradient.addColorStop(0, '#4d3c2d'); gradient.addColorStop(.4, glazeColor(pot.glazeId)); gradient.addColorStop(.8, glazeColor(pot.glazeId)); gradient.addColorStop(1, '#4d3c2d');
       ctx.fillStyle = gradient; ctx.beginPath();

@@ -4,6 +4,7 @@ import { readCheckpoint } from './checkpoint';
 import { createCheckpointStore, CHECKPOINT_KEY } from '../browser/checkpointStore';
 import { frame, hand, shapingHands, toMenu, poseHand, moving } from '../../tests/helpers';
 import { createClay, enforceInvariants } from './clay';
+import { placeHandle } from './handles';
 
 function setup() {
   const core = createController({ nowIso: () => '2026-10-03T00:00:00.000Z' });
@@ -115,4 +116,14 @@ it.each([1, 2])('prepared recovery lesson uses real terminal compression and res
   expect(core.restoreCheckpoint(cp, ++now)).toBe(true); expect(core.tick(now).clay!.height).toBe(.4);
   expect(core.tick(now).clay!.collapseCause).toBeNull();
   expect(core.tick(now).stats!.executionEpisodes.collapse).toBeGreaterThan(0);
+});
+
+it('rejects a studio-stage checkpoint that already carries handles, like attachments and stamps', () => {
+  const { core, now } = setup(), saved = core.captureCheckpoint(now)!;
+  expect(saved.stage).toBe('studio');
+  const clay = core.tick(now).clay!;
+  const handle = placeHandle('round', { point: { x: 0, y: clay.height / 2, z: 1 }, normal: { x: 0, y: 0, z: 1 } }, clay, 'h0');
+  const withHandle = { ...saved, customization: { ...saved.customization, handles: [handle] } };
+  expect(readCheckpoint(withHandle)).toBeNull();
+  expect(readCheckpoint({ ...withHandle, stage: 'glaze' })).not.toBeNull();
 });

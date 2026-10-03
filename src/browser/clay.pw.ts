@@ -37,6 +37,7 @@ test('clay surface visibly travels while the silhouette stays fixed and reduced 
   await page.locator('[data-action="inspect"]').click();
   await page.screenshot({ path: 'test-results/clay-cavity.png' });
   await page.keyboard.press('Escape'); await page.keyboard.press('6');
+  await page.locator('[data-action="decor-handle-done"]').click(); await page.locator('[data-action="decor-close"]').click();
   await page.locator('[data-action="glaze-jade"]').click();
   await page.screenshot({ path: 'test-results/clay-jade.png' });
   expect(errors).toEqual([]);

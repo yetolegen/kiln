@@ -1,7 +1,8 @@
-export type ToolLesson = 'recovery' | 'rotation' | 'attachment' | 'stamp' | 'sharing';
+export type ToolLesson = 'recovery' | 'rotation' | 'attachment' | 'stamp' | 'sharing' | 'handles';
 export interface ToolFacts {
   saved: number; restored: number; damaged: boolean; handRotation: number;
   attachments: number; stamps: number; glazed: boolean; shelfViews: number; links: number;
+  handles?: number;
 }
 /** Completion follows actual state changes. Skip/repeat are external navigation, never success. */
 export class ToolLessonProgress {
@@ -14,6 +15,7 @@ export class ToolLessonProgress {
   constructor(readonly lesson: ToolLesson, private baseline: ToolFacts) {}
   update(f: ToolFacts): string {
     if (this.complete) return 'Урок выполнен.';
+    if (this.lesson === 'handles') { this.complete = (f.handles ?? 0) > 0; return 'Основная форма готова. При желании выберите готовую ручку сбоку или сверху → укажите место → «Применить». «Мои ручки» позволяет удалить её; «Добавить ещё» — выбрать другую. Это необязательно: урок можно пропустить.'; }
     if (this.lesson === 'recovery') {
       this.saved ||= f.saved > this.baseline.saved;
       if (this.saved && f.damaged) {

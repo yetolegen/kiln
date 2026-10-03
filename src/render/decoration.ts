@@ -2,6 +2,8 @@ import { BufferGeometry, CanvasTexture, ConeGeometry, CylinderGeometry, Float32B
 import type { ClayState } from '../types';
 import type { Attachment, Customization, Stamp, StampKind } from '../engine/customization';
 import { glazeColor } from '../engine/materials';
+import type { MaterialFamily } from './materialFamily';
+import { visualRadius } from './pot';
 
 /** Curved, exterior-only stamp patch follows the actual body instead of projecting through it. */
 export function stampGeometry(stamp: Stamp, clay: ClayState): BufferGeometry {
@@ -10,8 +12,7 @@ export function stampGeometry(stamp: Stamp, clay: ClayState): BufferGeometry {
   for (let y = 0; y <= n; y++) for (let x = 0; x <= n; x++) {
     const py = a.y + (y / n - .5) * stamp.size;
     const band = Math.max(0, Math.min(clay.radii.length - 1, py / clay.height * (clay.radii.length - 1)));
-    const low = Math.floor(band), t = band - low;
-    const r = clay.radii[low] * (1 - t) + clay.radii[Math.min(low + 1, clay.radii.length - 1)] * t + .0015;
+    const r = visualRadius(clay.radii, band) + .0015;
     const angle = theta + (x / n - .5) * stamp.size / radius;
     vertices.push(Math.sin(angle) * r, py, Math.cos(angle) * r); uv.push(x / n, y / n);
     if (x < n && y < n) { const i = y * (n + 1) + x; indices.push(i, i + 1, i + n + 1, i + 1, i + n + 2, i + n + 1); }
@@ -23,10 +24,12 @@ export function stampGeometry(stamp: Stamp, clay: ClayState): BufferGeometry {
   g.setAttribute('uv', new Float32BufferAttribute(uv, 2)); g.setIndex(indices); g.computeVertexNormals(); return g;
 }
 
-export function createDecorationView(parent: Group) {
-  const group = new Group(), preview = new Group(); parent.add(group, preview);
+export function createDecorationView(parent: Group, family: MaterialFamily) {
+  const group = new Group(), stamps = new Group(), preview = new Group(); group.name = 'AttachmentGroup'; stamps.name = 'SurfaceDecorationLayer'; parent.add(group, stamps, preview);
   const textures = new Map<StampKind, CanvasTexture>();
-  let previous: Customization | null = null, clayRevision = -1;
+  let attachmentKey = '', stampKey = '';
+  let previous: Customization | null = null, previousRevision = -1;
+  let finishColor = '#b9825e', finishGloss = 0, finishGlow = 0;
   const clear = (g: Group) => { for (const child of [...g.children]) { g.remove(child); const m = child as Mesh<BufferGeometry, MeshStandardMaterial>; m.geometry.dispose(); m.material.dispose(); } };
   function texture(kind: StampKind): CanvasTexture {
     const found = textures.get(kind); if (found) return found;
@@ -44,7 +47,9 @@ export function createDecorationView(parent: Group) {
   }
   function primitive(a: Attachment, ghost = false): Mesh<BufferGeometry, MeshStandardMaterial | MeshBasicMaterial> {
     const g = a.kind === 'sphere' ? new SphereGeometry(.5, 24, 16) : a.kind === 'cylinder' ? new CylinderGeometry(.5, .5, 1, 24) : new ConeGeometry(.5, 1, 24);
-    const m = new Mesh(g, new (ghost ? MeshBasicMaterial : MeshStandardMaterial)({ color: ghost ? '#8ed9b7' : glazeColor(a.material), ...(ghost ? {} : { roughness: .42 }), transparent: ghost, opacity: ghost ? .65 : 1 }));
+    const material = ghost ? new MeshBasicMaterial({ color: '#8ed9b7', transparent: true, opacity: .65 }) : family.create();
+    if (!ghost) family.apply(material as ReturnType<MaterialFamily['create']>, finishColor, finishGloss, finishGlow);
+    const m = new Mesh(g, material);
     const normal = new Vector3(a.anchor.normal.x, a.anchor.normal.y, a.anchor.normal.z);
     m.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), normal);
     m.quaternion.multiply(new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), a.rotation));
@@ -60,13 +65,17 @@ export function createDecorationView(parent: Group) {
   }
   return {
     group,
+    setFinish(color: string, gloss: number, glow: number) { finishColor=color;finishGloss=gloss;finishGlow=glow;for(const m of group.children as Mesh[]) family.apply(m.material as ReturnType<MaterialFamily['create']>,color,gloss,glow); },
     update(c: Customization, clay: ClayState): void {
-      if (previous === c && clayRevision === clay.revision) return;
-      clear(group); for (const a of c.attachments) group.add(primitive(a)); for (const s of c.stamps) group.add(stamp(s, clay));
-      previous = c; clayRevision = clay.revision;
+      if (previous === c && previousRevision === clay.revision) return;
+      previous = c; previousRevision = clay.revision;
+      const nextAttachments = JSON.stringify(c.attachments);
+      if (attachmentKey !== nextAttachments) { clear(group); for (const a of c.attachments) group.add(primitive(a)); attachmentKey = nextAttachments; }
+      const nextStamps = JSON.stringify([c.stamps, Array.from(clay.radii), clay.height]);
+      if (stampKey !== nextStamps) { clear(stamps); for (const s of c.stamps) stamps.add(stamp(s, clay)); stampKey = nextStamps; }
     },
     preview(value: Attachment | Stamp | null, clay: ClayState): void { clear(preview); if (value) preview.add('length' in value ? primitive(value, true) : stamp(value, clay, true)); },
     clearPreview(): void { clear(preview); },
-    dispose(): void { clear(group); clear(preview); for (const t of textures.values()) t.dispose(); parent.remove(group, preview); },
+    dispose(): void { clear(group); clear(stamps); clear(preview); for (const t of textures.values()) t.dispose(); parent.remove(group, stamps, preview); },
   };
 }
