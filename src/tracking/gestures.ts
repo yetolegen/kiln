@@ -203,10 +203,11 @@ export class GestureRecognizer {
     const c = both ? computeContact(l, r, clay, proj.pixelsPerWorldUnit, this.contactValid) : null;
     this.contactValid = !!c?.contact.valid;
     // the outside grip touches the walls with its pinch points, so its contact is judged there, not at the palms
-    const atGrip = (h: HandFeatures) => ({ ...h, palmWorld: gripPoint(h, proj) });
-    const gripContact = both ? computeContact(atGrip(l), atGrip(r), clay, proj.pixelsPerWorldUnit, cur === 'widen') : null;
+    const grips = both ? [gripPoint(l, proj), gripPoint(r, proj)] as const : null;
+    const gripContact = both && grips
+      ? computeContact({ ...l, palmWorld: grips[0] }, { ...r, palmWorld: grips[1] }, clay, proj.pixelsPerWorldUnit, cur === 'widen') : null;
     const external = this.externalWiden.update(frame, proj, !!(both && shapingPhase && keep('widen') && !clay.collapsed &&
-      gripContact?.contact.valid && isPinch(l, cur === 'widen') && isPinch(r, cur === 'widen')));
+      gripContact?.contact.valid && isPinch(l, cur === 'widen') && isPinch(r, cur === 'widen')), grips);
     if (external) this.engagement = null;
     else if (both && shapingPhase && !pointer) act = this.runAction(l, r, clay, proj, dtS, t, allowed, keep);
 
@@ -273,7 +274,7 @@ export class GestureRecognizer {
     } else this.resetShapeContact();
     if (external && allowed('widen') && external.push > 0) {
       // v9.2: local, at the grip's height (it used to widen every band equally)
-      this.delta = { ...NO_DELTA, externalWidenWorld: external.push, widenBandY: Math.max(0, Math.min(1, (external.y ?? 0) / clay.height)) };
+      this.delta = { ...NO_DELTA, externalWidenWorld: external.push, widenBandY: Math.max(0, Math.min(1, external.y / clay.height)) };
       deforming = true;
       motionStrength = Math.min(1, external.push / Math.max(.001, dtS));
     }

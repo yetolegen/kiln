@@ -17,22 +17,27 @@ interface Grip {
   ids: string; blocked: boolean; tooFast: boolean; progress: number;
 }
 
+/** One grip observation. `push` > 0 only when armed; `y` is always the grip's (drift-following) height. */
+export interface GripResult { progress: number; push: number; tooFast: boolean; y: number }
+
 /** A deliberate two-sided grip keeps widening distinct from withdrawing open palms. */
 export class ExternalWiden {
   private grip: Grip | null = null;
   reset(): void { this.grip = null; }
-  update(frame: FrameInput, projection: ProjectionParams, eligible: boolean) {
+  /** `grips` are both hands' pinch points this frame (gripPoint), computed once by the caller. */
+  update(frame: FrameInput, projection: ProjectionParams, eligible: boolean, grips: readonly [Vec2, Vec2] | null): GripResult | null {
     const l = frame.screenLeft, r = frame.screenRight, t = frame.tMs;
     // losing tracking ends the grip; a brief pose glitch with both hands still seen (one loose-pinch frame,
     // a contact flicker) only pauses it for LIFT_GRACE_MS, like the lift: nothing accumulates meanwhile
-    if (!l || !r || frame.status !== 'ready') { this.reset(); return null; }
+    if (!l || !r || !grips || frame.status !== 'ready') { this.reset(); return null; }
     let e = this.grip;
     if (!eligible || !l.velocityValid || !r.velocityValid) {
       if (!e || e.epoch !== frame.epoch || t - e.last > CONFIG.LIFT_GRACE_MS) { this.reset(); return null; }
       // progress 0 while paused: a real release (opening the fingers) must read as released at once
-      return { progress: 0, push: 0, tooFast: e.tooFast };
+      return { progress: 0, push: 0, tooFast: e.tooFast, y: e.y };
     }
-    const left = -l.palmWorld.x, right = r.palmWorld.x, y = (gripPoint(l, projection).y + gripPoint(r, projection).y) / 2;
+    // Spread is measured on the palms (filtered, steadier than fingertips); only the height uses the pinch points.
+    const left = -l.palmWorld.x, right = r.palmWorld.x, y = (grips[0].y + grips[1].y) / 2;
     const ids = `${l.trackId}:${r.trackId}`, palm = (l.referencePalmSizePx + r.referencePalmSizePx) / (2 * projection.pixelsPerWorldUnit);
     const deadband = Math.max(.012, palm * .035);
     if (!e || e.ids !== ids || e.epoch !== frame.epoch || e.projection !== projection.revision || t <= e.last ||
@@ -53,13 +58,13 @@ export class ExternalWiden {
         e.left = left; e.right = right; e.y = y; e.since = t;
       }
       e.progress = Math.min(1, (t - e.since) / 500);
-      return { progress: e.progress, push: 0, tooFast: false };
+      return { progress: e.progress, push: 0, tooFast: false, y: e.y };
     }
     // Armed: too fast or a vertical move ends this stroke. The too-fast hint stays until the pinches open,
     // because opening them is what it asks for.
     if (speed > 1.2) e.tooFast = true;
     if (e.tooFast || vertical) e.blocked = true;
-    if (e.blocked) { e.progress = 0; return { progress: 0, push: 0, tooFast: e.tooFast }; }
+    if (e.blocked) { e.progress = 0; return { progress: 0, push: 0, tooFast: e.tooFast, y: e.y }; }
     // Both hands must spread. A one-sided withdrawal, jitter or returning to the same width adds nothing.
     const travel = Math.min(left - e.left, right - e.right);
     const push = travel > e.travel + (e.travel === 0 ? deadband : 0) ? travel - e.travel : 0;

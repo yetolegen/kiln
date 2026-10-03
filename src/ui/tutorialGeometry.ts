@@ -25,7 +25,7 @@ export const LESSON_FINISH_STEP = 6;
 const NARROW_DEPTH = .20, WIDEN_DEPTH = .18, NARROW_BAND = 24, NARROW_SHIFT_BANDS = 6;
 const bumped = (start: readonly number[], centre: number, depth: number) =>
   start.map((r, i) => r + depth * Math.exp(-.5 * ((i - centre) / CONFIG.SIGMA_BANDS) ** 2));
-const depthOf = (step: number) => (step === 0 ? -NARROW_DEPTH : WIDEN_DEPTH);
+const depthOf = (step: 0 | 1) => (step === 1 ? WIDEN_DEPTH : -NARROW_DEPTH);
 const maxError = (radii: ArrayLike<number>, target: readonly number[]) => Math.max(...Array.from(radii, (r, i) => Math.abs(r - target[i])));
 
 export const copyShape = (c: LessonShape | ClayState): LessonShape => ({ radii: Array.from(c.radii), height: c.height, cavityRadiusWorld: c.cavityRadiusWorld, cavityDepthWorld: c.cavityDepthWorld });
