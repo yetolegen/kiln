@@ -286,3 +286,13 @@ describe('shape() under the speed cap', () => {
     expect(d[centre + CONFIG.SIGMA_BANDS] / peak).toBeCloseTo(Math.exp(-.5), 2);
   });
 });
+
+describe('outside widening delta (v9.2)', () => {
+  it('widens around widenBandY, not the base, and the inside push keeps its own centre', () => {
+    const g = { ...actionGesture('open'), gesture: 'widen' as const };
+    const out = stepClay(createClay(), g, .033, undefined, { ...NO_DELTA, externalWidenWorld: .01, widenBandY: .8 });
+    const d = Array.from(out.radii, (r) => r - CONFIG.INIT_RADIUS);
+    expect(d.indexOf(Math.max(...d))).toBe(Math.round(.8 * (d.length - 1)));
+    expect(d[0]).toBeLessThan(1e-4);
+  });
+});
