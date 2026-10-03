@@ -215,11 +215,10 @@ export function stepClay(
 function shape(c: ClayState, bandY: number, travelWorld: number, dtS: number): void {
   const n = c.radii.length;
   const i = Math.round(bandY * (n - 1));
-  const maxStep = CONFIG.MAX_DR_PER_S * dtS;
-  for (let j = 0; j < n; j++) {
-    const w = Math.exp(-0.5 * ((j - i) / CONFIG.SIGMA_BANDS) ** 2);
-    c.radii[j] += clamp(travelWorld * w, -maxStep, maxStep);
-  }
+  // Cap the stroke, THEN spread it: clamping each band separately flattened a fast stroke into a wide plateau
+  // (the flanks kept full speed while the centre was capped), which overshot the lesson's local targets.
+  const step = clamp(travelWorld, -CONFIG.MAX_DR_PER_S * dtS, CONFIG.MAX_DR_PER_S * dtS);
+  for (let j = 0; j < n; j++) c.radii[j] += step * Math.exp(-0.5 * ((j - i) / CONFIG.SIGMA_BANDS) ** 2);
 }
 
 // Lift (+) / compress (−). The walls narrow when lifted and widen when compressed. The floor stays put,

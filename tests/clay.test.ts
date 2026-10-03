@@ -276,3 +276,13 @@ describe('v4 actions on the clay', () => {
     expect(next.radii[29]).toBe(1);
   });
 });
+
+describe('shape() under the speed cap', () => {
+  it('a stroke faster than MAX_DR_PER_S deforms slower but keeps its Gaussian shape (no flattened, widened bump)', () => {
+    const fast = stepClay(createClay(), shapeGesture(.5, 1), .033, undefined, { ...NO_DELTA, shapeWorld: -.2 });
+    const d = Array.from(fast.radii, (r) => CONFIG.INIT_RADIUS - r), peak = Math.max(...d), centre = d.indexOf(peak);
+    expect(peak).toBeCloseTo(CONFIG.MAX_DR_PER_S * .033, 6);
+    // 4 bands out (one sigma) a Gaussian keeps exp(-1/2) of its peak; the old per-band clamp kept ~100 % there
+    expect(d[centre + CONFIG.SIGMA_BANDS] / peak).toBeCloseTo(Math.exp(-.5), 2);
+  });
+});
