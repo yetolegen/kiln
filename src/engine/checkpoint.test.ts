@@ -97,6 +97,21 @@ it('restores decoration geometry without erasing later editing mistakes', () => 
   expect(core.tick(now + 300).customization!.attachments).toEqual([]);
 });
 
+it('a glaze checkpoint brings back the handles placed before it, and drops ones added after', () => {
+  const { core, now } = setup();
+  core.dispatch({ type: 'finishShaping' }, now + 100);
+  const base = core.tick(now + 100), clay = base.clay!;
+  const side = (x: number, id: string) => placeHandle('round', { point: { x, y: .6, z: 0 }, normal: { x: Math.sign(x), y: 0, z: 0 } }, clay, id);
+  core.dispatch({ type: 'customize', value: { ...base.customization!, handles: [side(clay.radii[24], 'h0')] } }, now + 200);
+  expect(core.tick(now + 200).customization!.handles).toHaveLength(1); // the controller accepted it
+  const point = core.captureCheckpoint(now + 250)!;
+  expect(readCheckpoint(JSON.parse(JSON.stringify(point)))).not.toBeNull(); // survives the storage round trip
+  const later = core.tick(now + 250).customization!;
+  core.dispatch({ type: 'customize', value: { ...later, handles: [...later.handles, side(-clay.radii[24], 'h1')] } }, now + 300);
+  expect(core.restoreCheckpoint(point, now + 400)).toBe(true);
+  expect(core.tick(now + 400).customization!.handles.map(h => h.id)).toEqual(['h0']);
+});
+
 it.each([1, 2])('prepared recovery lesson uses real terminal compression and restores safely with active hand %i', (id) => {
   const { core, now: start } = setup(); let now = start;
   const cp = core.captureCheckpoint(now)!; const c = createClay(); c.height = .4; enforceInvariants(c);

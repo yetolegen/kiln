@@ -2,6 +2,8 @@ import { expect, it, vi } from 'vitest';
 import { createGalleryStore, GALLERY_KEY, isSessionResult, MAX_POTS } from './storage';
 import { MockCore } from '../dev/mockCore';
 import { CONFIG } from '../config';
+import { artifactFromResult } from '../engine/artifact';
+import { placeHandle } from '../engine/handles';
 
 function result(id = 'one', score = 82) {
   const core = new MockCore(); core.key('8', 0);
@@ -11,6 +13,15 @@ function storage(raw: string | null = null) {
   const data = new Map<string, string>(raw ? [[GALLERY_KEY, raw]] : []);
   return { getItem: (key: string) => data.get(key) ?? null, setItem: vi.fn((key: string, value: string) => { data.set(key, value); }) };
 }
+it('a shelved pot keeps its handles across a reload', () => {
+  const pot = result(), clay = artifactFromResult(pot).clay;
+  pot.customization.handles = [placeHandle('round', { point: { x: 1, y: .6, z: 0 }, normal: { x: 1, y: 0, z: 0 } }, clay, 'h0')];
+  const backend = storage(); expect(createGalleryStore(() => backend).saveDetailed(pot)).toBe('saved');
+  const loaded = createGalleryStore(() => backend).list();
+  expect(loaded).toHaveLength(1); // an invalid record would be silently dropped from the shelf
+  expect(loaded[0].customization.handles).toEqual(pot.customization.handles);
+});
+
 it('validates persisted profiles, finite stats and schema while retaining valid records', () => {
   const valid = result(); expect(isSessionResult(valid)).toBe(true);
   const invalid = [ { ...valid, schemaVersion: 99 }, { ...valid, height: Infinity }, { ...valid, finalProfile: [1] },
