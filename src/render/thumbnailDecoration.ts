@@ -1,13 +1,21 @@
 import type { SessionResult } from '../types';
 import { glazeColor } from '../engine/materials';
+import { handlePoint } from '../engine/handles';
+import { HandleCurve } from './handles';
 
 /** Front elevation thumbnail; back-facing decorations are visible in the 3D shelf viewer. */
 export function thumbnailDecoration(ctx: CanvasRenderingContext2D, pot: SessionResult, scale: number, bottom: number, center: number) {
+  for (const h of pot.customization?.handles ?? []) {
+    ctx.save(); ctx.strokeStyle=glazeColor(pot.glazeId);ctx.lineWidth=Math.max(2,h.scale*scale*(h.preset==='arch'?.13:.17));ctx.lineCap=ctx.lineJoin='round';
+    const curve=new HandleCurve(h.preset);ctx.beginPath();
+    for(let i=0;i<=48;i++) {const p=handlePoint(h,curve.getPoint(i/48));const x=center+p.x*scale,y=bottom-p.y*scale;if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y);}
+    ctx.stroke();ctx.restore();
+  }
   for (const a of pot.customization?.attachments ?? []) {
     if (a.anchor.point.z < 0) continue;
     const { x, y } = a.anchor.point;
     ctx.save(); ctx.translate(center + x * scale, bottom - y * scale); ctx.rotate(a.rotation + a.tilt);
-    ctx.fillStyle = glazeColor(a.material); ctx.strokeStyle = '#3b2b2566'; ctx.beginPath();
+    ctx.fillStyle = glazeColor(pot.glazeId); ctx.strokeStyle = '#3b2b2566'; ctx.beginPath();
     if (a.kind === 'cone') { ctx.moveTo(-a.width * scale / 2, 0); ctx.lineTo(0, -a.length * scale); ctx.lineTo(a.width * scale / 2, 0); ctx.closePath(); }
     else if (a.kind === 'cylinder') ctx.rect(-a.width * scale / 2, -a.length * scale / 2, a.width * scale, a.length * scale);
     else ctx.ellipse(0, 0, a.width * scale / 2, a.length * scale / 2, 0, 0, Math.PI * 2);

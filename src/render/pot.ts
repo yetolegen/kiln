@@ -1,18 +1,33 @@
-import { DoubleSide, Float32BufferAttribute, Group, LatheGeometry, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, TorusGeometry, Vector2 } from 'three';
+import { Float32BufferAttribute, Group, LatheGeometry, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, TorusGeometry, Vector2 } from 'three';
 import type { ClayState } from '../types';
-import { createClaySurface } from './claySurface';
+import { createMaterialFamily, type MaterialFamily } from './materialFamily';
 
-export function fillProfile(clay: ClayState, points: Vector2[]): void {
-  const n = clay.radii.length;
-  while (points.length < n * 2 + 10) points.push(new Vector2());
-  points.length = n * 2 + 10;
+export const BODY_RADIAL_SEGMENTS = 96;
+export const VISUAL_SUBDIVISIONS = 3;
+/** Monotone cubic interpolation: passes every logical sample and cannot overshoot either neighbour. */
+export function visualRadius(radii: Float32Array, band: number): number {
+  const i = Math.min(radii.length - 2, Math.floor(band)), t = band - i;
+  const d = radii[i + 1] - radii[i];
+  const slope = (a: number, b: number) => a * b <= 0 ? 0 : 2 * a * b / (a + b);
+  const m0 = i ? slope(radii[i] - radii[i - 1], d) : d;
+  const m1 = i + 2 < radii.length ? slope(d, radii[i + 2] - radii[i + 1]) : d;
+  return (2*t*t*t-3*t*t+1)*radii[i]+(t*t*t-2*t*t+t)*m0+(-2*t*t*t+3*t*t)*radii[i+1]+(t*t*t-t*t)*m1;
+}
+
+export function fillProfile(clay: ClayState, points: Vector2[], n = clay.radii.length): void {
+  const innerCount = clay.radii.length;
+  while (points.length < n + innerCount + 10) points.push(new Vector2());
+  points.length = n + innerCount + 10;
   const hollow = clay.cavityRadiusWorld > 0 && clay.cavityDepthWorld > 0;
   const floor = hollow ? clay.height - clay.cavityDepthWorld : clay.height;
-  const outer = clay.radii[n - 1], inner = clay.cavityRadiusWorld;
+  const outer = clay.radii[innerCount - 1], inner = clay.cavityRadiusWorld;
   const bevel = Math.min(.018, clay.height * .018, hollow ? (outer - inner) * .18 : .018, hollow ? clay.cavityDepthWorld * .2 : .018);
   points[0].set(clay.bottomHole ? clay.cavityRadiusWorld : .001, 0);
-  for (let i = 0; i < n; i++) points[i + 1].set(clay.radii[i], clay.height * i / (n - 1));
-  points[n].y -= bevel;
+  for (let i = 0; i < n; i++) {
+    const y = (n === innerCount ? clay.height : clay.height - bevel) * i / (n - 1);
+    points[i + 1].set(visualRadius(clay.radii, y / clay.height * (innerCount - 1)), y);
+  }
+  points[n].set(outer, clay.height - bevel);
   // A small rounded lip stays inside the real outer radius and above the real cavity floor.
   for (let i = 0; i < 4; i++) {
     const a = (i + 1) / 4 * Math.PI / 2;
@@ -22,11 +37,11 @@ export function fillProfile(clay: ClayState, points: Vector2[]): void {
     const a = i / 3 * Math.PI / 2;
     points[n + 5 + i].set(hollow ? inner + bevel - bevel * Math.sin(a) : outer - bevel, hollow ? clay.height - bevel + bevel * Math.cos(a) : clay.height);
   }
-  for (let i = 0; i < n; i++) {
+  for (let i = 0; i < innerCount; i++) {
     const innerTop = hollow ? clay.height - bevel : clay.height;
-    const y = innerTop - (innerTop - floor) * i / (n - 1);
+    const y = innerTop - (innerTop - floor) * i / (innerCount - 1);
     // Fixed point count allows solid → shallow dent → deep opening without reallocating geometry.
-    const r = hollow ? clay.cavityRadiusWorld : (outer - bevel) * (1 - i / (n - 1));
+    const r = hollow ? clay.cavityRadiusWorld : (outer - bevel) * (1 - i / (innerCount - 1));
     points[n + 9 + i].set(Math.max(.001, r), y);
   }
   // A perforation closes only the annular wall, never a disk across the axis.
@@ -44,12 +59,11 @@ export function rimTearBottom(clay: ClayState): number | null {
   return null;
 }
 
-export function createPotView() {
+export function createPotView(sharedFamily?: MaterialFamily) {
   const group = new Group();
-  const surface = createClaySurface();
-  const material = new MeshPhysicalMaterial({ color: '#b9825e', roughness: .6, metalness: 0, vertexColors: true, side: DoubleSide,
-    map: surface.map, bumpMap: surface.bumpMap, bumpScale: .018, roughnessMap: surface.roughnessMap,
-    clearcoat: .22, clearcoatRoughness: .4, envMapIntensity: .7 });
+  group.name = 'VesselRoot';
+  const family = sharedFamily ?? createMaterialFamily();
+  const material = family.create(true);
   const ringGeometry = new TorusGeometry(1, .009, 6, 64);
   const ringMaterial = new MeshBasicMaterial({ color: '#ffe0a2', transparent: true, opacity: .8 });
   const ring = new Mesh(ringGeometry, ringMaterial);
@@ -60,22 +74,26 @@ export function createPotView() {
   let intactIndices = new Uint32Array();
   let revision = -1;
   let radii: Float32Array | null = null;
-  const segments = 96;
+  let geometryKey = '';
+  const segments = BODY_RADIAL_SEGMENTS;
 
   return {
     group, material,
     get mesh() { return mesh; },
     update(clay: ClayState, band: number | null, nowMs: number, rotation = nowMs * .00016, reducedMotion = false): void {
       if (revision !== clay.revision || radii !== clay.radii) {
-        fillProfile(clay, points);
-        if (!mesh || mesh.geometry.parameters.points.length !== points.length) {
-          if (mesh) { group.remove(mesh); mesh.geometry.dispose(); }
+        // The engine can clone radii on a neutral observation. Only changed
+        // render data needs new geometry; wobble and contact are root/ring state.
+        const key = [clay.height, clay.cavityRadiusWorld, clay.cavityDepthWorld, clay.bottomHole, clay.collapseCause, ...clay.radii, ...clay.damage].join(',');
+        if (key !== geometryKey) {
+        const outerCount = (clay.radii.length - 1) * VISUAL_SUBDIVISIONS + 1;
+        fillProfile(clay, points, outerCount);
+        {
           const geometry = new LatheGeometry(points, segments);
           geometry.setAttribute('color', new Float32BufferAttribute(new Float32Array(geometry.getAttribute('position').count * 3), 3));
-          mesh = new Mesh(geometry, material);
-          mesh.castShadow = mesh.receiveShadow = true;
+          if (!mesh) { mesh = new Mesh(geometry, material); mesh.name = 'BodyMesh'; mesh.castShadow = mesh.receiveShadow = true; group.add(mesh); }
+          else { const old = mesh.geometry; mesh.geometry = geometry; old.dispose(); }
           intactIndices = Uint32Array.from(geometry.getIndex()!.array);
-          group.add(mesh);
         }
         const geometry = mesh.geometry;
         const positions = geometry.getAttribute('position');
@@ -87,7 +105,7 @@ export function createPotView() {
             positions.setXYZ(index, points[j].x * Math.sin(angle), points[j].y, points[j].x * Math.cos(angle));
             const b = Math.round(points[j].y / clay.height * (clay.damage.length - 1));
             const damage = clay.damage[b] ?? 0;
-            const inside = clay.cavityDepthWorld > 0 && j >= clay.radii.length + 9;
+            const inside = clay.cavityDepthWorld > 0 && j >= outerCount + 9;
             const depth = inside ? Math.max(0, (clay.height - points[j].y) / clay.cavityDepthWorld) : 0;
             const shade = (inside ? .96 - depth * .20 : 1) * (1 - damage * (.45 + .25 * Math.sin(angle * 7) ** 2));
             colors.setXYZ(index, shade, shade * (1 - damage * .15), shade * (1 - damage * .2));
@@ -117,6 +135,8 @@ export function createPotView() {
         }
         normals.needsUpdate = true;
         geometry.computeBoundingSphere();
+        geometryKey = key;
+        }
         revision = clay.revision;
         radii = clay.radii;
       }
@@ -129,6 +149,6 @@ export function createPotView() {
       group.rotation.y = rotation;
       group.rotation.z = reducedMotion ? 0 : Math.sin(nowMs * .012) * clay.wobble * .022;
     },
-    dispose(): void { mesh?.geometry.dispose(); material.dispose(); surface.dispose(); ringGeometry.dispose(); ringMaterial.dispose(); },
+    dispose(): void { mesh?.geometry.dispose(); material.dispose(); if (!sharedFamily) family.dispose(); ringGeometry.dispose(); ringMaterial.dispose(); },
   };
 }

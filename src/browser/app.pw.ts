@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { continueWithoutHandles } from './handleTestFlow';
 
 test('B10 retains a fading visual briefly while lost tracking pauses the controls', async ({ page }) => {
   await page.goto('/?dev=1&mock=1'); await expect(page.getByTestId('mock-badge')).toBeVisible();
@@ -84,6 +85,7 @@ for (const blockedStorage of [false, true]) test(`B8 finishes a pot, exports PNG
   await page.keyboard.press('h'); await page.locator('[data-action="done"]').hover();
   await expect(page.locator('[data-action="done"]')).toHaveClass(/is-dwelling/);
   await expect(page.locator('[data-action="fire"]')).toBeDisabled();
+  await continueWithoutHandles(page);
   await page.locator('[data-action="glaze-jade"]').hover();
   await expect(page.locator('[data-action="glaze-jade"]')).toHaveAttribute('aria-pressed', 'true');
   await page.locator('[data-action="fire"]').hover();
@@ -160,6 +162,7 @@ test('studio Free Mode unlocks glazing only through the palm-selectable Done but
   await expect(page.locator('[data-action="done"]')).toHaveClass(/is-dwelling/);
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'glaze');
   await expect(page.locator('[data-action="fire"]')).toBeDisabled();
+  await continueWithoutHandles(page);
   await page.locator('[data-action="glaze-jade"]').hover();
   await expect(page.locator('[data-action="fire"]')).toBeEnabled();
 });

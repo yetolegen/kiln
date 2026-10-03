@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { encodeShare } from './shareCodec';
 import { createClay } from '../engine/clay';
 import { emptyCustomization } from '../engine/customization';
+import { continueWithoutHandles } from './handleTestFlow';
 
 test('M1 palm checkpoint replacement, isolated damage dialog and restore', async ({ page }) => {
   await page.goto('/?dev=1&mock=1'); await expect(page.getByTestId('mock-badge')).toBeVisible(); await page.keyboard.press('h');
@@ -127,6 +128,7 @@ test('M3 M4 places an attachment and stamp by hand, finalizes once and round-tri
   await page.goto('/?dev=1&mock=1'); await expect(page.getByTestId('mock-badge')).toBeVisible(); await page.keyboard.press('h');
   await page.locator('[data-action="free"]').hover(); await page.locator('[data-action="done"]').hover();
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'glaze');
+  await continueWithoutHandles(page);
   await page.locator('[data-action="decoration"]').hover();
   await expect(page.locator('.decoration-editor')).toBeVisible();
   const choose = async (id: string) => {

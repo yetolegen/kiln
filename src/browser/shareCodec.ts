@@ -14,10 +14,11 @@ export function packArtifact(artifact: DisplayArtifact): unknown {
   if (!decor) throw Error('Недопустимое оформление.');
   return { v: 1, p: Array.from(c.radii), h: c.height, c: [c.cavityRadiusWorld, c.cavityDepthWorld], d: Array.from(c.damage),
     hole: c.bottomHole, failed: c.collapsed, cause: c.collapseCause, g: artifact.glazeId,
-    a: decor.attachments.map((a, i) => ({ ...a, id: `a${i}` })), s: decor.stamps.map((s, i) => ({ ...s, id: `s${i}` })) };
+    a: decor.attachments.map((a, i) => ({ ...a, id: `a${i}` })), s: decor.stamps.map((s, i) => ({ ...s, id: `s${i}` })),
+    ...(decor.handles.length ? { handles: decor.handles.map((h, i) => ({ ...h, id: `h${i}` })) } : {}) };
 }
 export function unpackArtifact(v: unknown): DisplayArtifact | null {
-  if (!object(v) || v.v !== 1 || Object.keys(v).some(k => !['v','p','h','c','d','hole','failed','cause','g','a','s'].includes(k)) ||
+  if (!object(v) || v.v !== 1 || Object.keys(v).some(k => !['v','p','h','c','d','hole','failed','cause','g','a','s','handles'].includes(k)) ||
       !Array.isArray(v.p) || v.p.length !== CONFIG.N_BANDS || !v.p.every(r => num(r, CONFIG.MIN_R, CONFIG.MAX_R)) ||
       !Array.isArray(v.d) || v.d.length !== CONFIG.N_BANDS || !v.d.every(d => num(d, 0, 1)) ||
       !num(v.h, CONFIG.MIN_HEIGHT, CONFIG.MAX_HEIGHT) || !Array.isArray(v.c) || v.c.length !== 2 || !num(v.c[0], 0, CONFIG.MAX_R) || !num(v.c[1], 0, v.h) ||
@@ -30,7 +31,7 @@ export function unpackArtifact(v: unknown): DisplayArtifact | null {
   enforceInvariants(clay);
   if (Math.abs(clay.cavityRadiusWorld - v.c[0]) > 1e-5 || Math.abs(clay.cavityDepthWorld - v.c[1]) > 1e-5 ||
       (!v.hole && clay.floorThicknessWorld <= 0)) return null;
-  const customization = readCustomization({ ...emptyCustomization(), attachments: v.a, stamps: v.s });
+  const customization = readCustomization({ ...emptyCustomization(), attachments: v.a, stamps: v.s, handles: v.handles });
   return customization && customizationFits(customization, clay) ? { clay, customization, glazeId: v.g } : null;
 }
 

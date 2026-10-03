@@ -68,6 +68,7 @@ test('polish dialogs isolate keyboard and mouse, explain damage and preserve rec
   await expect(dialog).toBeHidden(); await expect(page.locator('.checkpoint-status')).toContainText('сохранённой версии');
   await expect(page.locator('[data-action="done"]')).toBeEnabled();
   await page.locator('[data-action="done"]').click(); await page.mouse.move(0,0);
+  await page.locator('[data-action="decor-handle-done"]').click(); await page.locator('[data-action="decor-close"]').click();
   await page.locator('[data-action="checkpoint-restore"]').click(); await page.locator('[data-action="modal-restore"]').click();
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase','studio');
   await expect(page.locator('.checkpoint-status')).toContainText('сохранённой версии');

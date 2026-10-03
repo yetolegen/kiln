@@ -1,6 +1,7 @@
 import { CONFIG } from '../config';
 import type { ClayState } from '../types';
 import { isMaterial, type MaterialId } from './materials';
+import { HANDLE_LIMIT, HANDLE_MIN_SCALE, HANDLE_PRESETS, handleFits, type PotteryHandle } from './handles';
 
 export type XYZ = { x: number; y: number; z: number };
 export interface Anchor { point: XYZ; normal: XYZ }
@@ -8,8 +9,8 @@ export type AttachmentKind = 'sphere' | 'cylinder' | 'cone';
 export type StampKind = 'star' | 'dots' | 'wave';
 export interface Attachment { id: string; kind: AttachmentKind; anchor: Anchor; length: number; width: number; rotation: number; tilt: number; material: MaterialId }
 export interface Stamp { id: string; kind: StampKind; anchor: Anchor; size: number; rotation: number; color: MaterialId }
-export interface Customization { version: 1; revision: number; attachments: Attachment[]; stamps: Stamp[]; editMistakes: number }
-export const emptyCustomization = (): Customization => ({ version: 1, revision: 0, attachments: [], stamps: [], editMistakes: 0 });
+export interface Customization { version: 1; revision: number; attachments: Attachment[]; stamps: Stamp[]; handles: PotteryHandle[]; editMistakes: number }
+export const emptyCustomization = (): Customization => ({ version: 1, revision: 0, attachments: [], stamps: [], handles: [], editMistakes: 0 });
 const record = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const finite = (v: unknown, lo: number, hi: number): v is number => typeof v === 'number' && Number.isFinite(v) && v >= lo && v <= hi;
 const id = (v: unknown): v is string => typeof v === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(v);
@@ -24,7 +25,8 @@ export function readCustomization(v: unknown): Customization | null {
   if (!record(v) || v.version !== 1 || !finite(v.revision, 0, 1e9) || !Number.isInteger(v.revision) ||
       !finite(v.editMistakes, 0, 1e9) || !Number.isInteger(v.editMistakes) ||
       !Array.isArray(v.attachments) || v.attachments.length > 6 || !Array.isArray(v.stamps) || v.stamps.length > 8) return null;
-  const out: Customization = { version: 1, revision: v.revision, editMistakes: v.editMistakes, attachments: [], stamps: [] };
+  if (v.handles !== undefined && (!Array.isArray(v.handles) || v.handles.length > HANDLE_LIMIT)) return null;
+  const out: Customization = { version: 1, revision: v.revision, editMistakes: v.editMistakes, attachments: [], stamps: [], handles: [] };
   const seen = new Set<string>();
   for (const a of v.attachments) {
     if (!record(a) || !id(a.id) || seen.has(a.id) || (typeof a.kind !== 'string' || !['sphere', 'cylinder', 'cone'].includes(a.kind)) || !anchor(a.anchor) ||
@@ -37,6 +39,11 @@ export function readCustomization(v: unknown): Customization | null {
     if (!record(s) || !id(s.id) || seen.has(s.id) || (typeof s.kind !== 'string' || !['star', 'dots', 'wave'].includes(s.kind)) || !anchor(s.anchor) ||
         !finite(s.size, .08, .45) || !finite(s.rotation, -Math.PI, Math.PI) || !isMaterial(s.color)) return null;
     seen.add(s.id); out.stamps.push({ id: s.id, kind: s.kind as StampKind, anchor: copyAnchor(s.anchor), size: s.size, rotation: s.rotation, color: s.color });
+  }
+  for (const h of (v.handles ?? []) as unknown[]) {
+    if (!record(h) || !id(h.id) || seen.has(h.id) || !HANDLE_PRESETS.includes(h.preset as PotteryHandle['preset']) || !anchor(h.anchor) ||
+        !finite(h.rotation, -Math.PI, Math.PI) || !finite(h.scale, HANDLE_MIN_SCALE, 1.8)) return null;
+    seen.add(h.id); out.handles.push({ id: h.id, preset: h.preset as PotteryHandle['preset'], anchor: copyAnchor(h.anchor), rotation: h.rotation, scale: h.scale });
   }
   return out;
 }
@@ -55,5 +62,5 @@ export function anchorOnBody(a: Anchor, clay: Pick<ClayState, 'radii' | 'height'
     (a.normal.x * a.point.x + a.normal.z * a.point.z) / Math.max(r, .001) > .15;
 }
 export function customizationFits(c: Customization, clay: ClayState): boolean {
-  return c.attachments.every(a => anchorOnBody(a.anchor, clay)) && c.stamps.every(s => anchorOnBody(s.anchor, clay, s.size));
+  return c.attachments.every(a => anchorOnBody(a.anchor, clay)) && c.stamps.every(s => anchorOnBody(s.anchor, clay, s.size)) && (c.handles ?? []).every(h => handleFits(h, clay));
 }

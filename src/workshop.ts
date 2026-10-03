@@ -58,7 +58,7 @@ const inspection = createInspection(screens, scene, core, () => { dwell.requireR
 const decorating = createDecorating(screens, scene, core, dwell, () => project(true));
 const kiln = createKiln(screens.viewport, scene.setSurface);
 const finishing = createFinishing(screens, (command) => core.dispatch(command, performance.now()), scene.exportPng, (result) => inspection.enter(result), result => { void sharing.open(result); });
-const toolLessons = createToolLessons(screens, core, modal, recovery, finishing, inspection, sharing, () => decorating.close());
+const toolLessons = createToolLessons(screens, core, modal, recovery, finishing, inspection, sharing, () => decorating.close(), () => decorating.enter(true));
 const overlay = createOverlay(screens.viewport, screens.page);
 const camera = new CameraSession(screens.video, () => failCamera('interrupted'));
 let tracker: HandTracker | null = null;

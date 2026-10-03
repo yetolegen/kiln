@@ -10,12 +10,13 @@ import { createClay, enforceInvariants } from '../engine/clay';
 import { isDestroyed } from './sculptingLock';
 
 const MODULES: { id: ToolLesson; name: string }[] = [
+  { id: 'handles', name: 'Посмотреть ручки · необязательно' },
   { id: 'recovery', name: 'Сохранить и восстановить' }, { id: 'rotation', name: 'Вращение руками' },
   { id: 'attachment', name: 'Добавить и удалить деталь' }, { id: 'stamp', name: 'Штамп и глазурь' }, { id: 'sharing', name: 'Полка и ссылка' },
 ];
 
 export function createToolLessons(screens: ReturnType<typeof createScreens>, core: CoreController, modal: ReturnType<typeof createModal>,
-    recovery: ReturnType<typeof createRecovery>, finishing: ReturnType<typeof createFinishing>, inspection: ReturnType<typeof createInspection>, sharing: ReturnType<typeof createSharing>, closeEditor: () => void) {
+    recovery: ReturnType<typeof createRecovery>, finishing: ReturnType<typeof createFinishing>, inspection: ReturnType<typeof createInspection>, sharing: ReturnType<typeof createSharing>, closeEditor: () => void, openHandles: () => void) {
   const panel = document.createElement('aside'); panel.className = 'tool-lesson'; panel.hidden = true;
   const title = document.createElement('h2'), note = document.createElement('p'), instruction = document.createElement('p'), actions = document.createElement('nav');
   note.className = 'tool-lesson__note'; instruction.setAttribute('role', 'status');
@@ -23,12 +24,13 @@ export function createToolLessons(screens: ReturnType<typeof createScreens>, cor
   let lesson: ToolLessonProgress | null = null, current: ToolLesson | null = null, revision = -1, finished = false, controlsRevision = -1;
   const facts = (s: EngineSnapshot): ToolFacts => ({ saved: recovery.savedCount, restored: recovery.restoredCount, damaged: isDestroyed(s),
     handRotation: inspection.handRotation, attachments: s.customization?.attachments.length ?? 0, stamps: s.customization?.stamps.length ?? 0,
-    glazed: !!s.glazeId, shelfViews: inspection.shelfViews, links: sharing.completedLinks });
+    glazed: !!s.glazeId, shelfViews: inspection.shelfViews, links: sharing.completedLinks, handles: s.customization?.handles?.length ?? 0 });
+  let pendingHandles = false;
   function end() {
     if (!lesson) return;
     if (core.tick(performance.now()).phase === 'firing') return;
     inspection.close(); closeEditor();
-    lesson = null; current = null; finished = false; panel.hidden = true; screens.removeActions('tool-');
+    lesson = null; current = null; finished = false; pendingHandles = false; panel.hidden = true; screens.removeActions('tool-');
     delete screens.page.dataset.toolLesson;
     recovery.setTraining(false); finishing.setTraining(false); core.dispatch({ type: 'backToMenu' }, performance.now());
   }
@@ -56,6 +58,7 @@ export function createToolLessons(screens: ReturnType<typeof createScreens>, cor
     if (id !== 'recovery') core.dispatch({ type: 'finishShaping' }, now);
     screens.invalidateContent();
     current = id; lesson = new ToolLessonProgress(id, facts(core.tick(now))); finished = false; controlsRevision = -1;
+    pendingHandles = id === 'handles';
     screens.page.dataset.toolLesson = id;
     title.textContent = MODULES.find(m => m.id === id)!.name;
     note.textContent = id === 'recovery' ? 'Отдельный учебный черновик: подготовлена низкая форма. Повреждение создаёте вы настоящим нажимом; физические правила не изменены.' :
@@ -77,6 +80,7 @@ export function createToolLessons(screens: ReturnType<typeof createScreens>, cor
       }
       if (!lesson || !current) return;
       if (snapshot.phase === 'menu') { end(); return; }
+      if (pendingHandles) { pendingHandles = false; openHandles(); }
       panel.hidden = false;
       if (controlsRevision !== screens.contentRevision) {
         screens.removeActions('tool-'); actions.replaceChildren(); controlsRevision = screens.contentRevision;

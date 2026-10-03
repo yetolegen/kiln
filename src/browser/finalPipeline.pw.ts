@@ -82,11 +82,16 @@ test('M6 real pipeline: landmark dwell, shaping, checkpoint, restore, decoration
   expect(Math.min(...checkpoint.clay.radii.slice(20, 29))).toBeLessThan(.99);
   await select('checkpoint-restore'); await select('modal-restore');
   await expect(page.locator('.checkpoint-status')).toContainText('Точка восстановлена');
-  await select('done'); await select('decoration'); await select('decor-add'); await select('decor-sphere');
+  await select('done'); await select('decor-handle-done'); await select('decor-add'); await select('decor-sphere');
   const place = async (x: number) => {
     await hands([{ x, y: 450, tip: true }]); await page.waitForTimeout(800);
     await hands([{ x, y: 450, tip: true, pinch: true }]);
-    await expect(page.locator('.decoration-editor h2')).toContainText('изменение', { timeout: 10000 });
+    await expect(page.locator('.decoration-editor h2')).toContainText('изменение', { timeout: 10000 }).catch(async cause => {
+      const observed = await page.evaluate(() => ({ timing: (window as typeof window & { __fixtureTiming?: unknown }).__fixtureTiming,
+        rendering: (document.querySelector('[data-testid="pot-canvas"]') as HTMLElement)?.dataset,
+        placement: document.querySelector('.decoration-editor header p')?.textContent }));
+      throw new Error(`Landmark placement: ${JSON.stringify(observed)}`, { cause });
+    });
     await hands([{ x: 50, y: 70 }]); await page.waitForTimeout(200); await select('decor-apply');
   };
   await place(720); await select('decor-stamp'); await select('decor-star'); await place(750); await select('decor-close');

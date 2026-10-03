@@ -45,7 +45,7 @@ export function readCheckpoint(value: unknown): Checkpoint | null {
   }
   if (value.stats.mode !== value.mode) return null;
   const customization = value.customization === undefined ? emptyCustomization() : readCustomization(value.customization);
-  if (!customization || !customizationFits(customization, clay) || (value.stage === 'studio' && (customization.attachments.length || customization.stamps.length))) return null;
+  if (!customization || !customizationFits(customization, clay) || (value.stage === 'studio' && (customization.attachments.length || customization.stamps.length || customization.handles.length))) return null;
   // Whitelist, then copy: unknown properties never reach the engine.
   return {
     version: 1, mode: value.mode as Checkpoint['mode'], stage: value.stage as Checkpoint['stage'],

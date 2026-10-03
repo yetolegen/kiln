@@ -4,8 +4,7 @@ import type { LessonGoal, LessonShape } from '../ui/tutorialGeometry';
 import { LESSON_FINISH_STEP } from '../ui/tutorialGeometry';
 import { HandVisuals } from './handVisuals';
 import { drawCavitySection } from './cavitySection';
-
-const CHAINS = [[0, 1, 2, 3, 4], [0, 5, 6, 7, 8], [5, 9, 10, 11, 12], [9, 13, 14, 15, 16], [13, 17, 18, 19, 20], [0, 17]];
+import { drawHandGlove } from './handGlove';
 
 export function createOverlay(parent: HTMLElement, cursorParent: HTMLElement = parent) {
   const canvas = document.createElement('canvas');
@@ -21,6 +20,8 @@ export function createOverlay(parent: HTMLElement, cursorParent: HTMLElement = p
   let width = 0, height = 0, dpr = 1;
   let projection: ProjectionParams | null = null;
   const visuals = new HandVisuals();
+  let lastAction = '', flashUntil = 0;
+  const skeleton = import.meta.env.DEV && new URLSearchParams(location.search).get('skeleton') === '1';
   return {
     setProjection(p: ProjectionParams): void {
       projection = p;
@@ -111,19 +112,16 @@ export function createOverlay(parent: HTMLElement, cursorParent: HTMLElement = p
         drawCavitySection(ctx, snapshot.clay, projection, thumbLimit);
       }
       const input = snapshot.input;
-      ctx.strokeStyle = '#ffddaa'; ctx.lineWidth = 2; ctx.lineCap = 'round';
-      ctx.shadowColor = '#eec086'; ctx.shadowBlur = 10;
+      const gesture = snapshot.gesture;
+      const acting = !!gesture?.deforming && !!input && gesture.sourceFrameId === input.frameId && nowMs - input.tMs <= CONFIG.MAX_INPUT_AGE_MS;
+      const actionKey = acting ? `${gesture!.gesture}:${gesture!.activeTrackId}` : '';
+      if (actionKey && actionKey !== lastAction) flashUntil = nowMs + 180;
+      lastAction = actionKey;
       for (const hand of visuals.update(input, nowMs)) {
         if (!hand.opacity) continue;
-        ctx.globalAlpha = hand.opacity;
-        for (const chain of CHAINS) {
-          ctx.beginPath();
-          for (let i = 0; i < chain.length; i++) {
-            const x = hand.points[chain[i] * 2], y = hand.points[chain[i] * 2 + 1];
-            if (!i) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-          }
-          ctx.stroke();
-        }
+        const active = acting && (gesture!.activeTrackId === hand.trackId || gesture!.gesture === 'widen');
+        const error = snapshot.hint?.handTrackId === hand.trackId && snapshot.hint.severity !== 'info' && snapshot.hint.expiresAtMs > nowMs;
+        drawHandGlove(ctx, hand.points, hand.opacity, active, active && nowMs < flashUntil, error, skeleton);
       }
       ctx.shadowBlur = 0; ctx.globalAlpha = 1;
       if (!input || nowMs < input.tMs || nowMs - input.tMs > CONFIG.MAX_INPUT_AGE_MS) return;

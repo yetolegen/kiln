@@ -15,6 +15,9 @@ import { createDecorationView } from './decoration';
 import { emptyCustomization, type Attachment, type Stamp } from '../engine/customization';
 import { pickOuterSurface } from './surfacePicking';
 import type { Vec2 } from '../types';
+import { createMaterialFamily } from './materialFamily';
+import { createHandleView } from './handles';
+import type { PotteryHandle } from '../engine/handles';
 
 const TILT = Math.PI / 12;
 
@@ -72,8 +75,9 @@ export function createScene(parent: HTMLElement) {
   let controls: OrbitControls | null = null, inspecting = false;
   let inspectionDistance = 8;
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const pot = createPotView();
-  const decoration = createDecorationView(pot.group), emptyDecor = emptyCustomization();
+  const family = createMaterialFamily(), pot = createPotView(family);
+  const handles = createHandleView(pot.group, family);
+  const decoration = createDecorationView(pot.group, family), emptyDecor = emptyCustomization();
   scene.add(pot.group, new HemisphereLight('#f1ede4', '#28392e', 1.1));
   const key = new DirectionalLight('#fff2e4', 2.6);
   key.position.set(-3, 5, 6);
@@ -81,10 +85,10 @@ export function createScene(parent: HTMLElement) {
   Object.assign(key.shadow.camera, { left: -3, right: 3, top: 4, bottom: -2, near: .1, far: 16 });
   key.shadow.bias = -.0004; key.shadow.normalBias = .018;
   scene.add(key);
-  const rim = new DirectionalLight('#c9c3ed', 1.3);
+  const rim = new DirectionalLight('#e8d6b8', .9);
   rim.position.set(4, 2, -3);
   scene.add(rim);
-  const inspectionFill = new DirectionalLight('#f3e6d4', 2.3);
+  const inspectionFill = new DirectionalLight('#f3e6d4', 1.2);
   inspectionFill.visible = false; scene.add(inspectionFill, inspectionFill.target);
   const wheelGeometry = new CylinderGeometry(1.75, 1.8, .13, 64);
   const wheelMaterial = new MeshStandardMaterial({ color: '#aa8b61', roughness: .78, metalness: .12 });
@@ -135,11 +139,9 @@ export function createScene(parent: HTMLElement) {
   const activeCamera = () => inspecting ? inspectionCamera : camera;
   function applySurface() {
     const gloss = artifact ? 1 : surfaceGloss;
-    pot.material.color.set(artifact ? glazeColor(artifact.glazeId) : color);
-    pot.material.roughness = .6 - gloss * .28; pot.material.metalness = 0;
-    pot.material.bumpScale = .018 - gloss * .012; pot.material.clearcoat = .22 + gloss * .6;
-    pot.material.clearcoatRoughness = .4 - gloss * .2;
-    pot.material.emissive.set('#ff640b'); pot.material.emissiveIntensity = artifact ? 0 : surfaceGlow;
+    const finishColor = artifact ? glazeColor(artifact.glazeId) : color, glow = artifact ? 0 : surfaceGlow;
+    family.apply(pot.material, finishColor, gloss, glow);
+    handles.setFinish(finishColor, gloss, glow); decoration.setFinish(finishColor, gloss, glow);
   }
 
   function inspectionView(action: string): void {
@@ -163,6 +165,7 @@ export function createScene(parent: HTMLElement) {
 
   return {
     canvas,
+    previewHandle(value: PotteryHandle | null) { handles.preview(value); appearanceRevision++; },
     get supportsInspection(): boolean { return !canvas.hidden && renderer !== null; },
     inspectionView,
     pickSurface(pointer: Vec2) {
@@ -185,6 +188,9 @@ export function createScene(parent: HTMLElement) {
     setPointerOrbit(enabled: boolean): void { if (controls) controls.enabled = inspecting && enabled; },
     setInspection(active: boolean, surface?: HTMLElement): void {
       inspecting = active && !canvas.hidden && renderer !== null;
+      // Camera-free viewing can regain full detail. Live hand editing keeps the
+      // adaptive budget: forcing a large redraw here can interrupt track continuity.
+      if (inspecting && !lastSnapshot?.input && renderer && projection) { quality = 1; slowFrames = 0; renderer.setPixelRatio(dpr); renderer.setSize(projection.viewportWidth, projection.viewportHeight, false); canvas.dataset.renderScale = '1.00'; }
       appearanceRevision++;
       if (surface && (!controls || controls.domElement !== surface)) {
         controls?.dispose();
@@ -195,10 +201,12 @@ export function createScene(parent: HTMLElement) {
         controls.enabled = inspecting;
         if (inspecting && (artifact?.clay ?? lastSnapshot?.clay) && projection) {
           const clay = (artifact?.clay ?? lastSnapshot!.clay)!;
-          controls.target.set(0, clay.height / 2, 0);
           const decor = artifact?.customization ?? lastSnapshot?.customization;
-          const margin = decor?.attachments.length ? Math.max(...decor.attachments.map(a => a.length)) : 0;
-          const radius = Math.hypot(Math.max(...clay.radii) + margin, clay.height / 2 + margin);
+          const margin = Math.max(0, ...(decor?.attachments ?? []).map(a => a.length));
+          const side = Math.max(0, ...(decor?.handles ?? []).filter(h => h.preset !== 'arch').map(h => h.scale * .61));
+          const arch = Math.max(0, ...(decor?.handles ?? []).filter(h => h.preset === 'arch').map(h => h.anchor.point.y + h.scale * 1.065 - clay.height));
+          controls.target.set(0, (clay.height + arch) / 2, 0);
+          const radius = Math.hypot(Math.max(...clay.radii) + Math.max(margin, side), clay.height / 2 + Math.max(margin, arch / 2));
           inspectionDistance = radius / Math.sin(19 * Math.PI / 180) / Math.min(1, projection.viewportWidth / projection.viewportHeight) * 1.25;
           controls.minDistance = radius * 1.3; controls.maxDistance = inspectionDistance * 2.5;
           inspectionView('reset');
@@ -258,7 +266,7 @@ export function createScene(parent: HTMLElement) {
       stand.visible = wheel.visible;
       effects.update(snapshot, nowMs, reduced.matches, inspecting);
       if (clay && visible) pot.update(clay, inspecting ? null : snapshot.hint?.band ?? snapshot.gesture?.contact.activeBand ?? null, nowMs, effects.angle, reduced.matches || inspecting);
-      if (clay) decoration.update(artifact?.customization ?? snapshot.customization ?? emptyDecor, clay);
+      if (clay) { const decor = artifact?.customization ?? snapshot.customization ?? emptyDecor; decoration.update(decor, clay); handles.update(decor.handles ?? []); canvas.dataset.handles = String(decor.handles?.length ?? 0); }
       wheel.rotation.y = effects.angle;
       let activeParticles = 0;
       for (let i = 0; i < effects.capacity; i++) {
@@ -300,7 +308,7 @@ export function createScene(parent: HTMLElement) {
       try {
         if (!lastSnapshot || !projection) return null;
         const customization = artifact?.customization ?? lastSnapshot.customization;
-        if (canvas.hidden && ((customization?.attachments.length ?? 0) + (customization?.stamps.length ?? 0) > 0)) return null;
+        if (canvas.hidden && ((customization?.attachments.length ?? 0) + (customization?.stamps.length ?? 0) + (customization?.handles?.length ?? 0) > 0)) return null;
         const source = canvas.hidden ? fallback : canvas;
         const picture = document.createElement('canvas'); picture.width = 1200; picture.height = 1200;
         const ctx = picture.getContext('2d'); if (!ctx || !(artifact?.clay ?? lastSnapshot.clay)) return null;
@@ -348,7 +356,7 @@ export function createScene(parent: HTMLElement) {
     dispose(): void {
       canvas.removeEventListener('webglcontextlost', useFallback);
       controls?.dispose(); studioLight?.dispose(); key.shadow.dispose(); renderer?.dispose(); pot.dispose(); wheelGeometry.dispose(); wheelMaterial.dispose();
-      decoration.dispose();
+      decoration.dispose(); handles.dispose(); family.dispose();
       grooveGeometry.dispose(); grooveMaterial.dispose(); markGeometry.dispose(); dropGeometry.dispose(); dropMaterial.dispose();
       slipGeometry.dispose(); slipMaterial.dispose();
       spindleGeometry.dispose(); baseGeometry.dispose(); standMaterial.dispose();
