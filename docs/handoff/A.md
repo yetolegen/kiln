@@ -2,6 +2,17 @@
 
 Newest entry at the top. Written by A, read by B.
 
+### 2026-10-03 · A · ECC review pass on `feat/local-widening`
+**Ran:** ECC formatter gate (no-op: the repo has no Biome/Prettier), ECC code-reviewer ×3, typescript-reviewer, silent-failure-hunter, pr-test-analyzer. ECC `orch-review` could not run here (its Workflow tool is unavailable).
+- `b39eed8` tests: real-scale guards (too fast with its hint, vertical, one-sided) still block with pinch-point contact; `gripPoint`; outside widen placed at `widenBandY`.
+- `92bfdd1` refactor (behavior-neutral, reviewed): `ExternalWiden.update` returns `GripResult | null` with `y` always; grip points computed once per frame.
+- **fix (contract change):** new `NearMissReason` **`'widenNotLevel'`** (text in `i18n.ts`, priority/severity in `hints.ts`): an armed grip stopped by a vertical move now says so until the pinches open. Pinches held near but off the walls now get a widen near-miss (`handsTooFar` / `handsUneven` with `intended: 'widen'`) instead of silence; its zone grows with the palm. Please make sure your UI shows `widenNotLevel` like `widenTooFast`.
+- Playtest note: with the support hand pinched at a wall and the other pinch inside the opening before the opening action arms, the studio may show the widen hint. If seen, exclude pinches inside the opening.
+**For you (B), found in your files, not changed by me (you are rewriting saving):**
+- `storage.ts` load: `.filter(isSessionResult)` drops invalid pots silently; the next `save()` overwrites the key, so they are lost for good. Same for a raw string over 2,000,000 chars, and a corrupt JSON string is overwritten on the next save without a backup.
+- `finishing.ts:15` ignores `store.save()`'s result, and `save()` returns true even when `setItem` threw. The result screen can say «Сохранено на полке…» when nothing was stored.
+- Suggestions: count and log rejected pots, keep a `.bak` copy before overwriting, return saved/memory-only/rejected from `save()` and show it, and add a test that runs the validator on the controller's real result pots.
+
 ### 2026-10-03 · A · V9.2 local outside widening (branch `feat/local-widening`, Mansur's point 4)
 **Changed:** the two-pinch outside widening no longer grows every band. It widens around the grip's height with the same Gaussian as shaping (`shape()` with `widenBandY`). The gesture, 0.5 s hold, release, guards and glitch grace are unchanged; no new gesture (open palms spreading stays the release).
 - **Grip point = pinch point** (midpoint of thumb and index tips), not the palm. At real scale the palm sits about a palm above the pinch, so palm-based contact could never grip the upper wall (y=0.9 on a 1.2 pot gave `handsTooFar`). The grip's contact is now judged at the pinch points, and while the grip is active `GestureState.contact` is that grip contact, so your overlay rings work on the upper wall too.
