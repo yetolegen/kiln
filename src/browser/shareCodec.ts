@@ -46,7 +46,17 @@ async function boundedBytes(stream: ReadableStream<Uint8Array>, limit: number): 
   } finally { reader.releaseLock(); }
   const bytes = new Uint8Array(length); let offset = 0; for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; } return bytes;
 }
+/** The browser lacks (De)CompressionStream: say so, instead of a raw ReferenceError or a "broken link". */
+export class ShareUnsupportedError extends Error {}
+function requireStreams(open: boolean): void {
+  if (typeof (open ? globalThis.DecompressionStream : globalThis.CompressionStream) !== 'function') {
+    throw new ShareUnsupportedError(open
+      ? 'Этот браузер не умеет открывать ссылки KILN. Откройте ссылку в свежем Chrome, Edge, Firefox или Safari.'
+      : 'Этот браузер не умеет создавать ссылки KILN. Обновите браузер или сохраните изображение PNG.');
+  }
+}
 export async function encodeShare(artifact: DisplayArtifact): Promise<string> {
+  requireStreams(false);
   const packed = packArtifact(artifact); if (!unpackArtifact(packed)) throw Error('Данные сосуда не прошли проверку.');
   const bytes = new TextEncoder().encode(JSON.stringify(packed)); if (bytes.length > MAX_SHARE_BYTES) throw Error('Изделие слишком большое для ссылки.');
   const zipped = await boundedBytes(new Blob([bytes]).stream().pipeThrough(new CompressionStream('gzip')), MAX_SHARE_BYTES);
@@ -57,6 +67,7 @@ export async function encodeShare(artifact: DisplayArtifact): Promise<string> {
 }
 export async function decodeShare(hash: string): Promise<DisplayArtifact> {
   if (hash.length > MAX_SHARE_HASH || !/^#pot=v1\.[A-Za-z0-9_-]+$/.test(hash)) throw Error('Неизвестная версия или повреждённая ссылка.');
+  requireStreams(true);
   const encoded = hash.slice(8).replace(/-/g, '+').replace(/_/g, '/');
   let compressed: Uint8Array;
   try { compressed = Uint8Array.from(atob(encoded), c => c.charCodeAt(0)); } catch { throw Error('Повреждённая ссылка.'); }

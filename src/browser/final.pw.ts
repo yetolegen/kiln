@@ -196,3 +196,10 @@ test('M2 hand pinch drag rotates continuously; shelf viewer leaves the stored wo
   await expect(page.locator('.workshop')).toHaveAttribute('data-phase', 'gallery');
   expect(await page.evaluate(() => localStorage.getItem('kiln.gallery.v1'))).toBe(saved);
 });
+
+test('a share link pasted into a tab that already has the workshop open opens the viewer', async ({ page }) => {
+  const hash = await encodeShare({ clay: createClay(), glazeId: 'jade', customization: emptyCustomization() });
+  await page.goto('/?dev=1&mock=1'); await expect(page.getByTestId('mock-badge')).toBeVisible();
+  await page.evaluate((h) => { location.hash = h; }, hash);
+  await expect(page.locator('.public-viewer h2')).toContainText('сосуд по ссылке', { timeout: 15000 });
+});

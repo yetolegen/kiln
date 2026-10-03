@@ -12,6 +12,7 @@ export function createRecovery(screens: ReturnType<typeof createScreens>, core: 
   let revision = -1, terminalKey = '', completionKey = '';
   let save: HTMLButtonElement | null = null, restore: HTMLButtonElement | null = null;
   let restoreNotice: string | null = null;
+  let last: EngineSnapshot | null = null; // the latest frame's snapshot; ticking the core here would drop its queued events
   const status = document.createElement('p'); status.className = 'checkpoint-status'; status.setAttribute('role', 'status');
   const message = (text: string, tone = 'neutral') => { status.textContent = text; status.dataset.tone = tone; screens.refreshTargets(); };
   function restoreNow() {
@@ -24,14 +25,23 @@ export function createRecovery(screens: ReturnType<typeof createScreens>, core: 
     terminalKey = '';
   }
   function askRestore() {
-    modal.show('restore', 'Восстановить работу?', 'Глина и оформление вернутся к сохранённой точке. Более поздние детали будут потеряны. Ошибки и время остаются в статистике.', [
+    // a checkpoint from the other mode switches the session to it: say so instead of doing it silently
+    const saved = store.load(), now = last;
+    const label = (mode: string) => (mode === 'commission' ? '«Ваза по образцу»' : '«Свободная форма»');
+    const switchMode = saved && now && now.phase !== 'menu' && now.mode && saved.mode !== now.mode
+      ? ` Точка сделана в режиме ${label(saved.mode)}: работа переключится на этот режим.` : '';
+    modal.show('restore', 'Восстановить работу?', 'Глина и оформление вернутся к сохранённой точке. Более поздние детали будут потеряны. Ошибки и время остаются в статистике.' + switchMode, [
       { id: 'restore', label: 'Да, восстановить', run: restoreNow }, { id: 'cancel', label: 'Оставить как есть', run: () => {} },
     ]);
   }
   function saveNow() {
     const snapshot = core.captureCheckpoint(performance.now());
     const ok = snapshot && store.save(snapshot); if (ok) savedCount++;
-    message(ok ? store.persistent ? 'Точка сохранена. Можно вернуться к этой версии.' : 'Точка доступна до закрытия страницы.' : 'Сначала отпустите глину. Повреждённую форму сохранить нельзя.', ok ? 'success' : 'warning');
+    // a capture refused by the engine (clay held or ruined) and a snapshot the store rejects are different failures
+    if (snapshot && !ok) console.warn('KILN: checkpoint store rejected a captured snapshot', snapshot);
+    message(ok ? store.persistent ? 'Точка сохранена. Можно вернуться к этой версии.' : 'Точка доступна до закрытия страницы.'
+      : snapshot ? 'Не удалось сохранить точку: данные формы не прошли проверку. Работа продолжается; попробуйте ещё раз после следующего движения.'
+      : 'Сначала отпустите глину. Повреждённую форму сохранить нельзя.', ok ? 'success' : 'warning');
   }
   function askSave() {
     if (!store.available) { saveNow(); return; }
@@ -46,6 +56,7 @@ export function createRecovery(screens: ReturnType<typeof createScreens>, core: 
       revision = -1; screens.removeActions('checkpoint-');
     },
     update(snapshot: EngineSnapshot, lessonCompleted: boolean): void {
+      last = snapshot;
       if (revision !== screens.contentRevision) {
         revision = screens.contentRevision; save = restore = null;
         message(restoreNotice ?? (store.available ? 'Точка доступна · можно восстановить.' : 'Точка не сохранена · сохраните целую форму.'), restoreNotice ? 'success' : 'neutral');

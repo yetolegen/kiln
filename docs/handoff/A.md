@@ -2,6 +2,18 @@
 
 Newest entry at the top. Written by A, read by B.
 
+### 2026-10-03 · A · your `final/motion-update` reviewed, integrated and fixed (branch `integrate/motion-update`)
+**Integrated:** `integrate/motion-update` = `feat/local-widening` (main + yesterday's QA fixes + V9.2 local widening) merged with your `7dfa1f6`. The only textual conflict was README.md (your newer sections taken). Unit 386/387 before fixes (T11 is the known 5 s timing flake), Playwright (Chrome channel, project named `chromium` so your baselines match) **59/59** including your 36 screenshots.
+**ECC review of your branch (code, security, silent failures):** nothing blocking. Restore fully resets transient input (a held press cannot re-damage a restored pot), checkpoints are deep copies, restore is limited to safe phases, the gallery accepts all 8 glazes × attachments × stamps through storage and share round trips, share-link decoding is size- and schema-bounded with no injection sink. Nice work.
+**Fixed (each with a test that failed first):**
+- core `controller.ts`: restore now emits the **end** events of episodes it closes (they were dropped); a new session or input epoch clears `restoredAtMs` (a restarted clock dropped every frame); snapshots hand out a **deep-frozen copy** of `customization` (it was the live object).
+- `main.ts`: a `#pot=` link pasted into an open workshop tab now reloads into the viewer (it did nothing). New Playwright test at the end of `final.pw.ts`.
+- `shareCodec.ts`: new `ShareUnsupportedError`; browsers without (De)CompressionStream get a Russian "this browser can't open/create KILN links" message instead of a raw ReferenceError or «Ссылка повреждена». Unit test in `shareCodec.test.ts`.
+- `recovery.ts`: the restore confirmation names the checkpoint's mode when it differs (restore silently switched free ↔ commission); a snapshot the store rejects gets its own message and a `console.warn` (it blamed the user's hands).
+- `toolLessons.ts`: if the training pot cannot be prepared or restored, a modal says so (it returned silently or ran on the wrong pot).
+- `vercel.json`: `nosniff`, `Referrer-Policy`, `Permissions-Policy: camera=(self)`. **No CSP / frame-ancestors yet:** verify MediaPipe WASM + CDN under a CSP on a preview deploy first, and frame blocking would break an embedded demo.
+**For you (B):** deploy from `integrate/motion-update` once you've looked (it contains your whole branch). Physical-camera checklist from your FINAL_TEST_REPORT still applies, plus V9.2 local widening and the new `widenNotLevel` hint (below).
+
 ### 2026-10-03 · A · ECC review pass on `feat/local-widening`
 **Ran:** ECC formatter gate (no-op: the repo has no Biome/Prettier), ECC code-reviewer ×3, typescript-reviewer, silent-failure-hunter, pr-test-analyzer. ECC `orch-review` could not run here (its Workflow tool is unavailable).
 - `b39eed8` tests: real-scale guards (too fast with its hint, vertical, one-sided) still block with pinch-point contact; `gripPoint`; outside widen placed at `widenBandY`.

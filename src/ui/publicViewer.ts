@@ -1,4 +1,4 @@
-import { decodeShare } from '../browser/shareCodec';
+import { decodeShare, ShareUnsupportedError } from '../browser/shareCodec';
 import { createScene } from '../render/scene';
 import { createScreens } from './screens';
 import { createController } from '../engine/controller';
@@ -17,10 +17,11 @@ export async function createPublicViewer(root: HTMLElement, hash: string) {
   const goWorkshop = () => { location.href = location.pathname; };
   let artifact: DisplayArtifact;
   try { artifact = await decodeShare(hash); }
-  catch {
+  catch (error) {
     const main = document.createElement('main'); main.className = 'share-error';
     const h = document.createElement('h1'); h.textContent = 'Не удалось открыть сосуд';
-    const p = document.createElement('p'); p.textContent = 'Ссылка повреждена, слишком велика или создана неизвестной версией KILN. Камера не включалась.';
+    const p = document.createElement('p');
+    p.textContent = (error instanceof ShareUnsupportedError ? error.message : 'Ссылка повреждена, слишком велика или создана неизвестной версией KILN.') + ' Камера не включалась.';
     const button = document.createElement('button'); button.className = 'start-button'; button.textContent = 'В мастерскую'; button.onclick = goWorkshop;
     main.append(h, p, button); root.replaceChildren(main); return () => main.remove();
   }

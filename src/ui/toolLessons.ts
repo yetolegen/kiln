@@ -40,13 +40,19 @@ export function createToolLessons(screens: ReturnType<typeof createScreens>, cor
     core.dispatch({ type: 'start', mode: 'free', sessionId: `lesson-${crypto.randomUUID()}` }, now);
     recovery.setTraining(true); finishing.setTraining(true);
     const prepared = core.captureCheckpoint(now);
-    if (!prepared) { recovery.setTraining(false); finishing.setTraining(false); core.dispatch({ type: 'backToMenu' }, now); return; }
+    // the lesson needs its prepared training pot: if it cannot be set up, say so instead of silently returning
+    const unavailable = () => {
+      recovery.setTraining(false); finishing.setTraining(false); core.dispatch({ type: 'backToMenu' }, now);
+      modal.show('tool-lesson-error', 'Урок недоступен', 'Не удалось подготовить учебный сосуд. Ваша работа не изменилась; попробуйте открыть урок ещё раз.',
+        [{ id: 'ok', label: 'Понятно', run: () => {} }]);
+    };
+    if (!prepared) { unavailable(); return; }
     const clay = createClay();
     if (id === 'recovery') clay.height = .4;
     else { clay.cavityRadiusWorld = .5; clay.cavityDepthWorld = .8; }
     enforceInvariants(clay);
     prepared.clay = { ...clay, radii: Array.from(clay.radii), damage: Array.from(clay.damage) };
-    core.restoreCheckpoint(prepared, now);
+    if (!core.restoreCheckpoint(prepared, now)) { unavailable(); return; } // else the lesson would run on the wrong pot
     if (id !== 'recovery') core.dispatch({ type: 'finishShaping' }, now);
     screens.invalidateContent();
     current = id; lesson = new ToolLessonProgress(id, facts(core.tick(now))); finished = false; controlsRevision = -1;

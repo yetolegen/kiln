@@ -1,5 +1,5 @@
-import { expect, it } from 'vitest';
-import { decodeShare, encodeShare, MAX_SHARE_HASH, packArtifact, unpackArtifact } from './shareCodec';
+import { expect, it, vi } from 'vitest';
+import { decodeShare, encodeShare, MAX_SHARE_HASH, packArtifact, ShareUnsupportedError, unpackArtifact } from './shareCodec';
 import { createClay } from '../engine/clay';
 import { emptyCustomization } from '../engine/customization';
 import type { DisplayArtifact } from '../engine/artifact';
@@ -33,4 +33,14 @@ it('stops a compressed expansion bomb while streaming, before JSON parsing', asy
   let binary = ''; for (const byte of zipped) binary += String.fromCharCode(byte);
   const hash = '#pot=v1.' + btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   await expect(decodeShare(hash)).rejects.toThrow('предел');
+});
+
+it('a browser without (De)CompressionStream gets a specific error, not a "broken link" or a raw ReferenceError', async () => {
+  const hash = await encodeShare(work());
+  vi.stubGlobal('CompressionStream', undefined); vi.stubGlobal('DecompressionStream', undefined);
+  try {
+    await expect(encodeShare(work())).rejects.toBeInstanceOf(ShareUnsupportedError);
+    await expect(decodeShare(hash)).rejects.toBeInstanceOf(ShareUnsupportedError);
+    await expect(decodeShare(hash)).rejects.toThrow(/браузер/);
+  } finally { vi.unstubAllGlobals(); }
 });

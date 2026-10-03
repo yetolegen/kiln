@@ -11,4 +11,8 @@ if (location.hash.startsWith('#pot=')) {
   const dispose = await createPublicViewer(root, location.hash);
   const reload = () => location.reload(); window.addEventListener('hashchange', reload);
   if (import.meta.hot) import.meta.hot.dispose(() => { dispose(); window.removeEventListener('hashchange', reload); });
-} else await import('./workshop');
+} else {
+  // a share link pasted into an open workshop tab only changes the fragment: reload into the viewer
+  window.addEventListener('hashchange', () => { if (location.hash.startsWith('#pot=')) location.reload(); });
+  await import('./workshop');
+}
