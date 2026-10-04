@@ -115,8 +115,10 @@ export function createScreens(root: HTMLElement, onStart: () => void, dispatch: 
     !!button.getClientRects().length && getComputedStyle(button).visibility !== 'hidden';
   function refreshTargets(): void {
     targets.length = 0;
+    // hands on the clay: no shaping-screen button is a palm target until they let go (dialogs stay reachable)
+    const handsOnClay = controlsLocked && (lastPhase === 'studio' || lastPhase === 'tutorial');
     for (const entry of entries) {
-      if (!eligible(entry.id, entry.element)) continue;
+      if (!eligible(entry.id, entry.element) || (handsOnClay && !entry.id.startsWith('modal-'))) continue;
       const rect = entry.element.getBoundingClientRect();
       let left = Math.max(0, rect.left), top = Math.max(0, rect.top), right = Math.min(innerWidth, rect.right), bottom = Math.min(innerHeight, rect.bottom);
       // Scrollable dialogs/toolbars expose only the visible portion of each target.

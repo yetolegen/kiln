@@ -114,7 +114,8 @@ export function createOverlay(parent: HTMLElement, cursorParent: HTMLElement = p
         haloText(ctx, 'Образец', p.axisXPx + target.radii.at(-1)! * p.pixelsPerWorldUnit + 10, p.bottomYPx - target.height * p.pixelsPerWorldUnit);
       }
       if (projection && snapshot.clay && ['studio', 'tutorial'].includes(snapshot.phase)) {
-        const thumbLimit = snapshot.phase === 'tutorial' ? goal?.step === 3 : snapshot.gesture?.gesture === 'indent' || snapshot.clay.cavityDepthWorld === 0;
+        // the yellow safe-depth line belongs to the lesson step that teaches it; free shaping keeps the pot clear
+        const thumbLimit = snapshot.phase === 'tutorial' && goal?.step === 3;
         drawCavitySection(ctx, snapshot.clay, projection, thumbLimit);
       }
       const input = snapshot.input;

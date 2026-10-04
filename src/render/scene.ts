@@ -229,9 +229,11 @@ export function createScene(parent: HTMLElement) {
           const margin = Math.max(0, ...(decor?.attachments ?? []).map(a => a.length));
           const side = Math.max(0, ...(decor?.handles ?? []).filter(h => h.preset !== 'arch').map(h => h.scale * .61));
           const arch = Math.max(0, ...(decor?.handles ?? []).filter(h => h.preset === 'arch').map(h => h.anchor.point.y + h.scale * 1.065 - clay.height));
-          controls.target.set(0, (clay.height + arch) / 2, 0);
           const radius = Math.hypot(Math.max(...clay.radii) + Math.max(margin, side), clay.height / 2 + Math.max(margin, arch / 2));
-          inspectionDistance = radius / Math.sin(19 * Math.PI / 180) / Math.min(1, projection.viewportWidth / projection.viewportHeight) * 1.25;
+          // aim a little below the middle so the pot sits above the bottom button row, and frame it at about half
+          // the screen height (1.1) like the reference shot, instead of a small model floating in space (1.25)
+          controls.target.set(0, (clay.height + arch) / 2 - radius * .14, 0);
+          inspectionDistance = radius / Math.sin(19 * Math.PI / 180) / Math.min(1, projection.viewportWidth / projection.viewportHeight) * 1.1;
           controls.minDistance = radius * 1.3; controls.maxDistance = inspectionDistance * 2.5;
           inspectionView('reset');
         }

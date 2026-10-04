@@ -31,11 +31,7 @@ export function drawCavitySection(ctx: CanvasRenderingContext2D, clay: ClayState
     const depth = Math.min(clay.height, clay.safeIndentDepthWorld), y = top + depth * scale;
     const width = Math.max(r + 12, clay.radii.at(-1)! * scale * .7);
     ctx.strokeStyle = '#ffe075'; ctx.lineWidth = 2; ctx.setLineDash([3, 4]);
-    ctx.beginPath(); ctx.moveTo(x - width, y); ctx.lineTo(x + width, y); ctx.stroke();
-    ctx.setLineDash([]); ctx.font = '11px system-ui'; ctx.textAlign = 'center';
-    const label = 'Предел: ≈ 1 фаланга', w = ctx.measureText(label).width;
-    ctx.fillStyle = '#211d19eb'; ctx.fillRect(x - w / 2 - 4, y + 5, w + 8, 18);
-    ctx.fillStyle = '#ffe075'; ctx.fillText(label, x, y + 18);
+    ctx.beginPath(); ctx.moveTo(x - width, y); ctx.lineTo(x + width, y); ctx.stroke(); // the lesson text names it
   }
   ctx.restore();
 }

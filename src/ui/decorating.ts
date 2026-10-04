@@ -157,7 +157,10 @@ export function createDecorating(screens: ReturnType<typeof createScreens>, scen
   };
   surface.addEventListener('pointerup', pointerPlace);
   return {
-    get active() { return active; }, get usingHands() { return active && orbit.state !== 'idle'; },
+    // aiming a detail, stamp or handle at the wall (before it is placed) counts as using the hands, so no button
+    // dwells under a low hand; once placed, its edit buttons («Применить», …) dwell normally
+    get active() { return active; },
+    get usingHands() { return active && (orbit.state !== 'idle' || (previewVisible && !placed && (tool === 'place' || tool === 'stamp'))); },
     enter(withHandles = false) {
       snapshot = core.tick(performance.now()); if (snapshot.phase !== 'glaze' || !scene.supportsInspection) return;
       active = true; handleStage = withHandles; data = snapshot.customization ?? emptyCustomization(); layer.hidden = false;

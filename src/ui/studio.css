@@ -44,36 +44,49 @@
     .workshop__description::before { content: 'Как лепить'; display: block; margin-bottom: 6px; color: var(--walnut); font-size: 17px; font-weight: 500; }
     .tutorial-card { top: auto; bottom: var(--edge-gap); left: var(--edge-gap); width: var(--status-w); }
 
-    /* ---- bottom toolbar: Сохранить · Осмотреть · Ещё; folded actions open as a row above ---- */
+    /* ---- action rail, right edge under the top bar: outside the pot and both hand columns, never under the
+       pot where hands drop to shape the base. Сохранить · Осмотреть · Ещё; folded actions open downward. ---- */
     .phase-actions {
-      position: fixed; top: auto; left: 0; right: 0; bottom: var(--edge-gap); z-index: 4; width: fit-content; margin: 0 auto;
-      display: grid; grid-template-columns: repeat(3, 150px); gap: 0; padding: 0;
+      position: fixed; top: 104px; right: var(--edge-gap); bottom: auto; left: auto; z-index: 4; width: 148px; margin: 0;
+      display: grid; grid-template-columns: 1fr; gap: 0; padding: 0;
       background: var(--slip); border: 1px solid var(--slip-edge); border-radius: var(--radius-m); box-shadow: var(--lift);
+      transition-property: opacity; transition-duration: 150ms; transition-timing-function: ease-out;
     }
+    /* hands on the clay: the rail rests (screens.ts takes every button out of dwell until they let go) */
+    &[data-sculpting='true'] .phase-actions { opacity: .45; }
     .phase-actions > .dwell-button:not(.sound-toggle):not(.camera-toggle), .phase-actions > .dwell-button.camera-toggle {
-      position: static; min-height: 64px; margin: 0; padding: 8px 10px; border: 0; border-radius: 0; background: transparent; box-shadow: none;
+      /* relative: each dwell bar (::after) fills its own button, not the whole toolbar */
+      position: relative; min-height: 64px; margin: 0; padding: 8px 10px; border: 0; border-radius: 0; background: transparent; box-shadow: none;
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
       color: var(--walnut); font-size: 14px; line-height: 1.2;
     }
     .phase-actions > .dwell-button .action-icon { width: 22px; height: 22px; }
-    /* the main row always starts its own grid row, however many actions are folded above it */
-    .phase-actions > .dwell-button[data-action='checkpoint-save']:not(.sound-toggle):not(.camera-toggle) { order: 1; grid-column-start: 1; }
-    .phase-actions > .dwell-button[data-action='inspect']:not(.sound-toggle):not(.camera-toggle) { order: 2; border-left: 1px solid var(--slip-edge); }
-    .phase-actions > .dwell-button[data-action='more']:not(.sound-toggle):not(.camera-toggle) { order: 3; border-left: 1px solid var(--slip-edge); }
+    /* the main three stay on top; «Ещё» unfolds its actions below them */
+    .phase-actions > .dwell-button[data-action='checkpoint-save']:not(.sound-toggle):not(.camera-toggle) { order: 1; }
+    .phase-actions > .dwell-button[data-action='inspect']:not(.sound-toggle):not(.camera-toggle) { order: 2; border-top: 1px solid var(--slip-edge); }
+    .phase-actions > .dwell-button[data-action='more']:not(.sound-toggle):not(.camera-toggle) { order: 3; border-top: 1px solid var(--slip-edge); }
     .phase-actions > .dwell-button:is([data-action='restart'], [data-action='checkpoint-restore'], [data-action='rotate'], [data-action='focus']):not(.sound-toggle):not(.camera-toggle),
     .phase-actions > .dwell-button.camera-toggle {
-      order: 0; display: none; min-height: 52px; font-size: 13px; border-bottom: 1px solid var(--slip-edge);
+      order: 4; display: none; min-height: 52px; font-size: 13px; border-top: 1px solid var(--slip-edge);
+      inset: auto; /* drop the corner offsets older themes give .camera-toggle, so it sits inside the rail */
     }
     &[data-more='true'] .phase-actions > .dwell-button:is([data-action='restart'], [data-action='checkpoint-restore'], [data-action='rotate'], [data-action='focus']):not(.sound-toggle):not(.camera-toggle),
     &[data-more='true'] .phase-actions > .dwell-button.camera-toggle { display: flex; }
     &[data-more='true'] .phase-actions > .dwell-button[data-action='more']:not(.sound-toggle):not(.camera-toggle) { background: var(--paper-sunk); }
     .phase-actions > .dwell-button[data-action='restart']:not(.sound-toggle):not(.camera-toggle) { color: var(--clay-text); }
-    /* ruined clay: the hint says «Начать сначала», so it leaves «Ещё» and spans the toolbar */
+    /* ruined clay: the hint says «Начать сначала», so it leaves «Ещё» and heads the rail */
     &[data-damaged='true'] .phase-actions > .dwell-button[data-action='restart']:not(.sound-toggle):not(.camera-toggle) {
-      display: flex; flex-direction: row; grid-column: 1 / -1; background: var(--danger); color: #fff6ee;
+      order: 0; display: flex; background: var(--danger); color: #fff6ee; border-top: 0;
     }
-    .phase-details { position: fixed; left: 0; right: 0; bottom: 4px; margin: 0; text-align: center; pointer-events: none; }
-    .checkpoint-status { display: inline; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; color: var(--walnut-2); font-size: 12px; }
+    /* checkpoint notes: their own slot under the title, never under the toolbar or inside another card */
+    .phase-details { position: fixed; top: 112px; left: var(--edge-gap); right: auto; bottom: auto; width: var(--status-w); margin: 0; text-align: left; pointer-events: none; z-index: 3; }
+    .checkpoint-status { display: block; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; color: var(--walnut-2); font-size: 12px; }
+    .checkpoint-status:is([data-tone='success'], [data-tone='warning']) {
+      padding: 10px 14px; background: var(--slip); border: 1px solid var(--slip-edge); border-radius: var(--radius-m); box-shadow: var(--lift);
+      color: var(--walnut); font-size: 14px; line-height: 1.45;
+    }
+    .checkpoint-status[data-tone='success'] { border-color: var(--ok); }
+    .checkpoint-status[data-tone='warning'] { border-color: var(--ochre-edge); }
 
     /* ---- status card, bottom right, away from the pot and the hands: hint on top, tracking state below ---- */
     .hud {
@@ -85,6 +98,10 @@
     .hud__hint {
       position: fixed; top: auto; left: auto; right: var(--edge-gap); bottom: calc(var(--edge-gap) + 108px); width: var(--status-w); margin: 0; z-index: 4;
       text-align: left; font-size: 15px; /* severity colours the whole border (paper.css), no side stripe */
+    }
+    /* errors (ruined or over-tall clay) sit centred under the top bar, like the other error dialogs */
+    .hud__hint[data-severity='error'] {
+      top: 92px; bottom: auto; left: 50%; right: auto; translate: -50% 0; width: min(560px, 44vw); text-align: center; z-index: 6;
     }
   }
   .workshop.workshop--camera:is([data-phase='studio'], [data-phase='tutorial']) {
